@@ -7,7 +7,9 @@ lets you choose what to install, and copies everything to the
 right location — project-wide or globally.
 
 Usage:
-    python scripts/setup.py
+    python scripts/setup.py              # from repo root
+    python setup.py                       # standalone at project root
+    git clone ... && python setup.py      # one-liner
 """
 
 from __future__ import annotations
@@ -21,12 +23,14 @@ from pathlib import Path
 
 # ── ANSI Colors ──────────────────────────────────────────────────────────────
 
+_HAVE_COLORAMA: bool = False
 _SUPPORTS_COLOR: bool = (os.name != "nt") or bool(os.environ.get("TERM")) or bool(os.environ.get("WT_SESSION"))
 if not _SUPPORTS_COLOR:
     try:
         import colorama
         colorama.init()
         _SUPPORTS_COLOR = True
+        _HAVE_COLORAMA = True
     except ImportError:
         pass
 
@@ -40,13 +44,22 @@ C_GREEN  = _c("32")
 C_YELLOW = _c("33")
 C_RED    = _c("31")
 C_BLUE   = _c("34")
+C_MAGENTA= _c("35")
+C_REV    = _c("7")
 C_RESET  = _c("0")
 
-BOX_W = 74
+# ── Unicode glyphs ───────────────────────────────────────────────────────────
+# colorama's WriteConsoleW enables Unicode on Windows
+
+_USE_UTF: bool = (os.name != "nt") or _HAVE_COLORAMA
+if _USE_UTF:
+    CUR = "▸"; CHK = "●"; UNC = "○"; LCK = "◉"; DEP = "⤷"; TIK = "✔"; ICO = "◆"
+else:
+    CUR = ">"; CHK = "*"; UNC = "o"; LCK = "#"; DEP = "->"; TIK = "+"; ICO = "*"
+
+BOX_W = 80
 
 # ── Items ────────────────────────────────────────────────────────────────────
-# Each entry: type, source path (relative to repo root), name, description,
-# limitations, and whether it's a directory (has scripts inside).
 
 ITEMS: list[dict] = [
     {
@@ -56,6 +69,7 @@ ITEMS: list[dict] = [
         "description": "Lee y responde SOLO del contenido del vault de notas.",
         "limitations": "NO modifica archivos. NO inventa informacion. NO busca en internet.",
         "is_dir": False,
+        "requires": ["vault-search"],
     },
     {
         "type": "agent",
@@ -64,6 +78,7 @@ ITEMS: list[dict] = [
         "description": "Busca en fuentes externas para verificar conceptos del vault.",
         "limitations": "NO modifica archivos del vault. NO impone cambios. Solo sugiere.",
         "is_dir": False,
+        "requires": ["vault-search"],
     },
     {
         "type": "skill",
@@ -128,6 +143,7 @@ ITEMS: list[dict] = [
         "description": "Produce trabajos academicos en Markdown (APA/IEEE/Vancouver). Solo fuentes cientificas.",
         "limitations": "NO inventa fuentes. NO usa fuentes no cientificas. NO modifica referencias.",
         "is_dir": False,
+        "requires": ["academic-source-search", "citation-style-guide", "content-humanizer"],
     },
     {
         "type": "skill",
@@ -164,8 +180,12 @@ def repo_root() -> Path:
 
 
 def clear_screen() -> None:
-    """Cross-platform clear screen."""
-    os.system("cls" if os.name == "nt" else "clear")
+    """Cross-platform clear screen (ANSI escape, no flicker)."""
+    if _SUPPORTS_COLOR:
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
+    else:
+        os.system("cls" if os.name == "nt" else "clear")
 
 
 def println(text: str = "") -> None:
@@ -176,34 +196,44 @@ def println(text: str = "") -> None:
 def print_title(text: str) -> None:
     """Print a section title."""
     print(f"\n{C_BOLD}{C_BLUE}┌{'─' * (BOX_W - 2)}┐{C_RESET}")
-    print(f"{C_BOLD}{C_BLUE}│{C_RESET}  {C_BOLD}◆  {text}{C_RESET}")
+    print(f"{C_BOLD}{C_BLUE}│{C_RESET}  {C_BOLD}{ICO}  {text}{C_RESET}")
     print(f"{C_BOLD}{C_BLUE}└{'─' * (BOX_W - 2)}┘{C_RESET}\n")
 
 
 def print_step(text: str) -> None:
     """Print a progress step with checkmark."""
-    print(f"  {C_GREEN}✓{C_RESET} {text}")
+    print(f"  {C_GREEN}{TIK}{C_RESET} {text}")
 
 
 # ── Input helpers ────────────────────────────────────────────────────────────
 
 
 def getch() -> str:
-    """Read a single keypress (cross-platform, no dependencies)."""
+    """Read a single keypress. Returns named keys or char."""
     try:
         import msvcrt
-        while True:
-            ch = msvcrt.getwch()
-            if ch == "\x03":
-                raise KeyboardInterrupt
-            if ch == "\r":
-                return "enter"
-            if ch == "\x1b":
-                return "esc"
-            return ch
+        ch = msvcrt.getwch()
+        if ch == "\x03":
+            raise KeyboardInterrupt
+        if ch == "\r":
+            return "enter"
+        if ch == " ":
+            return "space"
+        if ch == "\x1b":
+            return "esc"
+        if ch == "\xe0":
+            ch2 = msvcrt.getwch()
+            if ch2 == "H": return "up"
+            if ch2 == "P": return "down"
+            return ch2
+        if ch in ("\x00", "\xe0"):
+            msvcrt.getwch()
+            return "unknown"
+        return ch
     except ImportError:
         import tty
         import termios
+        import select
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
         try:
@@ -213,7 +243,13 @@ def getch() -> str:
                 raise KeyboardInterrupt
             if ch == "\r":
                 return "enter"
+            if ch == " ":
+                return "space"
             if ch == "\x1b":
+                if select.select([sys.stdin], [], [], 0.05)[0]:
+                    seq = sys.stdin.read(2)
+                    if seq == "[A": return "up"
+                    if seq == "[B": return "down"
                 return "esc"
             return ch
         finally:
@@ -318,10 +354,10 @@ def detect_agent() -> str:
         return found[0]
 
     if len(found) > 1:
-        print("\nSe detectaron multiples agentes:")
+        print(f"\n{C_YELLOW}Se detectaron multiples agentes:{C_RESET}")
         return ask_choice("Cual quieres configurar?", found)
 
-    print("\nNo se pudo detectar automaticamente tu agente.")
+    print(f"\n{C_YELLOW}No se pudo detectar automaticamente tu agente.{C_RESET}")
     return ask_choice("Selecciona tu agente:", [
         "opencode", "claude-code", "vscode", "kimi", "otro"
     ])
@@ -331,11 +367,7 @@ def detect_agent() -> str:
 
 
 def agent_targets(agent: str, scope: str, base: Path) -> dict:
-    """Return {agents_dir, skills_dir} for given agent and scope.
-
-    ``scope`` is 'project' or 'global'. ``base`` is the project root
-    (when scope='project') or $HOME (when scope='global').
-    """
+    """Return {agents_dir, skills_dir} for given agent and scope."""
     if scope == "project":
         if agent == "opencode":
             return {"agents": base / ".opencode" / "agents",
@@ -373,14 +405,9 @@ def agent_targets(agent: str, scope: str, base: Path) -> dict:
 
 
 def adapt_md_content(content: str, agent: str) -> str:
-    """Adapt markdown content for the target agent's format.
-
-    - OpenCode: keeps YAML frontmatter as-is (native format)
-    - Others: strips frontmatter, keeps only the markdown body
-    """
+    """Adapt markdown content for the target agent's format."""
     if agent == "opencode":
         return content
-    # Strip YAML frontmatter for non-OpenCode agents
     lines = content.split("\n")
     if lines and lines[0].strip() == "---":
         end = 1
@@ -393,79 +420,154 @@ def adapt_md_content(content: str, agent: str) -> str:
     return content
 
 
+# ── Dependency locking ───────────────────────────────────────────────────────
+
+
+def _apply_dependencies(toggled: list[bool], locked: list[bool]) -> None:
+    """Lock required skills when agents are selected, and ensure they stay ON."""
+    for i in range(len(locked)):
+        locked[i] = False
+    for i, item in enumerate(ITEMS):
+        if item.get("type") == "agent" and toggled[i]:
+            for req_name in item.get("requires", []):
+                for j, other in enumerate(ITEMS):
+                    if other["name"] == req_name:
+                        locked[j] = True
+                        toggled[j] = True
+
+
 # ── Toggle menu ──────────────────────────────────────────────────────────────
 
 
-def _menu_box(items: list[dict], toggled: list[bool]) -> None:
-    """Render the toggle menu."""
-    inner = BOX_W - 4
+def _build_display_order() -> tuple[list[int], int, int]:
+    """Return (display_indices, n_agents, n_skills)."""
+    agents = [i for i, it in enumerate(ITEMS) if it["type"] == "agent"]
+    skills = [i for i, it in enumerate(ITEMS) if it["type"] == "skill"]
+    return agents + skills, len(agents), len(skills)
 
-    # Header
+
+def _item_line_content(item: dict, idx: int, selected: bool, locked: bool, cursor: bool) -> str:
+    """Build the display content for a single item row (without borders)."""
+    ptr = f"{C_CYAN}{CUR}{C_RESET}" if cursor else " "
+    if locked:
+        mark = f"{C_CYAN}{LCK}{C_RESET}"
+    elif selected:
+        mark = f"{C_GREEN}{CHK}{C_RESET}"
+    else:
+        mark = f"{C_DIM}{UNC}{C_RESET}"
+    num = f"{idx + 1:2d}"
+    name = item["name"][:20].ljust(20)
+    tag = f"{C_CYAN}agent{C_RESET}" if item["type"] == "agent" else f"{C_GREEN}skill{C_RESET}"
+
+    deps = item.get("requires", [])
+    if deps:
+        dep_str = f"{DEP} " + deps[0][:15]
+        if len(deps) > 1:
+            dep_str += f" +{len(deps)-1}"
+        desc = dep_str
+    else:
+        desc = item["description"][:30]
+        if len(item["description"]) > 30:
+            desc += "…"
+
+    return f"{ptr}{mark} {num}  {name}  {tag}  {desc}"
+
+
+def _render_menu_box(
+    items: list[dict],
+    toggled: list[bool],
+    locked: list[bool],
+    display_order: list[int],
+    cursor: int,
+    n_agents: int,
+    n_skills: int,
+) -> None:
+    """Render the full toggle menu with agent/skill sections."""
+    inner = BOX_W - 6
+
     print(f"{C_BLUE}┌{'─' * (BOX_W - 2)}┐{C_RESET}")
-    title = f"◆  AGENTS-SKILLS  —  Selección de Componentes"
-    print(f"{C_BLUE}│{C_RESET}  {C_BOLD}{title}{C_RESET}  {' ' * max(0, inner - len(title) - 2)}{C_BLUE}│{C_RESET}")
+    title = f"{ICO}  AGENTS-SKILLS  —  Selección de Componentes"
+    print(f"{C_BLUE}│{C_RESET}  {C_BOLD}{title}{C_RESET}  {' ' * max(0, inner - len(title))}{C_BLUE}│{C_RESET}")
     print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
 
-    # Instructions
     hint = (
-        f"  {C_DIM}[{C_RESET}{C_YELLOW}#{C_RESET}{C_DIM}] Alternar{C_RESET}"
-        f"   {C_DIM}[{C_RESET}{C_GREEN}d{C_RESET}{C_DIM}] Instalar{C_RESET}"
-        f"   {C_DIM}[{C_RESET}{C_RED}q{C_RESET}{C_DIM}] Salir{C_RESET}"
+        f"  {C_DIM}[{C_RESET}{C_YELLOW}↑↓{C_RESET}{C_DIM}] Navegar{C_RESET}"
+        f"   {C_DIM}[{C_RESET}{C_GREEN}Space{C_RESET}{C_DIM}] Alternar{C_RESET}"
+        f"   {C_DIM}[{C_RESET}{C_GREEN}Enter{C_RESET}{C_DIM}] Instalar{C_RESET}"
+        f"   {C_DIM}[{C_RESET}{C_RED}Esc{C_RESET}{C_DIM}] Salir{C_RESET}"
     )
-    pad = inner - len(hint) + 4  # +4 because hint doesn't include the leading "│  "
+    pad = inner - len(hint)
     print(f"{C_BLUE}│{C_RESET}  {hint}{' ' * max(0, pad)}{C_BLUE}│{C_RESET}")
-
-    # Separator
     print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
 
-    # Items
-    for i, item in enumerate(items):
-        mark = f"{C_GREEN}●{C_RESET}" if toggled[i] else f"{C_DIM}○{C_RESET}"
-        tag = f"{C_CYAN}agent{C_RESET}" if item["type"] == "agent" else f"{C_GREEN}skill{C_RESET}"
-        num = f"{i + 1:2d}"
-        name = item["name"][:22].ljust(22)
-        desc = item["description"]
-        content = f"{mark} {num}  {name}  {tag}  {desc}"
-        if len(content) > inner:
-            content = content[: inner - 1] + "…"
-        else:
-            content = content.ljust(inner)
-        print(f"{C_BLUE}│{C_RESET}  {content}  {C_BLUE}│{C_RESET}")
+    # Agents section
+    if n_agents > 0:
+        sec = "══ Agentes ══"
+        print(f"{C_BLUE}│{C_RESET}  {C_BOLD}{C_CYAN}{sec}{C_RESET}  {' ' * (inner - len(sec))}{C_BLUE}│{C_RESET}")
+        for pos in range(n_agents):
+            items_idx = display_order[pos]
+            c = (pos == cursor)
+            content = _item_line_content(items[items_idx], pos, toggled[items_idx], locked[items_idx], c)
+            padded = content.ljust(inner) if len(content) <= inner else content[:inner - 1] + "…"
+            style = C_REV if c else ""
+            print(f"{C_BLUE}│{C_RESET}  {style}{padded}{C_RESET}  {C_BLUE}│{C_RESET}")
+
+    # Skills section
+    if n_skills > 0:
+        sec = "══ Skills ══"
+        print(f"{C_BLUE}│{C_RESET}  {C_BOLD}{C_GREEN}{sec}{C_RESET}  {' ' * (inner - len(sec))}{C_BLUE}│{C_RESET}")
+        for pos in range(n_agents, len(display_order)):
+            items_idx = display_order[pos]
+            c = (pos == cursor)
+            content = _item_line_content(items[items_idx], pos, toggled[items_idx], locked[items_idx], c)
+            padded = content.ljust(inner) if len(content) <= inner else content[:inner - 1] + "…"
+            style = C_REV if c else ""
+            print(f"{C_BLUE}│{C_RESET}  {style}{padded}{C_RESET}  {C_BLUE}│{C_RESET}")
 
     # Footer
     print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
     count = sum(toggled)
-    total = len(ITEMS)
+    total = len(items)
     color = C_GREEN if count == total else C_YELLOW if count > 0 else C_RED
     suffix = f"  ({C_DIM}todos{C_RESET})" if count == total else ""
     sel = f"{color}Seleccionados: {count}/{total}{C_RESET}{suffix}"
-    print(f"{C_BLUE}│{C_RESET}  {sel}{' ' * max(0, inner - len(sel) + 4)}{C_BLUE}│{C_RESET}")
+    print(f"{C_BLUE}│{C_RESET}  {sel}{' ' * max(0, inner - len(sel))}{C_BLUE}│{C_RESET}")
     print(f"{C_BLUE}└{'─' * (BOX_W - 2)}┘{C_RESET}")
 
 
 def run_toggle_menu() -> list[dict]:
-    """Interactive toggle menu. Returns selected items."""
-    toggled = [True] * len(ITEMS)
+    """Interactive toggle menu with arrow navigation. Returns selected items."""
+    display_order, n_agents, n_skills = _build_display_order()
+    toggled = [False] * len(ITEMS)
+    locked = [False] * len(ITEMS)
+    _apply_dependencies(toggled, locked)
+    cursor = 0
 
     while True:
         clear_screen()
-        _menu_box(ITEMS, toggled)
+        _render_menu_box(ITEMS, toggled, locked, display_order, cursor, n_agents, n_skills)
 
         key = getch()
 
-        if key == "q":
+        if key == "esc":
             println(f"\n  {C_YELLOW}Instalación cancelada.{C_RESET}")
             sys.exit(0)
-        if key in ("d", "enter"):
+        elif key == "enter":
             if not any(toggled):
                 println(f"\n  {C_RED}Selecciona al menos un componente.{C_RESET}")
                 input(f"  {C_DIM}Presiona Enter para continuar...{C_RESET}")
                 continue
             break
-        if key.isdigit():
-            idx = int(key) - 1
-            if 0 <= idx < len(ITEMS):
-                toggled[idx] = not toggled[idx]
+        elif key == "up":
+            cursor = (cursor - 1) % len(display_order)
+        elif key == "down":
+            cursor = (cursor + 1) % len(display_order)
+        elif key == "space":
+            idx = display_order[cursor]
+            if locked[idx]:
+                continue
+            toggled[idx] = not toggled[idx]
+            _apply_dependencies(toggled, locked)
 
     return [ITEMS[i] for i, t in enumerate(toggled) if t]
 
@@ -520,14 +622,14 @@ def install_items(
             dest.write_text(content, encoding="utf-8")
             print_step(f"{C_BOLD}{item['name']}.md{C_RESET}  {C_DIM}→{C_RESET}  {_rel_path(dest, project_root)}")
 
-    println(f"\n  {C_GREEN}✔ Instalación completada. ({len(selected)} items){C_RESET}")
+    println(f"\n  {C_GREEN}{TIK} Instalación completada. ({len(selected)} items){C_RESET}")
 
 
 # ── Repo cleanup ─────────────────────────────────────────────────────────────
 
 
 def cleanup_repo(repo: Path) -> None:
-    """Ask user whether to delete the cloned repo, then do it."""
+    """Ask user whether to delete the cloned repo."""
     if not ask_yesno(f"\n  {C_YELLOW}¿Eliminar el repositorio clonado?{C_RESET}"):
         println(f"  {C_DIM}Repositorio conservado en:{C_RESET} {repo}")
         return
@@ -544,15 +646,12 @@ def main() -> None:
         clear_screen()
         print_title("AGENTS-SKILLS  —  Instalador Cross-Platform")
 
-        # 1. OS detection
         platform = detect_os()
         print_step(f"Sistema operativo:  {C_BOLD}{platform}{C_RESET}")
 
-        # 2. Agent detection
         agent = detect_agent()
         print_step(f"Agente detectado:   {C_BOLD}{agent}{C_RESET}")
 
-        # 3. Scope: project or global
         scope = "project"
         if ask_yesno(f"\n  {C_YELLOW}¿Instalar para este proyecto (local)?{C_RESET}"):
             scope = "project"
@@ -567,16 +666,13 @@ def main() -> None:
 
         print_step(f"Alcance:            {C_BOLD}{scope}{C_RESET}")
 
-        # 4. Toggle menu
         selected = run_toggle_menu()
 
-        # 5. Install
         # FIX: target base = CWD (project root), NOT repo_root
         base = Path.cwd() if scope == "project" else Path.home()
         targets = agent_targets(agent, scope, base)
         install_items(selected, agent, targets, repo_root(), base)
 
-        # 6. Cleanup
         cleanup_repo(repo_root())
 
     except KeyboardInterrupt:
