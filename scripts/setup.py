@@ -19,6 +19,31 @@ import subprocess
 import json
 from pathlib import Path
 
+# ── ANSI Colors ──────────────────────────────────────────────────────────────
+
+_SUPPORTS_COLOR: bool = (os.name != "nt") or bool(os.environ.get("TERM")) or bool(os.environ.get("WT_SESSION"))
+if not _SUPPORTS_COLOR:
+    try:
+        import colorama
+        colorama.init()
+        _SUPPORTS_COLOR = True
+    except ImportError:
+        pass
+
+def _c(code: str) -> str:
+    return f"\033[{code}m" if _SUPPORTS_COLOR else ""
+
+C_BOLD   = _c("1")
+C_DIM    = _c("2")
+C_CYAN   = _c("36")
+C_GREEN  = _c("32")
+C_YELLOW = _c("33")
+C_RED    = _c("31")
+C_BLUE   = _c("34")
+C_RESET  = _c("0")
+
+BOX_W = 74
+
 # ── Items ────────────────────────────────────────────────────────────────────
 # Each entry: type, source path (relative to repo root), name, description,
 # limitations, and whether it's a directory (has scripts inside).
@@ -143,16 +168,21 @@ def clear_screen() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 
 
+def println(text: str = "") -> None:
+    """Print with reset."""
+    print(f"{C_RESET}{text}")
+
+
 def print_title(text: str) -> None:
-    """Print a section title with underline."""
-    print(f"\n{'=' * 60}")
-    print(f"  {text}")
-    print(f"{'=' * 60}\n")
+    """Print a section title."""
+    print(f"\n{C_BOLD}{C_BLUE}┌{'─' * (BOX_W - 2)}┐{C_RESET}")
+    print(f"{C_BOLD}{C_BLUE}│{C_RESET}  {C_BOLD}◆  {text}{C_RESET}")
+    print(f"{C_BOLD}{C_BLUE}└{'─' * (BOX_W - 2)}┘{C_RESET}\n")
 
 
 def print_step(text: str) -> None:
-    """Print a progress step."""
-    print(f"  >> {text}")
+    """Print a progress step with checkmark."""
+    print(f"  {C_GREEN}✓{C_RESET} {text}")
 
 
 # ── Input helpers ────────────────────────────────────────────────────────────
@@ -366,33 +396,70 @@ def adapt_md_content(content: str, agent: str) -> str:
 # ── Toggle menu ──────────────────────────────────────────────────────────────
 
 
+def _menu_box(items: list[dict], toggled: list[bool]) -> None:
+    """Render the toggle menu."""
+    inner = BOX_W - 4
+
+    # Header
+    print(f"{C_BLUE}┌{'─' * (BOX_W - 2)}┐{C_RESET}")
+    title = f"◆  AGENTS-SKILLS  —  Selección de Componentes"
+    print(f"{C_BLUE}│{C_RESET}  {C_BOLD}{title}{C_RESET}  {' ' * max(0, inner - len(title) - 2)}{C_BLUE}│{C_RESET}")
+    print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
+
+    # Instructions
+    hint = (
+        f"  {C_DIM}[{C_RESET}{C_YELLOW}#{C_RESET}{C_DIM}] Alternar{C_RESET}"
+        f"   {C_DIM}[{C_RESET}{C_GREEN}d{C_RESET}{C_DIM}] Instalar{C_RESET}"
+        f"   {C_DIM}[{C_RESET}{C_RED}q{C_RESET}{C_DIM}] Salir{C_RESET}"
+    )
+    pad = inner - len(hint) + 4  # +4 because hint doesn't include the leading "│  "
+    print(f"{C_BLUE}│{C_RESET}  {hint}{' ' * max(0, pad)}{C_BLUE}│{C_RESET}")
+
+    # Separator
+    print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
+
+    # Items
+    for i, item in enumerate(items):
+        mark = f"{C_GREEN}●{C_RESET}" if toggled[i] else f"{C_DIM}○{C_RESET}"
+        tag = f"{C_CYAN}agent{C_RESET}" if item["type"] == "agent" else f"{C_GREEN}skill{C_RESET}"
+        num = f"{i + 1:2d}"
+        name = item["name"][:22].ljust(22)
+        desc = item["description"]
+        content = f"{mark} {num}  {name}  {tag}  {desc}"
+        if len(content) > inner:
+            content = content[: inner - 1] + "…"
+        else:
+            content = content.ljust(inner)
+        print(f"{C_BLUE}│{C_RESET}  {content}  {C_BLUE}│{C_RESET}")
+
+    # Footer
+    print(f"{C_BLUE}├{'─' * (BOX_W - 2)}┤{C_RESET}")
+    count = sum(toggled)
+    total = len(ITEMS)
+    color = C_GREEN if count == total else C_YELLOW if count > 0 else C_RED
+    suffix = f"  ({C_DIM}todos{C_RESET})" if count == total else ""
+    sel = f"{color}Seleccionados: {count}/{total}{C_RESET}{suffix}"
+    print(f"{C_BLUE}│{C_RESET}  {sel}{' ' * max(0, inner - len(sel) + 4)}{C_BLUE}│{C_RESET}")
+    print(f"{C_BLUE}└{'─' * (BOX_W - 2)}┘{C_RESET}")
+
+
 def run_toggle_menu() -> list[dict]:
     """Interactive toggle menu. Returns selected items."""
     toggled = [True] * len(ITEMS)
 
     while True:
         clear_screen()
-        print_title("AGENTS-SKILLS — Instalador")
-        print("  Selecciona los items a instalar:\n")
-        print("  [NUMERO] = toggle  |  [d] = confirmar  |  [q] = salir\n")
+        _menu_box(ITEMS, toggled)
 
-        for i, item in enumerate(ITEMS):
-            status = "[x]" if toggled[i] else "[ ]"
-            print(f"  {status} {i+1}. {item['name']}")
-            print(f"       Tipo: {item['type']}/  |  {item['description']}")
-            print(f"       {item['limitations']}")
-            print()
-
-        print(f"  ({sum(toggled)}/{len(ITEMS)} seleccionados)")
         key = getch()
 
         if key == "q":
-            print("\n  Instalacion cancelada.")
+            println(f"\n  {C_YELLOW}Instalación cancelada.{C_RESET}")
             sys.exit(0)
-        if key == "d" or key == "enter":
+        if key in ("d", "enter"):
             if not any(toggled):
-                print("\n  Debes seleccionar al menos un item.")
-                input("  Presiona Enter para continuar...")
+                println(f"\n  {C_RED}Selecciona al menos un componente.{C_RESET}")
+                input(f"  {C_DIM}Presiona Enter para continuar...{C_RESET}")
                 continue
             break
         if key.isdigit():
@@ -406,17 +473,26 @@ def run_toggle_menu() -> list[dict]:
 # ── Installer ────────────────────────────────────────────────────────────────
 
 
+def _rel_path(path: Path, base: Path) -> str:
+    """Return path relative to base, or full path if not under base."""
+    try:
+        return str(path.relative_to(base))
+    except ValueError:
+        return str(path)
+
+
 def install_items(
     selected: list[dict],
     agent: str,
     targets: dict,
     repo: Path,
+    project_root: Path,
 ) -> None:
     """Copy selected items from repo to target directories."""
     agents_dir = targets["agents"]
     skills_dir = targets["skills"]
 
-    print()
+    println()
     for item in selected:
         dest_dir = agents_dir if item["type"] == "agent" else skills_dir
         src = repo / item["source"]
@@ -424,7 +500,6 @@ def install_items(
         if item["is_dir"]:
             dest = dest_dir / item["name"]
             dest.mkdir(parents=True, exist_ok=True)
-            # Copy all files from the source directory
             for f in src.rglob("*"):
                 if f.is_file():
                     rel = f.relative_to(src)
@@ -436,16 +511,16 @@ def install_items(
                         dest_file.write_text(content, encoding="utf-8")
                     else:
                         shutil.copy2(f, dest_file)
-            print_step(f"{item['name']}/  →  {dest}")
+            print_step(f"{C_BOLD}{item['name']}/{C_RESET}  {C_DIM}→{C_RESET}  {_rel_path(dest, project_root)}")
         else:
             dest = dest_dir / f"{item['name']}.md"
             dest.parent.mkdir(parents=True, exist_ok=True)
             content = src.read_text(encoding="utf-8")
             content = adapt_md_content(content, agent)
             dest.write_text(content, encoding="utf-8")
-            print_step(f"{item['name']}.md  →  {dest}")
+            print_step(f"{C_BOLD}{item['name']}.md{C_RESET}  {C_DIM}→{C_RESET}  {_rel_path(dest, project_root)}")
 
-    print(f"\n  Instalacion completada. ({len(selected)} items)")
+    println(f"\n  {C_GREEN}✔ Instalación completada. ({len(selected)} items){C_RESET}")
 
 
 # ── Repo cleanup ─────────────────────────────────────────────────────────────
@@ -453,23 +528,12 @@ def install_items(
 
 def cleanup_repo(repo: Path) -> None:
     """Ask user whether to delete the cloned repo, then do it."""
-    if not ask_yesno("\nEliminar el repositorio clonado?"):
-        print("  Repositorio conservado. Puedes borrarlo manualmente con:")
-        print(f"    rm -rf \"{repo}\"")
+    if not ask_yesno(f"\n  {C_YELLOW}¿Eliminar el repositorio clonado?{C_RESET}"):
+        println(f"  {C_DIM}Repositorio conservado en:{C_RESET} {repo}")
         return
 
-    this_script = Path(__file__).resolve()
-    tmp_dir = Path.home() / ".agents-skills-setup"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    tmp_script = tmp_dir / "setup.py"
-
-    import shutil
-    shutil.copy2(this_script, tmp_script)
     shutil.rmtree(repo, ignore_errors=True)
-
-    print(f"\n  Repositorio eliminado.")
-    print(f"  El instalador quedo en: {tmp_script}")
-    print(f"  Puedes borrarlo con:    rm -rf \"{tmp_dir}\"")
+    println(f"  {C_DIM}Repositorio eliminado.{C_RESET}")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────
@@ -478,44 +542,45 @@ def cleanup_repo(repo: Path) -> None:
 def main() -> None:
     try:
         clear_screen()
-        print_title("AGENTS-SKILLS — Instalador Cross-Platform")
+        print_title("AGENTS-SKILLS  —  Instalador Cross-Platform")
 
         # 1. OS detection
         platform = detect_os()
-        print_step(f"Sistema operativo: {platform}")
+        print_step(f"Sistema operativo:  {C_BOLD}{platform}{C_RESET}")
 
         # 2. Agent detection
         agent = detect_agent()
-        print_step(f"Agente detectado:  {agent}")
+        print_step(f"Agente detectado:   {C_BOLD}{agent}{C_RESET}")
 
         # 3. Scope: project or global
         scope = "project"
-        if ask_yesno("\nInstalar para el proyecto (local)?"):
+        if ask_yesno(f"\n  {C_YELLOW}¿Instalar para este proyecto (local)?{C_RESET}"):
             scope = "project"
         else:
             scope = "global"
             if agent == "vscode" and not ask_yesno(
-                "\nVS Code no tiene una ruta global estandar.\n"
-                "Usar ~/.vscode/instructions/ de todas formas?"
+                f"\n  {C_YELLOW}VS Code no tiene una ruta global estándar.{C_RESET}\n"
+                f"  ¿Usar ~/.vscode/instructions/ de todas formas?"
             ):
-                print("  Selecciona 'proyecto' para instalacion local.")
+                println(f"  {C_DIM}Se usará instalación local.{C_RESET}")
                 scope = "project"
 
-        print_step(f"Alcance: {scope}")
+        print_step(f"Alcance:            {C_BOLD}{scope}{C_RESET}")
 
         # 4. Toggle menu
         selected = run_toggle_menu()
 
         # 5. Install
-        base = repo_root() if scope == "project" else Path.home()
+        # FIX: target base = CWD (project root), NOT repo_root
+        base = Path.cwd() if scope == "project" else Path.home()
         targets = agent_targets(agent, scope, base)
-        install_items(selected, agent, targets, repo_root())
+        install_items(selected, agent, targets, repo_root(), base)
 
         # 6. Cleanup
         cleanup_repo(repo_root())
 
     except KeyboardInterrupt:
-        print("\n\n  Instalacion cancelada por el usuario.")
+        println(f"\n\n  {C_YELLOW}Instalación cancelada.{C_RESET}")
         sys.exit(1)
 
 
