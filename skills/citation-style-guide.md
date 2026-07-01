@@ -1,11 +1,11 @@
 ---
 name: citation-style-guide
-description: Referencia rapida para formatear citas y referencias en normas APA 7th, IEEE y Vancouver. Incluye ejemplos, configuracion de documento y reglas por tipo de fuente.
+description: Use when the user needs to format citations, references, or bibliographies in APA 7th, IEEE, or Vancouver style. Also use when writing academic papers, theses, journal articles, or any document requiring formal citation formatting. Triggers on keywords like "APA", "IEEE", "Vancouver", "citar", "referencia", "bibliografia", "formato de cita", "normas de citacion", and any request to format DOI, in-text citations, or reference lists.
 ---
 
 # Citation Style Guide
 
-Guia de formato para citas in-text y lista de referencias en las tres normas principales.
+Guia de formato para citas in-text y lista de referencias en las tres normas principales. Selecciona la norma segun el contexto: APA para ciencias sociales/educacion, IEEE para ingenieria/ciencias de la computacion, Vancouver para ciencias de la salud/biomedicina.
 
 ---
 
@@ -188,6 +188,8 @@ Referencia:
 ---
 
 ## Reglas Generales Aplicables
+
+Cada norma existe para resolver un problema distinto: APA prioriza la trazabilidad autor-fecha (util en ciencias sociales donde la actualidad del conocimiento importa), IEEE usa numeracion secuencial (eficiente en ingenieria donde se citan muchos estandares y patentes), Vancouver tambien usa numeracion pero con formato distinto (optimizado para revistas medicas). Elegir la norma correcta no es burocracia: es lo que permite a tus lectores encontrar las fuentes sin friction.
 
 | Elemento | APA 7th | IEEE | Vancouver |
 |----------|---------|------|-----------|

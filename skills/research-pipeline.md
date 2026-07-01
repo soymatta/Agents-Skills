@@ -1,11 +1,12 @@
 ---
 name: research-pipeline
-description: Structured quantitative research process for prediction markets. Never ask the user.
+description: Use when the user needs to conduct quantitative research for prediction markets, market analysis, or data-driven research questions. Triggers on keywords like "research", "investigacion", "prediction market", "pipeline", "quant research", "analisis cuantitativo", "market research", "forecast", "prediccion". This skill runs a structured research pipeline: scope definition, literature search, hypothesis formulation, prototyping, measurement, and decision. Use BEFORE telegram-notify (which sends notifications on pipeline completion).
+compatibility: Used by telegram-notify for completion notifications.
 ---
 
 # Research Pipeline
 
-Execute autonomously. No user prompts.
+Execute autonomously. No user prompts. Este pipeline esta disenado para producir resultados de investigacion cuantitativa reproducibles y estructurados. Cada paso tiene un proposito: el scoping evita preguntas ambiguas, la busqueda de literatura evita reinventar la rueda, la hipotesis fuerza claridad, y la decision final asegura que cada investigacion termine con una conclusion accionable.
 
 ## Pipeline
 

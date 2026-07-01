@@ -1,11 +1,11 @@
 ---
 name: goal-pursuit
-description: Sets a quantitative target and runs an autonomous loop until it is met. Never ask the user.
+description: Use when the user wants to optimize a numerical metric or reach a quantitative target through iterative improvement. Triggers on keywords like "optimizar", "optimize", "target", "meta numerica", "improve metric", "reach X%", "goal", "autonomous loop", "pursuit", "optimization loop", "maximize", "minimize". This skill runs an autonomous loop that measures, diagnoses, plans, executes, and repeats until the target is met — never asking the user for input. Use for hyperparameter tuning, accuracy improvement, performance optimization, and any iterative numerical goal.
 ---
 
 # Goal Pursuit
 
-Never ask the user anything. Never pause for input.
+Never ask the user anything. Never pause for input. This skill is designed for scenarios where the user has a clearly defined numerical target (e.g., "reach 90% accuracy") and wants the system to autonomously iterate until it gets there. The loop prioritizes lower-cost approaches first (deterministic code before deep learning) to find the best solution efficiently.
 
 ## Loop
 

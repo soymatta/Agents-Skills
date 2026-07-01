@@ -1,11 +1,12 @@
 ---
 name: academic-source-search
-description: Busca fuentes cientificas verificadas en bases de datos academicas. Filtra por calidad, extrae metadatos y genera citas preliminares.
+description: Use when the user needs to find, verify, or collect academic/scientific sources for papers, theses, literature reviews, or research. Triggers on keywords like "fuente", "source", "referencia", "articulo cientifico", "paper", "academic", "scholar", "literature review", "busqueda bibliografica", "DOI", "arXiv", "PubMed". This skill searches major academic databases with structured boolean queries, extracts metadata, and verifies source quality. Use BEFORE citation-style-guide (which formats the citations once sources are found).
+compatibility: Used by academic-researcher agent. Provides sources for citation-style-guide formatting.
 ---
 
 # Academic Source Search
 
-Busqueda sistematica de literatura cientifica para respaldar trabajos academicos.
+Busqueda sistematica de literatura cientifica para respaldar trabajos academicos. La calidad de un trabajo academico depende directamente de la calidad de sus fuentes. Una busqueda estructurada con operadores booleanos, filtros y verificacion cruzada produce referencias confiables; una busqueda superficial produce referencias dudosas.
 
 ---
 

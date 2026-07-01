@@ -1,11 +1,12 @@
 ---
 name: vault-search
-description: Searches for specific topics within the Obsidian notes vault using glob and grep.
+description: Use when the user asks to find information, notes, topics, or files inside their Obsidian vault / markdown notes directory. Also use when the user says "buscar", "search", "find", "donde esta", "encuentra", "localiza", or asks about something they remember writing but cannot locate. This skill searches note content, filenames, tags, and [[wiki-links]] using grep and glob. Use BEFORE vault-organizer (to find existing notes) and vault-indexer (to understand scope).
+compatibility: Requires vault-indexer for initial indexing. Used by vault-organizer and vault-researcher.
 ---
 
 # Vault Search
 
-Search for topics within the vault using glob and grep.
+Search for topics within the vault using glob and grep. El vault de notas contiene conocimiento previo que debe reutilizarse; la mayoria de las preguntas pueden responderse con informacion ya escrita. Busca primero antes de asumir que no existe.
 
 ## Procedure
 1. Receive the topic from the user

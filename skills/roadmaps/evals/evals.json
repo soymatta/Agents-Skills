@@ -1,0 +1,100 @@
+{
+  "skill_name": "roadmaps",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I want to build a portfolio website. Create a step-by-step roadmap for me that breaks down the process. It should include decisions like whether to use a template or build from scratch.",
+      "expected_output": "A roadmap.md file with at least 4 steps, including at least one decision branch for template vs custom build",
+      "files": [],
+      "expectations": [
+        "Output is a valid roadmap.md with # Roadmap header",
+        "Includes ## Metadata with Goal and Status fields",
+        "Includes ## Steps section with at least 4 steps",
+        "At least one step is type decision with If yes/If no branches"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I have a roadmap.md in my project already. Read it and tell me what the current step is and what I should do next.",
+      "expected_output": "Agent checks roadmap.md, identifies current step, reports status and next actions",
+      "files": [],
+      "expectations": [
+        "Agent reads roadmap.md file",
+        "Identifies the step with Status: in_progress",
+        "Reports what to do next based on Next field",
+        "Agent does NOT modify roadmap.md"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I'm trying to train a model but my accuracy is only 72%. I need to keep trying different approaches until I hit 90%. Create a roadmap that loops on improvements until the target is met.",
+      "expected_output": "A roadmap with a loop step that cycles between evaluation and improvement until condition is met",
+      "files": [],
+      "expectations": [
+        "Roadmap includes a step with type: loop",
+        "Loop step has Loop condition and Loop back to fields",
+        "Loop condition references the 90% accuracy target",
+        "Includes a decision step for evaluating accuracy"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "I need to launch a mobile app. The design, backend API, and marketing site can all be built at the same time by different people. Create a roadmap with parallel tracks that converge for the launch.",
+      "expected_output": "A roadmap with at least one parallel step containing 3+ sub-steps that converge at a milestone",
+      "files": [],
+      "expectations": [
+        "Roadmap includes a step with type: parallel",
+        "Parallel step has Sub-steps with 3+ items",
+        "All parallel sub-steps converge to a single milestone step",
+        "Milestone step has completion criteria defined"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "I'm working on a deployment roadmap. Step 3 (database migration) failed because the DBA is on leave. What should I do? Update the roadmap to handle this.",
+      "expected_output": "Agent updates roadmap.md: marks Step 3 as blocked/skipped, adjusts Next references, and continues to next independent step",
+      "files": [],
+      "expectations": [
+        "Agent reads existing roadmap.md",
+        "Step 3 is marked as blocked or skipped",
+        "Next on success references are updated to skip blocked step",
+        "Agent proposes continuing to next independent step"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "There's an AGENTS.md in my project that says 'Always use TypeScript strict mode'. Create a roadmap for building a new API that respects this constraint.",
+      "expected_output": "Agent reads both AGENTS.md and creates a roadmap that incorporates the AGENTS.md constraint into relevant steps",
+      "files": [],
+      "expectations": [
+        "Agent checks for AGENTS.md existence",
+        "Roadmap references the AGENTS.md constraint in relevant steps",
+        "Steps are consistent with the TypeScript strict mode requirement"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "I have a roadmap.md I've been following. I just finished Step 4 (Build tests). Update the roadmap and create a quick state reference so I don't need to re-read the full file every time.",
+      "expected_output": "Agent updates roadmap.md step status and creates .roadmap-state with current step info",
+      "files": [],
+      "expectations": [
+        "Roadmap.md Step 4 status changed to completed",
+        ".roadmap-state file is created",
+        ".roadmap-state contains current_step, step_label, type, status, goal, updated fields",
+        ".roadmap-state updated timestamp matches ISO format"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "I have an existing roadmap with 5 steps. I need to add a new step between Step 2 and Step 3 for 'Design database schema' because I forgot it. Update the roadmap.",
+      "expected_output": "Roadmap.md updated with new step inserted between Step 2 and Step 3, all subsequent steps renumbered, Next references fixed",
+      "files": [],
+      "expectations": [
+        "New step 'Design database schema' is inserted between Step 2 and Step 3",
+        "All steps are renumbered sequentially (1, 2, 3, 4, 5, 6)",
+        "Next references are updated to maintain correct flow",
+        "Old Step 3 becomes Step 4"
+      ]
+    }
+  ]
+}

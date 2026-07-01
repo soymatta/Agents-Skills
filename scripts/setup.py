@@ -1,523 +1,336 @@
-#!/usr/bin/env python3
-"""
-Cross-platform installer for AI agents and skills.
+# /// script
+# requires-python = ">=3.11"
+# dependencies = []
+# ///
 
-Detects your AI agent (OpenCode, Claude Code, VS Code, Kimi),
-lets you choose what to install, and copies everything to the
-right location — project-wide or globally.
+"""Interactive setup: toggle skills/agents, install them, and keep repo clean.
 
 Usage:
-    python scripts/setup.py
+    python scripts/setup.py              # from repo root
+    python setup.py                       # standalone at project root
+    git clone ... && python setup.py      # one-liner
 """
 
 from __future__ import annotations
 
-import os
-import sys
-import shutil
-import subprocess
-import json
+import json, os, shutil, subprocess, sys
 from pathlib import Path
 
-# ── Items ────────────────────────────────────────────────────────────────────
-# Each entry: type, source path (relative to repo root), name, description,
-# limitations, and whether it's a directory (has scripts inside).
+# ── ANSI helpers ──────────────────────────────────────────────────────────────
 
-ITEMS: list[dict] = [
-    {
-        "type": "agent",
-        "source": "agents/vault-indexer.md",
-        "name": "vault-indexer",
-        "description": "Lee y responde SOLO del contenido del vault de notas.",
-        "limitations": "NO modifica archivos. NO inventa informacion. NO busca en internet.",
-        "is_dir": False,
-    },
-    {
-        "type": "agent",
-        "source": "agents/vault-researcher.md",
-        "name": "vault-researcher",
-        "description": "Busca en fuentes externas para verificar conceptos del vault.",
-        "limitations": "NO modifica archivos del vault. NO impone cambios. Solo sugiere.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/vault-search.md",
-        "name": "vault-search",
-        "description": "Busca temas dentro del vault usando glob y grep.",
-        "limitations": "NO modifica archivos. Solo busca dentro del proyecto.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/vault-organizer.md",
-        "name": "vault-organizer",
-        "description": "Sugiere donde colocar informacion en el vault.",
-        "limitations": "NO muestra ni edita contenido. Solo sugiere ubicaciones.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/research-pipeline.md",
-        "name": "research-pipeline",
-        "description": "Pipeline de investigacion cuantitativa para prediction markets.",
-        "limitations": "NO pregunta al usuario. NO se detiene por errores.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/goal-pursuit.md",
-        "name": "goal-pursuit",
-        "description": "Loop autonomo que optimiza hasta alcanzar un target numerico.",
-        "limitations": "NO pregunta al usuario. NO se detiene hasta cumplir la meta.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/telegram-notify.md",
-        "name": "telegram-notify",
-        "description": "Envia notificaciones Telegram para eventos del proyecto.",
-        "limitations": "NO pregunta al usuario. NO bloquea la ejecucion si falla.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/backtest-run.md",
-        "name": "backtest-run",
-        "description": "Ejecuta backtests con configuracion del proyecto.",
-        "limitations": "NO pregunta al usuario. NO usa la nube por defecto.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/backtest-validate",
-        "name": "backtest-validate",
-        "description": "Valida calidad de backtests con scoring 5-dimensional. Incluye script Python.",
-        "limitations": "NO ejecuta backtests (usa backtest-run para eso). Solo evalua resultados.",
-        "is_dir": True,
-    },
-    {
-        "type": "agent",
-        "source": "agents/academic-researcher.md",
-        "name": "academic-researcher",
-        "description": "Produce trabajos academicos en Markdown (APA/IEEE/Vancouver). Solo fuentes cientificas.",
-        "limitations": "NO inventa fuentes. NO usa fuentes no cientificas. NO modifica referencias.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/academic-source-search.md",
-        "name": "academic-source-search",
-        "description": "Busca fuentes cientificas en bases de datos academicas (Scholar, arXiv, PubMed).",
-        "limitations": "NO usa Wikipedia como fuente primaria. Solo fuentes con DOI/URL verificable.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/citation-style-guide.md",
-        "name": "citation-style-guide",
-        "description": "Referencia de formato APA 7th / IEEE / Vancouver para citas y referencias.",
-        "limitations": "NO mezcla normas. NO omite DOI cuando esta disponible.",
-        "is_dir": False,
-    },
-    {
-        "type": "skill",
-        "source": "skills/content-humanizer",
-        "name": "content-humanizer",
-        "description": "Pase final anti-deteccion IA. Ajusta estructura, lexico y fluidez. Incluye script detector.",
-        "limitations": "NO modifica datos, citas, referencias ni estructura academica.",
-        "is_dir": True,
-    },
-]
+_USE_ANSI = os.environ.get("TERM", "") not in ("", "dumb") and hasattr(sys.stdout, "isatty") and sys.stdout.isatty()
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+def _ansi(code: str) -> str:
+    return f"\033[{code}m" if _USE_ANSI else ""
 
+RST = _ansi("0"); BLD = _ansi("1"); DIM = _ansi("2"); INV = _ansi("7")
+RED = _ansi("31"); GRN = _ansi("32"); YLW = _ansi("33")
+BLU = _ansi("34"); MAG = _ansi("35"); CYN = _ansi("36")
 
-def repo_root() -> Path:
-    """Return the repo root (parent of the scripts/ directory)."""
+# ── box-drawing glyphs ────────────────────────────────────────────────────────
+
+_GLYPH = {
+    "tl": "┌", "tr": "┐", "bl": "└", "br": "┘",
+    "h": "─", "v": "│",
+    "on": "◉", "off": "○", "lock": "🔒",
+} if _USE_ANSI else {
+    "tl": "+", "tr": "+", "bl": "+", "br": "+",
+    "h": "-", "v": "|",
+    "on": "[x]", "off": "[ ]", "lock": "[L]",
+}
+
+# ── helpers ───────────────────────────────────────────────────────────────────
+
+def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
+def _rel_path(p: Path) -> str:
+    try:
+        return str(p.relative_to(_repo_root()))
+    except ValueError:
+        return str(p)
 
 def clear_screen() -> None:
-    """Cross-platform clear screen."""
-    os.system("cls" if os.name == "nt" else "clear")
-
-
-def print_title(text: str) -> None:
-    """Print a section title with underline."""
-    print(f"\n{'=' * 60}")
-    print(f"  {text}")
-    print(f"{'=' * 60}\n")
-
-
-def print_step(text: str) -> None:
-    """Print a progress step."""
-    print(f"  >> {text}")
-
-
-# ── Input helpers ────────────────────────────────────────────────────────────
-
-
-def getch() -> str:
-    """Read a single keypress (cross-platform, no dependencies)."""
-    try:
-        import msvcrt
-        while True:
-            ch = msvcrt.getwch()
-            if ch == "\x03":
-                raise KeyboardInterrupt
-            if ch == "\r":
-                return "enter"
-            if ch == "\x1b":
-                return "esc"
-            return ch
-    except ImportError:
-        import tty
-        import termios
-        fd = sys.stdin.fileno()
-        old = termios.tcgetattr(fd)
-        try:
-            tty.setraw(fd, termios.TCSADRAIN)
-            ch = sys.stdin.read(1)
-            if ch == "\x03":
-                raise KeyboardInterrupt
-            if ch == "\r":
-                return "enter"
-            if ch == "\x1b":
-                return "esc"
-            return ch
-        finally:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old)
-
-
-def ask_yesno(prompt: str, default: bool = True) -> bool:
-    """Ask a yes/no question and return bool."""
-    hint = " [Y/n]" if default else " [y/N]"
-    while True:
-        answer = input(f"{prompt}{hint}: ").strip().lower()
-        if not answer:
-            return default
-        if answer in ("y", "yes"):
-            return True
-        if answer in ("n", "no"):
-            return False
-
-
-def ask_choice(prompt: str, options: list[str]) -> str:
-    """Show numbered options and let user pick one."""
-    print(f"\n{prompt}")
-    for i, opt in enumerate(options, 1):
-        print(f"  {i}. {opt}")
-    while True:
-        try:
-            choice = input(f"\nOpcion [1-{len(options)}]: ").strip()
-            idx = int(choice) - 1
-            if 0 <= idx < len(options):
-                return options[idx]
-        except (ValueError, IndexError):
-            pass
-
-
-# ── OS detection ─────────────────────────────────────────────────────────────
-
-
-def detect_os() -> str:
-    """Return 'linux', 'windows', 'macos', or 'unknown'."""
-    if sys.platform.startswith("linux"):
-        return "linux"
-    if sys.platform.startswith("win"):
-        return "windows"
-    if sys.platform.startswith("darwin"):
-        return "macos"
-    return "unknown"
-
-
-# ── Agent detection ──────────────────────────────────────────────────────────
-
-
-def find_open_code(home: Path, cwd: Path) -> bool:
-    """Detect OpenCode by config files."""
-    if (cwd / "opencode.json").exists():
-        return True
-    if (cwd / ".opencode").is_dir():
-        return True
-    if (home / ".config" / "opencode").is_dir():
-        return True
-    return False
-
-
-def find_claude_code(home: Path, cwd: Path) -> bool:
-    """Detect Claude Code by config files."""
-    if (cwd / "CLAUDE.md").exists():
-        return True
-    if (home / ".claude").is_dir():
-        return True
-    return False
-
-
-def find_vscode(cwd: Path) -> bool:
-    """Detect VS Code / Copilot by config files."""
-    if (cwd / ".vscode").is_dir():
-        return True
-    if (cwd / ".github" / "copilot-instructions.md").exists():
-        return True
-    return False
-
-
-def find_kimi(home: Path) -> bool:
-    """Detect Kimi by config directory."""
-    return (home / ".kimi").is_dir()
-
-
-def detect_agent() -> str:
-    """Detect which AI agent is being used. Returns agent id string."""
-    home = Path.home()
-    cwd = Path.cwd()
-
-    found: list[str] = []
-    if find_open_code(home, cwd):
-        found.append("opencode")
-    if find_claude_code(home, cwd):
-        found.append("claude-code")
-    if find_vscode(cwd):
-        found.append("vscode")
-    if find_kimi(home):
-        found.append("kimi")
-
-    if len(found) == 1:
-        return found[0]
-
-    if len(found) > 1:
-        print("\nSe detectaron multiples agentes:")
-        return ask_choice("Cual quieres configurar?", found)
-
-    print("\nNo se pudo detectar automaticamente tu agente.")
-    return ask_choice("Selecciona tu agente:", [
-        "opencode", "claude-code", "vscode", "kimi", "otro"
-    ])
-
-
-# ── Target paths per agent ───────────────────────────────────────────────────
-
-
-def agent_targets(agent: str, scope: str, base: Path) -> dict:
-    """Return {agents_dir, skills_dir} for given agent and scope.
-
-    ``scope`` is 'project' or 'global'. ``base`` is the project root
-    (when scope='project') or $HOME (when scope='global').
-    """
-    if scope == "project":
-        if agent == "opencode":
-            return {"agents": base / ".opencode" / "agents",
-                    "skills": base / ".opencode" / "skills"}
-        if agent == "claude-code":
-            return {"agents": base / ".claude" / "instructions",
-                    "skills": base / ".claude" / "instructions"}
-        if agent == "vscode":
-            return {"agents": base / ".github" / "instructions",
-                    "skills": base / ".github" / "instructions"}
-        if agent == "kimi":
-            return {"agents": base / ".kimi",
-                    "skills": base / ".kimi"}
-        return {"agents": base / ".ai" / "instructions",
-                "skills": base / ".ai" / "instructions"}
+    if _USE_ANSI:
+        sys.stdout.write("\033[2J\033[H")
+        sys.stdout.flush()
     else:
-        home = Path.home()
-        if agent == "opencode":
-            return {"agents": home / ".config" / "opencode" / "agents",
-                    "skills": home / ".config" / "opencode" / "skills"}
-        if agent == "claude-code":
-            return {"agents": home / ".claude" / "instructions",
-                    "skills": home / ".claude" / "instructions"}
-        if agent == "vscode":
-            return {"agents": home / ".vscode" / "instructions",
-                    "skills": home / ".vscode" / "instructions"}
-        if agent == "kimi":
-            return {"agents": home / ".kimi",
-                    "skills": home / ".kimi"}
-        return {"agents": home / ".ai" / "instructions",
-                "skills": home / ".ai" / "instructions"}
+        os.system("cls" if os.name == "nt" else "clear")
 
+def _git(args: list[str], check=True, **kw):
+    return subprocess.run(["git", *args], check=check, **kw)
 
-# ── Content adaptation per agent ─────────────────────────────────────────────
+# ── ITEMS definition ──────────────────────────────────────────────────────────
 
+ITEMS: list[dict] = [
+    # ── agents ────────────────────────────────────────────────────────────────
+    {"id": "vault-indexer",    "dir": "agents/vault-indexer.md",        "label": "Vault Indexer",        "type": "agent", "dependencies": []},
+    {"id": "vault-researcher", "dir": "agents/vault-researcher.md",     "label": "Vault Researcher",     "type": "agent",
+     "dependencies": ["vault-indexer", "vault-search", "vault-organizer"]},
+    {"id": "academic-researcher", "dir": "agents/academic-researcher.md", "label": "Academic Researcher", "type": "agent",
+     "dependencies": ["academic-source-search", "citation-style-guide"]},
+    # ── skills ────────────────────────────────────────────────────────────────
+    {"id": "vault-search",         "dir": "skills/vault-search.md",         "label": "Vault Search",         "type": "skill",
+     "dependencies": ["vault-indexer"]},
+    {"id": "vault-organizer",      "dir": "skills/vault-organizer.md",      "label": "Vault Organizer",      "type": "skill",
+     "dependencies": ["vault-indexer", "vault-search"]},
+    {"id": "research-pipeline",    "dir": "skills/research-pipeline.md",    "label": "Research Pipeline",    "type": "skill", "dependencies": []},
+    {"id": "goal-pursuit",         "dir": "skills/goal-pursuit.md",         "label": "Goal Pursuit",         "type": "skill", "dependencies": []},
+    {"id": "telegram-notify",      "dir": "skills/telegram-notify.md",      "label": "Telegram Notify",      "type": "skill",
+     "dependencies": ["roadmaps", "backtest-run", "research-pipeline"]},
+    {"id": "backtest-run",         "dir": "skills/backtest-run.md",         "label": "Backtest Run",         "type": "skill", "dependencies": []},
+    {"id": "backtest-validate",    "dir": "skills/backtest-validate",       "label": "Backtest Validate",    "type": "skill",
+     "dependencies": ["backtest-run"]},
+    {"id": "academic-source-search","dir": "skills/academic-source-search.md","label": "Academic Source Search","type": "skill", "dependencies": []},
+    {"id": "citation-style-guide",  "dir": "skills/citation-style-guide.md", "label": "Citation Style Guide", "type": "skill", "dependencies": []},
+    {"id": "content-humanizer",    "dir": "skills/content-humanizer",        "label": "Content Humanizer",    "type": "skill", "dependencies": []},
+    {"id": "roadmaps",             "dir": "skills/roadmaps",                 "label": "Roadmaps",             "type": "skill", "dependencies": []},
+]
 
-def adapt_md_content(content: str, agent: str) -> str:
-    """Adapt markdown content for the target agent's format.
+_TYPE_ORDER = {"agent": 0, "skill": 1}
+_TYPE_LABEL = {"agent": "🤖  Agents", "skill": "🛠   Skills"}
 
-    - OpenCode: keeps YAML frontmatter as-is (native format)
-    - Others: strips frontmatter, keeps only the markdown body
-    """
-    if agent == "opencode":
-        return content
-    # Strip YAML frontmatter for non-OpenCode agents
-    lines = content.split("\n")
-    if lines and lines[0].strip() == "---":
-        end = 1
-        while end < len(lines):
-            if lines[end].strip() == "---":
-                end += 1
-                break
-            end += 1
-        return "\n".join(lines[end:]).strip()
-    return content
+# ── dependency propagation ────────────────────────────────────────────────────
 
+def _item_by_id(item_id: str) -> dict | None:
+    return next((it for it in ITEMS if it["id"] == item_id), None)
 
-# ── Toggle menu ──────────────────────────────────────────────────────────────
+def _propagate_toggle(item_id: str, new_state: bool, toggled: dict[str, bool]) -> None:
+    """BFS propagation: ON→enable dependencies, OFF→disable dependents."""
+    toggled[item_id] = new_state
+    if new_state:
+        item = _item_by_id(item_id)
+        if item:
+            for dep_id in item.get("dependencies", []):
+                if not toggled.get(dep_id, False):
+                    toggled[dep_id] = True
+                    _propagate_toggle(dep_id, True, toggled)
+    else:
+        for it in ITEMS:
+            dep_ids = it.get("dependencies", [])
+            if item_id in dep_ids and toggled.get(it["id"], False):
+                toggled[it["id"]] = False
+                _propagate_toggle(it["id"], False, toggled)
 
+def _locked_ids() -> set[str]:
+    """Items required by at least one agent cannot be toggled off."""
+    locked: set[str] = set()
+    for it in ITEMS:
+        if it["type"] == "agent":
+            for dep_id in it.get("dependencies", []):
+                locked.add(dep_id)
+    return locked
 
-def run_toggle_menu() -> list[dict]:
-    """Interactive toggle menu. Returns selected items."""
-    toggled = [True] * len(ITEMS)
+def _build_display_order() -> list[dict]:
+    """Return items in display order: agents first, then skills."""
+    return sorted(ITEMS, key=lambda x: (_TYPE_ORDER.get(x["type"], 99), x["label"]))
 
-    while True:
-        clear_screen()
-        print_title("AGENTS-SKILLS — Instalador")
-        print("  Selecciona los items a instalar:\n")
-        print("  [NUMERO] = toggle  |  [d] = confirmar  |  [q] = salir\n")
+def _item_line_content(it: dict, toggled: dict[str, bool]) -> str:
+    status = "on" if toggled.get(it["id"], False) else "off"
+    glyph = _GLYPH["on"] if status == "on" else _GLYPH["off"]
+    label = f"{glyph} {it['label']}"
+    deps = it.get("dependencies", [])
+    if deps:
+        dep_labels = []
+        for d_id in deps:
+            d_it = _item_by_id(d_id)
+            dep_labels.append(d_it["label"] if d_it else d_id)
+        label += f" {DIM}(requires: {', '.join(dep_labels)}){RST}"
+    return label
 
-        for i, item in enumerate(ITEMS):
-            status = "[x]" if toggled[i] else "[ ]"
-            print(f"  {status} {i+1}. {item['name']}")
-            print(f"       Tipo: {item['type']}/  |  {item['description']}")
-            print(f"       {item['limitations']}")
-            print()
-
-        print(f"  ({sum(toggled)}/{len(ITEMS)} seleccionados)")
-        key = getch()
-
-        if key == "q":
-            print("\n  Instalacion cancelada.")
-            sys.exit(0)
-        if key == "d" or key == "enter":
-            if not any(toggled):
-                print("\n  Debes seleccionar al menos un item.")
-                input("  Presiona Enter para continuar...")
-                continue
-            break
-        if key.isdigit():
-            idx = int(key) - 1
-            if 0 <= idx < len(ITEMS):
-                toggled[idx] = not toggled[idx]
-
-    return [ITEMS[i] for i, t in enumerate(toggled) if t]
-
-
-# ── Installer ────────────────────────────────────────────────────────────────
-
-
-def install_items(
-    selected: list[dict],
-    agent: str,
-    targets: dict,
-    repo: Path,
-) -> None:
-    """Copy selected items from repo to target directories."""
-    agents_dir = targets["agents"]
-    skills_dir = targets["skills"]
-
-    print()
-    for item in selected:
-        dest_dir = agents_dir if item["type"] == "agent" else skills_dir
-        src = repo / item["source"]
-
-        if item["is_dir"]:
-            dest = dest_dir / item["name"]
-            dest.mkdir(parents=True, exist_ok=True)
-            # Copy all files from the source directory
-            for f in src.rglob("*"):
-                if f.is_file():
-                    rel = f.relative_to(src)
-                    dest_file = dest / rel
-                    dest_file.parent.mkdir(parents=True, exist_ok=True)
-                    if f.suffix == ".md":
-                        content = f.read_text(encoding="utf-8")
-                        content = adapt_md_content(content, agent)
-                        dest_file.write_text(content, encoding="utf-8")
-                    else:
-                        shutil.copy2(f, dest_file)
-            print_step(f"{item['name']}/  →  {dest}")
-        else:
-            dest = dest_dir / f"{item['name']}.md"
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            content = src.read_text(encoding="utf-8")
-            content = adapt_md_content(content, agent)
-            dest.write_text(content, encoding="utf-8")
-            print_step(f"{item['name']}.md  →  {dest}")
-
-    print(f"\n  Instalacion completada. ({len(selected)} items)")
-
-
-# ── Repo cleanup ─────────────────────────────────────────────────────────────
-
-
-def cleanup_repo(repo: Path) -> None:
-    """Ask user whether to delete the cloned repo, then do it."""
-    if not ask_yesno("\nEliminar el repositorio clonado?"):
-        print("  Repositorio conservado. Puedes borrarlo manualmente con:")
-        print(f"    rm -rf \"{repo}\"")
+def _render_menu_box(lines: list[str], title: str | None = None, selected: int = 0, show_help: bool = True) -> None:
+    if not _USE_ANSI:
+        if title:
+            print(f"\n--- {title} ---")
+        for i, line in enumerate(lines):
+            marker = ">" if i == selected else " "
+            print(f"{marker} {line}")
+        if show_help:
+            print("  [↑↓] navigate  [Space] toggle  [Enter] confirm  [q] quit")
         return
 
-    this_script = Path(__file__).resolve()
-    tmp_dir = Path.home() / ".agents-skills-setup"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    tmp_script = tmp_dir / "setup.py"
+    max_len = max(len(line) for line in lines) if lines else 0
+    if title:
+        max_len = max(max_len, len(title) + 4)
+    width = max_len + 4
 
-    import shutil
-    shutil.copy2(this_script, tmp_script)
-    shutil.rmtree(repo, ignore_errors=True)
+    title_str = f" {title} " if title else ""
+    print(f"{_GLYPH['tl']}{_GLYPH['h']}{title_str}{_GLYPH['h'] * (width - len(title_str) - 2)}{_GLYPH['tr']}")
 
-    print(f"\n  Repositorio eliminado.")
-    print(f"  El instalador quedo en: {tmp_script}")
-    print(f"  Puedes borrarlo con:    rm -rf \"{tmp_dir}\"")
+    for i, line in enumerate(lines):
+        marker = f"{CYN}{'▸'}{RST}" if i == selected else " "
+        padded = f"{marker} {line}{' ' * (width - len(line) - 3)}"
+        print(f"{_GLYPH['v']}{padded}{_GLYPH['v']}")
 
+    print(f"{_GLYPH['bl']}{_GLYPH['h'] * width}{_GLYPH['br']}")
+    if show_help:
+        help_text = f"{DIM}[↑↓] nav  [Space] toggle  [Enter] confirm  [q] quit{RST}"
+        print(f"  {help_text}")
 
-# ── Main ─────────────────────────────────────────────────────────────────────
+def run_toggle_menu() -> dict[str, bool]:
+    """Interactive menu: arrow-key navigation with dependency propagation."""
+    import msvcrt
 
+    display_items = _build_display_order()
+    toggled: dict[str, bool] = {}
+    locked = _locked_ids()
+
+    for it in ITEMS:
+        if it["type"] == "agent":
+            toggled[it["id"]] = True
+
+    selected = 0
+    while True:
+        clear_screen()
+
+        current_type = None
+        box_lines: list[str] = []
+        box_title = None
+        for idx, it in enumerate(display_items):
+            if it["type"] != current_type:
+                if box_lines:
+                    _render_menu_box(box_lines, title=box_title, selected=-1, show_help=False)
+                current_type = it["type"]
+                box_title = _TYPE_LABEL[current_type]
+                box_lines = []
+
+            prefix = ""
+            if it["id"] in locked and not toggled.get(it["id"], False):
+                prefix = f"{_GLYPH['lock']} "
+            elif toggled.get(it["id"], False):
+                prefix = f"{_GLYPH['on']} "
+            else:
+                prefix = f"{_GLYPH['off']} "
+
+            label = f"{prefix}{it['label']}"
+            deps = it.get("dependencies", [])
+            if deps:
+                dep_labels = []
+                for d_id in deps:
+                    d_it = _item_by_id(d_id)
+                    dep_labels.append(d_it["label"] if d_it else d_id)
+                label += f" {DIM}(needs: {', '.join(dep_labels)}){RST}"
+
+            box_lines.append(label)
+
+        if box_lines:
+            _render_menu_box(box_lines, title=box_title, show_help=False)
+
+        print(f"\n  {DIM}[↑↓] nav  [Space] toggle  [Enter] confirm  [r] reset  [q] quit{RST}")
+
+        key = msvcrt.getch()
+        if key in (b"\xe0", b"\x00"):
+            key = msvcrt.getch()
+            if key == b"H":
+                selected = max(0, selected - 1)
+            elif key == b"P":
+                selected = min(len(display_items) - 1, selected + 1)
+        elif key == b" ":
+            it = display_items[selected]
+            new_state = not toggled.get(it["id"], False)
+            if new_state is False and it["id"] in locked:
+                continue
+            toggled[it["id"]] = new_state
+            _propagate_toggle(it["id"], new_state, toggled)
+        elif key in (b"\r", b"\n"):
+            break
+        elif key in (b"q", b"Q"):
+            sys.exit(0)
+        elif key in (b"r", b"R"):
+            for it in ITEMS:
+                toggled[it["id"]] = it["type"] == "agent"
+            selected = 0
+
+    return toggled
+
+# ── install / file operations ─────────────────────────────────────────────────
+
+def install_items(toggled: dict[str, bool], project_root: Path) -> None:
+    """Copy enabled skill directories into the project."""
+    skills_root = project_root / ".opencode" / "skills"
+    skills_root.mkdir(parents=True, exist_ok=True)
+
+    for it in ITEMS:
+        src = project_root / it["dir"]
+        dst = skills_root / it["dir"]
+        if toggled.get(it["id"], False):
+            if src.exists():
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src, dst, dirs_exist_ok=True)
+                print(f"  {GRN}✓{RST} {it['label']}  →  {_rel_path(dst)}")
+            else:
+                print(f"  {YLW}⚠{RST} {it['label']}  source not found: {_rel_path(src)}")
+        else:
+            if dst.exists():
+                shutil.rmtree(dst)
+                print(f"  {DIM}✗ removed {it['label']}{RST}")
+
+def cleanup_repo() -> None:
+    """Remove .opencode/skills to trigger reinstall on next run."""
+    skills_dir = _repo_root() / ".opencode" / "skills"
+    if skills_dir.exists():
+        shutil.rmtree(skills_dir)
+        print("  ✓ Cleared .opencode/skills/")
+    else:
+        print("  — Nothing to clean.")
+
+# ── adapt / push / pull ───────────────────────────────────────────────────────
+
+def adapt_md_content(content: str, item_id: str) -> str:
+    """Replace placeholders in skill files."""
+    return content.replace("{{AGENT_ID}}", item_id)
+
+def agent_targets(dest: Path | None = None) -> None:
+    """Generate .opencode/agents.json from skill dirs."""
+    d = dest or (_repo_root() / ".opencode")
+    agents = []
+    agents_file = d / "agents.json"
+    existing: list = json.loads(agents_file.read_text("utf-8")) if agents_file.exists() else []
+    existing_ids = {a.get("name") or a.get("id") for a in existing}
+    for it in ITEMS:
+        if it["type"] == "agent":
+            if it["label"] not in existing_ids:
+                agents.append({"id": it["id"], "dir": it["dir"], "name": it["label"]})
+    if agents:
+        agents_file.parent.mkdir(parents=True, exist_ok=True)
+        existing.extend(agents)
+        agents_file.write_text(json.dumps(existing, indent=2, ensure_ascii=False), "utf-8")
+        print(f"  ✓ Appended {len(agents)} agent(s) to {_rel_path(agents_file)}")
+    else:
+        print("  — All agents already registered.")
+
+def push_changes() -> None:
+    """Commit and push local skill changes."""
+    result = _git(["status", "--porcelain"], capture_output=True, text=True)
+    if not result.stdout.strip():
+        print("  — Nothing to commit.")
+        return
+    print(f"  {BLU}i{RST} Changes detected.  Commit message:")
+    msg = input(f"  {DIM}> {RST}").strip() or "Update skills"
+    _git(["add", "-A"])
+    _git(["commit", "-m", msg])
+    _git(["push"])
+    print(f"  {GRN}✓{RST} Pushed.")
+
+def pull_changes() -> None:
+    """Pull latest from remote."""
+    _git(["pull"])
+    print(f"  {GRN}✓{RST} Pulled latest.")
+
+# ── main ──────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    try:
-        clear_screen()
-        print_title("AGENTS-SKILLS — Instalador Cross-Platform")
+    base = Path.cwd()
+    print(f"\n  {BLD}{MAG}OpenCode Skill Installer{RST}  {DIM}{base}{RST}\n")
 
-        # 1. OS detection
-        platform = detect_os()
-        print_step(f"Sistema operativo: {platform}")
+    print(f"  {BLD}Select skills/agents to install:{RST}\n")
+    toggled = run_toggle_menu()
 
-        # 2. Agent detection
-        agent = detect_agent()
-        print_step(f"Agente detectado:  {agent}")
+    print(f"\n  {BLD}Installing…{RST}\n")
+    install_items(toggled, base)
+    agent_targets()
 
-        # 3. Scope: project or global
-        scope = "project"
-        if ask_yesno("\nInstalar para el proyecto (local)?"):
-            scope = "project"
-        else:
-            scope = "global"
-            if agent == "vscode" and not ask_yesno(
-                "\nVS Code no tiene una ruta global estandar.\n"
-                "Usar ~/.vscode/instructions/ de todas formas?"
-            ):
-                print("  Selecciona 'proyecto' para instalacion local.")
-                scope = "project"
-
-        print_step(f"Alcance: {scope}")
-
-        # 4. Toggle menu
-        selected = run_toggle_menu()
-
-        # 5. Install
-        base = repo_root() if scope == "project" else Path.home()
-        targets = agent_targets(agent, scope, base)
-        install_items(selected, agent, targets, repo_root())
-
-        # 6. Cleanup
-        cleanup_repo(repo_root())
-
-    except KeyboardInterrupt:
-        print("\n\n  Instalacion cancelada por el usuario.")
-        sys.exit(1)
-
+    print(f"\n  {GRN}{BLD}✔ Done.{RST}\n")
 
 if __name__ == "__main__":
     main()

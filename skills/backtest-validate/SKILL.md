@@ -1,6 +1,7 @@
 ---
 name: backtest-validate
-description: Expert guidance for systematic backtesting of trading strategies. Scores quality across 5 dimensions, detects red flags, outputs Deploy/Refine/Abandon verdict.
+description: Use when the user needs to validate, evaluate, or verify the quality of a backtested trading strategy before live deployment. Triggers on keywords like "validar", "validate", "backtest review", "backtest quality", "scoring", "backtest score", "strategy evaluation", "stress test", "robustness check", "is this backtest any good". This skill scores backtest quality across 5 dimensions (Sample Size, Expectancy, Risk Management, Robustness, Execution Realism), detects red flags, and outputs a Deploy/Refine/Abandon verdict. Use AFTER backtest-run (which produces the backtest results to validate).
+compatibility: Requires backtest-run output to validate. Includes evaluate_backtest.py scoring script.
 ---
 
 # Backtest Validate

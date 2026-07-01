@@ -24,6 +24,7 @@ Personal collection of AI agents and skills for various tasks.
 | `academic-source-search` | Busca fuentes cientificas en bases de datos academicas. |
 | `citation-style-guide` | Referencia de formato APA / IEEE / Vancouver para citas y referencias. |
 | `content-humanizer` | Pase final anti-deteccion IA. Ajusta estructura, lexico y fluidez. |
+| `roadmaps` | Crea y sigue roadmaps adaptativos con soporte para loops, paralelismo y decisiones. |
 
 ## Installer
 

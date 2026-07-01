@@ -1,11 +1,15 @@
 ---
 name: content-humanizer
 description: >
-  Revision final del documento para reducir patrones detectables por IA
-  (Turnitin, GPTZero, Originality). Ajusta estructura, lexico y fluidez
-  manteniendo el rigor academico. Se ejecuta SOLO al final, cuando el
-  contenido esta completo y referenciado. Incluye script de deteccion
-  para verificar que el texto pase como humano.
+  Use when the user wants to reduce AI-detectable patterns in a document
+  (Turnitin, GPTZero, Originality, ZeroGPT). Triggers on keywords like
+  "humanizar", "humanize", "anti-deteccion", "anti-AI", "evitar deteccion",
+  "bajar plagio IA", "AI detector bypass", "pasar como humano", "menos IA",
+  "quitar tono IA". This is the FINAL step — execute ONLY when content is
+  complete, reviewed, and all references verified. Includes detect_ai.py
+  script to verify the text passes as human. DO NOT modify data, citations,
+  references, or academic structure.
+compatibility: Requires transformers/torch for local detection, or zerogpt.com / gptzero.me as fallback.
 ---
 
 # Content Humanizer
