@@ -2,6 +2,12 @@
 
 Personal collection of AI agents and skills for various tasks.
 
+## One-liner
+
+```bash
+git clone https://github.com/soymatta/Agents-Skills.git && cd Agents-Skills && python scripts/setup.py
+```
+
 ## Agents
 
 | Agent | Description |
