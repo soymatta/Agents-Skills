@@ -1,12 +1,12 @@
 ---
 name: vault-search
-description: Use when the user asks to find information, notes, topics, or files inside their Obsidian vault / markdown notes directory. Also use when the user says "buscar", "search", "find", "donde esta", "encuentra", "localiza", or asks about something they remember writing but cannot locate. This skill searches note content, filenames, tags, and [[wiki-links]] using grep and glob. Use BEFORE vault-organizer (to find existing notes) and vault-indexer (to understand scope).
-compatibility: Requires vault-indexer for initial indexing. Used by vault-organizer and vault-researcher.
+description: Use when the user asks to find information, notes, topics, or files inside their Obsidian vault / markdown notes directory. Also use when the user says "buscar", "search", "find", "donde esta", "encuentra", "localiza", or asks about something they remember writing but cannot locate. This skill searches note content, filenames, tags, and [[wiki-links]] using grep and glob. Use AFTER vault-indexer (initial index) and BEFORE vault-organizer (to avoid duplicating existing notes).
+compatibility: Requires vault-indexer agent for initial indexing and scope. Does not make sense without vault-indexer.
 ---
 
 # Vault Search
 
-Search for topics within the vault using glob and grep. El vault de notas contiene conocimiento previo que debe reutilizarse; la mayoria de las preguntas pueden responderse con informacion ya escrita. Busca primero antes de asumir que no existe.
+Search for topics within the vault using glob and grep. Requires `vault-indexer` agent — this skill is a supplement to the main vault agent, not a standalone tool. El vault de notas contiene conocimiento previo que debe reutilizarse; la mayoria de las preguntas pueden responderse con informacion ya escrita. Busca primero antes de asumir que no existe.
 
 ## Procedure
 1. Receive the topic from the user
@@ -23,9 +23,9 @@ Search for topics within the vault using glob and grep. El vault de notas contie
 ## Restrictions
 - **DO NOT** modify files
 - **DO NOT** invent information
-- For external research, use `vault-researcher`
+- For external research, use `vault-researcher` (sub-agent of vault-indexer)
 
 ## Integration
-- `vault-indexer` — initial vault index
+- `vault-indexer` — required parent agent
 - `vault-organizer` — where to place new info
 - `vault-researcher` — external research if needed

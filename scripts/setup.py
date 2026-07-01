@@ -58,10 +58,10 @@ try:
 except (UnicodeEncodeError, LookupError):
     pass
 if _CAN_UTF:
-    CUR = "▸"; CHK = "●"; UNC = "○"; LCK = "◉"; DEP = "⤷"; TIK = "✔"
+    CUR = "▸"; CHK = "●"; UNC = "○"; LCK = "◉"; DEP = "⤷"; TIK = "✔"; ARR = "→"; X = "✗"
     TL = "┌"; TR = "┐"; BL = "└"; BR = "┘"; ML = "├"; MR = "┤"; H = "─"; V = "│"
 else:
-    CUR = ">"; CHK = "+"; UNC = "o"; LCK = "#"; DEP = "->"; TIK = "ok"
+    CUR = ">"; CHK = "+"; UNC = "o"; LCK = "#"; DEP = "->"; TIK = "ok"; ARR = "->"; X = "x"
     TL = "+"; TR = "+"; BL = "+"; BR = "+"; ML = "+"; MR = "+"; H = "-"; V = "|"
 
 BOX_W = 78
@@ -94,13 +94,7 @@ ITEMS: list[dict] = [
         "label": "Vault Indexer",
         "type": "agent",
         "dependencies": [],
-    },
-    {
-        "id": "vault-researcher",
-        "dir": "agents/vault-researcher.md",
-        "label": "Vault Researcher",
-        "type": "agent",
-        "dependencies": ["vault-indexer", "vault-search", "vault-organizer"],
+        "bundles": ["agents/vault-researcher.md"],
     },
     {
         "id": "academic-researcher",
@@ -129,7 +123,7 @@ ITEMS: list[dict] = [
         "dir": "skills/research-pipeline.md",
         "label": "Research Pipeline",
         "type": "skill",
-        "dependencies": [],
+        "dependencies": ["telegram-notify"],
     },
     {
         "id": "goal-pursuit",
@@ -143,14 +137,14 @@ ITEMS: list[dict] = [
         "dir": "skills/telegram-notify.md",
         "label": "Telegram Notify",
         "type": "skill",
-        "dependencies": ["roadmaps", "backtest-run", "research-pipeline"],
+        "dependencies": [],
     },
     {
         "id": "backtest-run",
         "dir": "skills/backtest-run.md",
         "label": "Backtest Run",
         "type": "skill",
-        "dependencies": [],
+        "dependencies": ["telegram-notify"],
     },
     {
         "id": "backtest-validate",
@@ -185,7 +179,7 @@ ITEMS: list[dict] = [
         "dir": "skills/roadmaps",
         "label": "Roadmaps",
         "type": "skill",
-        "dependencies": [],
+        "dependencies": ["telegram-notify"],
     },
 ]
 
@@ -200,18 +194,14 @@ def _item_by_id(item_id: str) -> dict | None:
 
 
 def _propagate_toggle(item_id: str, new_state: bool, toggled: dict[str, bool]) -> None:
-    """ON enables dependencies; OFF disables them (unless shared with another ON item).
-    Never auto-toggles agents — only skills can be auto-managed."""
+    """ON enables all dependencies (including agents). OFF disables skill dependencies
+    unless shared with another ON item. Never auto-disables agents."""
     toggled[item_id] = new_state
     item = _item_by_id(item_id)
     if not item:
         return
     if new_state:
         for dep_id in item.get("dependencies", []):
-            dep = _item_by_id(dep_id)
-            if dep and dep["type"] == "agent":
-                # Agents are never auto-enabled — user must toggle them
-                continue
             if not toggled.get(dep_id, False):
                 toggled[dep_id] = True
                 _propagate_toggle(dep_id, True, toggled)
@@ -219,7 +209,7 @@ def _propagate_toggle(item_id: str, new_state: bool, toggled: dict[str, bool]) -
         for dep_id in item.get("dependencies", []):
             dep = _item_by_id(dep_id)
             if dep and dep["type"] == "agent":
-                # Never auto-disable agents
+                # Never auto-disable agents — user must toggle them off
                 continue
             still_needed = any(
                 other["id"] != item_id
@@ -460,25 +450,54 @@ def run_toggle_menu() -> dict[str, bool]:
 # ── install / file operations ─────────────────────────────────────────────────
 
 
+def _copy_one(src: Path, dst: Path) -> None:
+    """Copy a single file or directory from src to dst."""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if src.is_dir():
+        shutil.copytree(src, dst, dirs_exist_ok=True)
+    else:
+        shutil.copy2(src, dst)
+
+
+def _remove_one(dst: Path) -> None:
+    """Remove a single file or directory."""
+    if not dst.exists():
+        return
+    if dst.is_dir():
+        shutil.rmtree(dst)
+    else:
+        dst.unlink()
+
+
 def install_items(toggled: dict[str, bool], project_root: Path) -> None:
-    """Copy enabled skill directories into the project."""
+    """Copy enabled items into the project (files or directories)."""
     skills_root = project_root / ".opencode" / "skills"
     skills_root.mkdir(parents=True, exist_ok=True)
 
     for it in ITEMS:
         src = project_root / it["dir"]
         dst = skills_root / it["dir"]
-        if toggled.get(it["id"], False):
-            if src.exists():
-                dst.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copytree(src, dst, dirs_exist_ok=True)
-                print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}→{RST}  {_rel_path(dst)}")
-            else:
+        enabled = toggled.get(it["id"], False)
+
+        if enabled:
+            if not src.exists():
                 print(f"  {YLW}..{RST} {it['label']}  source not found: {_rel_path(src)}")
+            else:
+                _copy_one(src, dst)
+                print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}{ARR}{RST}  {_rel_path(dst)}")
+            # bundled files (sub-agents, etc.)
+            for bundle_src in it.get("bundles", []):
+                bundle_path = project_root / bundle_src
+                bundle_dst = skills_root / bundle_src
+                if bundle_path.exists():
+                    _copy_one(bundle_path, bundle_dst)
+                    print(f"  {GRN}{TIK}{RST} {bundle_src}  {DIM}{ARR}{RST}  {_rel_path(bundle_dst)}")
         else:
-            if dst.exists():
-                shutil.rmtree(dst)
-                print(f"  {DIM}✗ removed {it['label']}{RST}")
+            _remove_one(dst)
+            # also remove bundled files
+            for bundle_src in it.get("bundles", []):
+                bundle_dst = skills_root / bundle_src
+                _remove_one(bundle_dst)
 
 
 def cleanup_repo() -> None:
@@ -544,11 +563,6 @@ def pull_changes() -> None:
 
 def main() -> None:
     base = Path.cwd()
-
-    icon = "◆" if _CAN_UTF else "#"
-    print(f"\n  {BLD}{MAG}{icon}{RST}  {BLD}AGENTS-SKILLS -- Installer{RST}  {DIM}{base}{RST}\n")
-
-    print(f"  {BLD}Select components to install:{RST}\n")
     toggled = run_toggle_menu()
 
     print(f"\n  {BLD}Installing...{RST}\n")

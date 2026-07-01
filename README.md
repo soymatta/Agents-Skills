@@ -11,9 +11,8 @@ git clone https://github.com/soymatta/Agents-Skills.git && cd Agents-Skills && p
 ## Agents
 
 | Agent | Description |
-|---|---|
-| `vault-indexer` | Reads and indexes all .md notes in the vault. Answers exclusively from file contents. |
-| `vault-researcher` | Investigates external sources to verify concepts that are incorrect or unclear in the vault. |
+|---|---|---|
+| `vault-indexer` | Main vault agent. Reads/indexes .md notes. Includes `vault-researcher` sub-agent for external verification. |
 | `academic-researcher` | Produce trabajos academicos en Markdown (APA/IEEE/Vancouver). Solo fuentes cientificas. |
 
 ## Skills
