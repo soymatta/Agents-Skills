@@ -1,0 +1,892 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const agents = [
+	{
+		name: "vault-indexer",
+		description: "Reads and indexes all .md notes in the vault. Answers exclusively from file contents.",
+		permissions: "read, glob, grep, task",
+		type: "agent" as const,
+	},
+	{
+		name: "vault-search",
+		description: "Searches topics inside the vault using glob and grep. Complement to the vault-indexer.",
+		permissions: "read, glob, grep, task",
+		type: "agent" as const,
+	},
+	{
+		name: "vault-organizer",
+		description: "Analyzes vault structure and suggests where to place new information.",
+		permissions: "read, glob, grep, task",
+		type: "agent" as const,
+	},
+	{
+		name: "paper-researcher",
+		description: "Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver).",
+		permissions: "bash, read, glob, grep, webfetch, task, edit",
+		type: "agent" as const,
+	},
+	{
+		name: "roadmaps",
+		description: "Creates, updates, and follows adaptive roadmaps for any project.",
+		permissions: "bash, read, glob, grep, task, edit",
+		type: "agent" as const,
+	},
+	{
+		name: "jobfinder",
+		description: "Analyzes professional profile, searches jobs, calculates match scores, and generates reports.",
+		permissions: "bash, read, glob, grep, webfetch, task, edit",
+		type: "agent" as const,
+	},
+	{
+		name: "metric-optimizer",
+		description: "Optimizes numerical metrics via autonomous iterative improvement loop.",
+		permissions: "bash, read, glob, grep, task, edit",
+		type: "agent" as const,
+	},
+];
+
+const skills = [
+	{
+		name: "telegram-notify",
+		description: "Full Telegram Bot API client with auto-retry and zero-dep fallback. Sends notifications, alerts, and file uploads.",
+		dependencies: [],
+		category: "notification",
+		type: "first-party" as const,
+	},
+	{
+		name: "research-pipeline",
+		description: "Structured quantitative research process for prediction markets and data-driven questions.",
+		dependencies: ["telegram-notify"],
+		category: "research",
+		type: "first-party" as const,
+	},
+	{
+		name: "backtest-run",
+		description: "Runs backtests for trading strategies with slippage/fill modeling and robustness checks.",
+		dependencies: ["telegram-notify"],
+		category: "finance",
+		type: "first-party" as const,
+	},
+	{
+		name: "backtest-validate",
+		description: "5-dimension scoring framework for backtest quality: Sample Size, Expectancy, Risk Management, Robustness, Execution Realism.",
+		dependencies: ["backtest-run"],
+		category: "finance",
+		type: "first-party" as const,
+	},
+	{
+		name: "academic-source-search",
+		description: "Searches verified scientific sources across 14 academic databases with quality tier filtering.",
+		dependencies: [],
+		category: "research",
+		type: "first-party" as const,
+	},
+	{
+		name: "citation-formatter",
+		description: "Complete citation and reference formatting for APA 7th, IEEE, and Vancouver styles.",
+		dependencies: [],
+		category: "research",
+		type: "first-party" as const,
+	},
+	{
+		name: "math-notation",
+		description: "Math notation rules for inline formulas: italic variables, superscripts, subscripts.",
+		dependencies: ["citation-formatter"],
+		category: "research",
+		type: "first-party" as const,
+	},
+	{
+		name: "content-humanizer",
+		description: "Final document revision to reduce AI-detectable patterns. Includes local detection verification script.",
+		dependencies: [],
+		category: "writing",
+		type: "first-party" as const,
+	},
+	{
+		name: "osint",
+		description: "OSINT investigation framework with 7 reference guides and 4 scripts for person/company/domain research.",
+		dependencies: [],
+		category: "investigation",
+		type: "first-party" as const,
+	},
+	{
+		name: "goal-pursuit",
+		description: "Autonomous optimization loop for numerical metrics via iterative improvement. Never asks for input.",
+		dependencies: [],
+		category: "automation",
+		type: "first-party" as const,
+	},
+	{
+		name: "skill-creator",
+		description: "Meta-skill: create, evaluate, compare, and optimize other skills with benchmarking.",
+		dependencies: [],
+		category: "meta",
+		type: "third-party" as const,
+		author: "Anthropic, PBC",
+		license: "Apache 2.0",
+		repo: "https://github.com/anthropics/claude-code",
+	},
+	{
+		name: "impeccable",
+		description: "Frontend design audit, polish, and redesign skill with 23 commands for UI excellence.",
+		dependencies: [],
+		category: "design",
+		type: "third-party" as const,
+		author: "pbakaus",
+		license: "Apache 2.0",
+		repo: "https://github.com/pbakaus/impeccable",
+	},
+	{
+		name: "project-analyzer",
+		description: "Read-only project analysis: structure, code quality, bugs, security, performance, and dependency health with severity levels.",
+		dependencies: [],
+		category: "automation",
+		type: "first-party" as const,
+	},
+];
+
+const categoryColors: Record<string, string> = {
+	notification: "var(--green)",
+	research: "var(--cyan)",
+	finance: "var(--amber)",
+	writing: "var(--purple)",
+	investigation: "var(--red)",
+	automation: "var(--accent)",
+	meta: "var(--text-dim)",
+	design: "var(--purple)",
+};
+---
+
+<Layout title="Agents & Skills — AI Agent Definitions">
+	<nav class="nav">
+		<div class="nav-inner">
+			<a href="#" class="nav-logo">
+				<span class="logo-icon">&#9670;</span>
+				Agents-Skills
+			</a>
+			<div class="nav-links">
+				<a href="#install">Install</a>
+				<a href="#skills">Skills</a>
+				<a href="#agents">Agents</a>
+				<a href="#third-party">Third-Party</a>
+				<a href="https://github.com/soymatta/Agents-Skills" target="_blank">GitHub</a>
+			</div>
+		</div>
+	</nav>
+
+	<header class="hero">
+		<div class="hero-badge">Open Source &middot; MIT License</div>
+		<h1>AI Agents &amp; Skills</h1>
+		<p class="hero-sub">
+			A curated collection of agent and skill definitions for
+			<strong>OpenCode</strong>, <strong>Claude Code</strong>, <strong>Cursor</strong>,
+			and <strong>Windsurf</strong>. Each definition shapes how AI assistants
+			approach specific tasks — from vault indexing to backtesting to OSINT investigations.
+		</p>
+		<div class="hero-actions">
+			<a href="#install" class="btn btn-primary">Get Started</a>
+			<a href="#skills" class="btn btn-ghost">Browse Skills</a>
+		</div>
+		<div class="hero-stats">
+			<div class="stat">
+				<span class="stat-num">{skills.length}</span>
+				<span class="stat-label">Skills</span>
+			</div>
+			<div class="stat">
+				<span class="stat-num">{agents.length}</span>
+				<span class="stat-label">Agents</span>
+			</div>
+			<div class="stat">
+				<span class="stat-num">4</span>
+				<span class="stat-label">Platforms</span>
+			</div>
+		</div>
+	</header>
+
+	<section id="install" class="section">
+		<div class="container">
+			<h2>Installation</h2>
+			<p class="section-desc">Clone the repo, install dependencies, and run the interactive installer to toggle which agents and skills you want.</p>
+
+			<div class="install-steps">
+				<div class="install-step">
+					<div class="step-num">1</div>
+					<div class="step-content">
+						<h3>Clone &amp; Install</h3>
+						<pre><code>git clone https://github.com/soymatta/Agents-Skills.git
+cd Agents-Skills
+pip install -r skills/requirements.txt</code></pre>
+					</div>
+				</div>
+				<div class="install-step">
+					<div class="step-num">2</div>
+					<div class="step-content">
+						<h3>Run the Installer</h3>
+						<pre><code>python setup.py</code></pre>
+						<p class="step-note">Interactive TUI — toggle agents/skills with arrow keys and space.</p>
+					</div>
+				</div>
+				<div class="install-step">
+					<div class="step-num">3</div>
+					<div class="step-content">
+						<h3>Or Install Everything</h3>
+						<pre><code>python setup.py --all
+python setup.py --all --platform opencode --local</code></pre>
+						<p class="step-note">Supports: opencode, claude, cursor, windsurf</p>
+					</div>
+				</div>
+			</div>
+
+			<div class="install-note">
+				<strong>Requirements:</strong> Python &ge; 3.11 &middot;
+				<strong>Environment:</strong> Copy <code>.env.example</code> to <code>.env</code> and set <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_CHAT_ID</code> for notification skills.
+			</div>
+		</div>
+	</section>
+
+	<section id="skills" class="section section-alt">
+		<div class="container">
+			<h2>Skills</h2>
+			<p class="section-desc">Specialized instructions and workflows for specific tasks. Each skill is a markdown file with YAML frontmatter that defines triggers, permissions, and procedures.</p>
+
+			<div class="skill-grid">
+				{skills.filter(s => s.type === "first-party").map(skill => (
+					<div class="skill-card">
+						<div class="skill-header">
+							<h3 class="skill-name">{skill.name}</h3>
+							<span class="skill-badge" style={`--badge-color: ${categoryColors[skill.category]}`}>
+								{skill.category}
+							</span>
+						</div>
+						<p class="skill-desc">{skill.description}</p>
+						{skill.dependencies.length > 0 && (
+							<div class="skill-deps">
+								<span class="deps-label">Requires:</span>
+								{skill.dependencies.map(dep => (
+									<code class="dep-tag">{dep}</code>
+								))}
+							</div>
+						)}
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<section id="agents" class="section">
+		<div class="container">
+			<h2>Agents</h2>
+			<p class="section-desc">Primary agents with defined permissions that shape how AI assistants behave for specific workflows.</p>
+
+			<div class="agent-grid">
+				{agents.map(agent => (
+					<div class="agent-card">
+						<div class="agent-header">
+							<h3 class="agent-name">{agent.name}</h3>
+							<span class="agent-badge">agent</span>
+						</div>
+						<p class="agent-desc">{agent.description}</p>
+						<div class="agent-perms">
+							<span class="perms-label">Permissions:</span>
+							<div class="perm-tags">
+								{agent.permissions.split(", ").map(p => (
+									<span class="perm-tag">{p}</span>
+								))}
+							</div>
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	</section>
+
+	<section id="third-party" class="section section-alt">
+		<div class="container">
+			<h2>Third-Party Skills</h2>
+			<p class="section-desc">These skills are authored externally and included with their original licenses. Do not modify them — pull updates from the upstream source.</p>
+
+			<div class="third-party-grid">
+				{skills.filter(s => s.type === "third-party").map(skill => (
+					<div class="tp-card">
+						<div class="tp-header">
+							<h3 class="tp-name">{skill.name}</h3>
+							<span class="tp-badge">{skill.license}</span>
+						</div>
+						<p class="tp-desc">{skill.description}</p>
+						<div class="tp-meta">
+							<span>By <strong>{skill.author}</strong></span>
+							<a href={skill.repo} target="_blank" class="tp-link">
+								View Source &rarr;
+							</a>
+						</div>
+					</div>
+				))}
+			</div>
+
+			<div class="tp-rules">
+				<h3>Modification Rules</h3>
+				<ul>
+					<li><code>skill-creator</code> — authored by <strong>Anthropic, PBC</strong> (Apache 2.0). If it needs updates, pull from the upstream source.</li>
+					<li><code>impeccable</code> — authored by <strong>pbakaus</strong> (Apache 2.0). To update, run <code>npx impeccable install --providers=opencode --scope=project --force</code>.</li>
+				</ul>
+			</div>
+		</div>
+	</section>
+
+	<section id="testing" class="section">
+		<div class="container">
+			<h2>Testing</h2>
+			<p class="section-desc">Run the full test suite or target a specific skill's tests.</p>
+
+			<div class="test-commands">
+				<pre><code># All tests
+python -m pytest skills/ -v
+
+# Single skill
+python -m pytest skills/backtest-validate/tests/ -v
+python -m pytest skills/osint/tests/ -v
+python -m pytest skills/content-humanizer/tests/ -v
+python -m pytest skills/skill-creator/tests/ -v
+python -m pytest skills/goal-pursuit/tests/ -v
+python -m pytest skills/roadmaps/tests/ -v
+python -m pytest skills/jobfinder/tests/ -v</code></pre>
+			</div>
+		</div>
+	</section>
+
+	<footer class="footer">
+		<div class="container footer-inner">
+			<p>Agents &amp; Skills &middot; <a href="https://github.com/soymatta/Agents-Skills">GitHub</a> &middot; MIT License</p>
+			<p class="footer-sub">AI agent and skill definitions for OpenCode, Claude Code, Cursor, and Windsurf.</p>
+		</div>
+	</footer>
+</Layout>
+
+<style>
+	.nav {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		background: rgba(10, 10, 11, 0.8);
+		backdrop-filter: blur(16px);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.nav-inner {
+		max-width: var(--max-w);
+		margin: 0 auto;
+		padding: 0 24px;
+		height: 56px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.nav-logo {
+		font-weight: 700;
+		font-size: 1rem;
+		color: var(--text);
+		display: flex;
+		align-items: center;
+		gap: 8px;
+	}
+
+	.logo-icon {
+		color: var(--accent);
+		font-size: 1.2em;
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 24px;
+		font-size: 0.875rem;
+	}
+
+	.nav-links a {
+		color: var(--text-muted);
+	}
+
+	.nav-links a:hover {
+		color: var(--text);
+	}
+
+	.hero {
+		max-width: var(--max-w);
+		margin: 0 auto;
+		padding: 80px 24px 60px;
+		text-align: center;
+	}
+
+	.hero-badge {
+		display: inline-block;
+		padding: 6px 14px;
+		border-radius: 999px;
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.3);
+		color: var(--accent-light);
+		font-size: 0.8rem;
+		font-weight: 500;
+		margin-bottom: 24px;
+		letter-spacing: 0.02em;
+	}
+
+	.hero h1 {
+		font-size: clamp(2.5rem, 6vw, 4rem);
+		font-weight: 800;
+		letter-spacing: -0.03em;
+		line-height: 1.1;
+		margin-bottom: 20px;
+		background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
+	}
+
+	.hero-sub {
+		font-size: 1.125rem;
+		color: var(--text-muted);
+		max-width: 640px;
+		margin: 0 auto 32px;
+		line-height: 1.7;
+	}
+
+	.hero-sub strong {
+		color: var(--text);
+	}
+
+	.hero-actions {
+		display: flex;
+		gap: 12px;
+		justify-content: center;
+		margin-bottom: 48px;
+	}
+
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		padding: 12px 24px;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		font-size: 0.9rem;
+		transition: all 0.2s;
+		cursor: pointer;
+	}
+
+	.btn-primary {
+		background: var(--accent);
+		color: white;
+		border: 1px solid var(--accent);
+	}
+
+	.btn-primary:hover {
+		background: var(--accent-light);
+		color: white;
+	}
+
+	.btn-ghost {
+		background: transparent;
+		color: var(--text-muted);
+		border: 1px solid var(--border);
+	}
+
+	.btn-ghost:hover {
+		color: var(--text);
+		border-color: var(--text-dim);
+	}
+
+	.hero-stats {
+		display: flex;
+		gap: 48px;
+		justify-content: center;
+	}
+
+	.stat {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.stat-num {
+		font-size: 2rem;
+		font-weight: 800;
+		color: var(--accent-light);
+		line-height: 1;
+	}
+
+	.stat-label {
+		font-size: 0.8rem;
+		color: var(--text-dim);
+		margin-top: 4px;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.section {
+		padding: 80px 24px;
+	}
+
+	.section-alt {
+		background: var(--bg-card);
+		border-top: 1px solid var(--border-subtle);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.container {
+		max-width: var(--max-w);
+		margin: 0 auto;
+	}
+
+	.section h2 {
+		font-size: 2rem;
+		font-weight: 700;
+		letter-spacing: -0.02em;
+		margin-bottom: 8px;
+	}
+
+	.section-desc {
+		color: var(--text-muted);
+		font-size: 1rem;
+		margin-bottom: 40px;
+		max-width: 600px;
+	}
+
+	/* Install */
+	.install-steps {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		margin-bottom: 32px;
+	}
+
+	.install-step {
+		display: flex;
+		gap: 20px;
+		align-items: flex-start;
+	}
+
+	.step-num {
+		flex-shrink: 0;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.3);
+		color: var(--accent-light);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: 700;
+		font-size: 0.875rem;
+	}
+
+	.step-content h3 {
+		font-size: 1rem;
+		font-weight: 600;
+		margin-bottom: 8px;
+	}
+
+	.step-note {
+		color: var(--text-dim);
+		font-size: 0.85rem;
+		margin-top: 8px;
+	}
+
+	.install-note {
+		padding: 16px 20px;
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		border-radius: var(--radius-sm);
+		font-size: 0.875rem;
+		color: var(--text-muted);
+	}
+
+	.install-note strong {
+		color: var(--text);
+	}
+
+	/* Skills */
+	.skill-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 16px;
+	}
+
+	.skill-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 20px;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.skill-card:hover {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent-glow);
+	}
+
+	.skill-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 8px;
+	}
+
+	.skill-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: var(--mono);
+	}
+
+	.skill-badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--badge-color) 12%, transparent);
+		color: var(--badge-color);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.skill-desc {
+		font-size: 0.875rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin-bottom: 12px;
+	}
+
+	.skill-deps {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.deps-label {
+		font-size: 0.75rem;
+		color: var(--text-dim);
+	}
+
+	.dep-tag {
+		font-size: 0.7rem;
+		padding: 2px 8px;
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		color: var(--text-muted);
+	}
+
+	/* Agents */
+	.agent-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 16px;
+	}
+
+	.agent-card {
+		background: var(--bg-card);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 20px;
+		transition: border-color 0.2s;
+	}
+
+	.agent-card:hover {
+		border-color: var(--accent);
+	}
+
+	.agent-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 8px;
+	}
+
+	.agent-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: var(--mono);
+	}
+
+	.agent-badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 999px;
+		background: var(--cyan-dim);
+		color: var(--cyan);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.agent-desc {
+		font-size: 0.875rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin-bottom: 12px;
+	}
+
+	.agent-perms {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		flex-wrap: wrap;
+	}
+
+	.perms-label {
+		font-size: 0.75rem;
+		color: var(--text-dim);
+	}
+
+	.perm-tag {
+		font-size: 0.65rem;
+		padding: 2px 6px;
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: 4px;
+		color: var(--text-dim);
+		font-family: var(--mono);
+	}
+
+	/* Third-party */
+	.third-party-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+		gap: 16px;
+		margin-bottom: 32px;
+	}
+
+	.tp-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 24px;
+	}
+
+	.tp-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 8px;
+	}
+
+	.tp-name {
+		font-size: 1.1rem;
+		font-weight: 700;
+	}
+
+	.tp-badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 3px 10px;
+		border-radius: 999px;
+		background: var(--amber-dim);
+		color: var(--amber);
+	}
+
+	.tp-desc {
+		font-size: 0.9rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin-bottom: 16px;
+	}
+
+	.tp-meta {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.85rem;
+		color: var(--text-dim);
+	}
+
+	.tp-link {
+		font-weight: 500;
+	}
+
+	.tp-rules {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 20px 24px;
+	}
+
+	.tp-rules h3 {
+		font-size: 0.9rem;
+		font-weight: 600;
+		margin-bottom: 12px;
+		color: var(--amber);
+	}
+
+	.tp-rules ul {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.tp-rules li {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+	}
+
+	.tp-rules li::before {
+		content: "—";
+		color: var(--text-dim);
+		margin-right: 8px;
+	}
+
+	/* Testing */
+	.test-commands {
+		max-width: 600px;
+	}
+
+	/* Footer */
+	.footer {
+		border-top: 1px solid var(--border-subtle);
+		padding: 40px 24px;
+	}
+
+	.footer-inner {
+		text-align: center;
+	}
+
+	.footer p {
+		font-size: 0.875rem;
+		color: var(--text-dim);
+	}
+
+	.footer-sub {
+		font-size: 0.8rem;
+		margin-top: 4px;
+	}
+
+	/* Responsive */
+	@media (max-width: 768px) {
+		.nav-links {
+			display: none;
+		}
+
+		.hero {
+			padding: 60px 20px 40px;
+		}
+
+		.hero-stats {
+			gap: 24px;
+		}
+
+		.section {
+			padding: 48px 20px;
+		}
+
+		.skill-grid,
+		.agent-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.third-party-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>
