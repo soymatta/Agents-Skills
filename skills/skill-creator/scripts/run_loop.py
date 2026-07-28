@@ -23,15 +23,15 @@ from scripts.utils import parse_skill_md
 
 def split_eval_set(eval_set: list[dict], holdout: float, seed: int = 42) -> tuple[list[dict], list[dict]]:
     """Split eval set into train and test sets, stratified by should_trigger."""
-    random.seed(seed)
+    rng = random.Random(seed)
 
     # Separate by should_trigger
     trigger = [e for e in eval_set if e["should_trigger"]]
     no_trigger = [e for e in eval_set if not e["should_trigger"]]
 
     # Shuffle each group
-    random.shuffle(trigger)
-    random.shuffle(no_trigger)
+    rng.shuffle(trigger)
+    rng.shuffle(no_trigger)
 
     # Calculate split points
     n_trigger_test = max(1, int(len(trigger) * holdout))

@@ -1,0 +1,53 @@
+{
+  "skill_name": "project-analyzer",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I just inherited this Flask project from a coworker who left. Can you look at the codebase and tell me what issues you see? It's in the skills/ directory here.",
+      "expected_output": "A structured analysis of a Python/Flask project with findings on code quality, bugs, security, and structure, with severity levels.",
+      "files": [],
+      "expectations": [
+        "The report uses severity levels (CRITICAL, MAJOR, MINOR, or SUGGESTION) for findings",
+        "The report includes a section about project structure or organization",
+        "The report includes a section about code quality",
+        "The report includes a section about security concerns",
+        "The report includes a section with prioritized recommendations",
+        "The report cites specific file paths when discussing findings",
+        "The report acknowledges positive aspects of the project",
+        "The report did not create, modify, or delete any project files outside the outputs directory"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "We're about to deploy our Node.js API to production. Can you do a quick security audit? Focus on anything that could get us hacked. The project is at the repo root.",
+      "expected_output": "A security-focused analysis identifying vulnerabilities, hardcoded secrets, injection risks, and insecure configurations with severity levels.",
+      "files": [],
+      "expectations": [
+        "The report uses severity levels (CRITICAL, MAJOR, MINOR, or SUGGESTION) for findings",
+        "The report primarily focuses on security concerns",
+        "The report checks for hardcoded secrets or credentials in the codebase",
+        "The report checks for injection vulnerabilities (shell injection, SQL injection, etc.)",
+        "The report checks for insecure configurations (CORS, SSL, debug mode, etc.)",
+        "The report checks dependency or package security",
+        "The report cites specific file paths with findings",
+        "The report includes actionable security recommendations"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "I've been working on this repo for a while and I feel like things are getting messy. Can you take a look at the overall structure and code quality and tell me what needs attention?",
+      "expected_output": "A general project health assessment covering structure, code quality, and maintainability with actionable recommendations.",
+      "files": [],
+      "expectations": [
+        "The report uses severity levels (CRITICAL, MAJOR, MINOR, or SUGGESTION) for findings",
+        "The report covers project structure and organization",
+        "The report covers code quality issues",
+        "The report covers dependency health or management",
+        "The report includes a section with prioritized recommendations",
+        "The report cites specific file paths when discussing findings",
+        "The report acknowledges positive aspects of the project",
+        "The report did not create, modify, or delete any project files outside the outputs directory"
+      ]
+    }
+  ]
+}

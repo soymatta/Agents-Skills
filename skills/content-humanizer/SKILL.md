@@ -1,201 +1,241 @@
 ---
 name: content-humanizer
 description: >
-  Use when the user wants to reduce AI-detectable patterns in a document
-  (Turnitin, GPTZero, Originality, ZeroGPT). Triggers on keywords like
-  "humanizar", "humanize", "anti-deteccion", "anti-AI", "evitar deteccion",
-  "bajar plagio IA", "AI detector bypass", "pasar como humano", "menos IA",
-  "quitar tono IA". This is the FINAL step — execute ONLY when content is
-  complete, reviewed, and all references verified. Includes detect_ai.py
-  script to verify the text passes as human. DO NOT modify data, citations,
-  references, or academic structure.
-compatibility: Requires transformers/torch for local detection, or zerogpt.com / gptzero.me as fallback.
+  Final document revision to reduce AI-detectable patterns
+  (Turnitin, GPTZero, Originality). Adjusts structure, vocabulary, and flow
+  while maintaining academic rigor. Run ONLY at the end, when content
+  is complete and referenced. Includes detection script to verify
+  the text passes as human-written.
 ---
 
 # Content Humanizer
 
-Pase final de humanizacion. Ejecutar UNICAMENTE cuando el documento este
-completo, revisado y con todas las referencias verificadas.
+Final humanization pass. Run ONLY when the document is complete, reviewed,
+and all references verified.
 
-**No alterar:** datos, citas, referencias, estructura academica, metadatos.
+**Do not alter:** data, citations, references, academic structure, metadata.
+
+## When to use
+- Final pass before submitting academic documents
+- After all content, citations, and references are finalized
+- Keywords: "humanize", "anti-AI", "Turnitin", "GPTZero", "detect AI", "final pass"
+- When document scores high on AI detection tools
+
+## When NOT to use
+- During initial writing or drafting phase
+- When modifying data, citations, or references
+- For non-academic content (blog posts, documentation)
+- Before content is complete and referenced
 
 ---
 
-## 1. HUMANIZAR — Aplicar tecnicas
+## 1. HUMANIZE — Apply techniques
 
-### 1.1 Palabras y frases de alta frecuencia IA
+### 1.1 High-frequency AI words and phrases
 
-| Evitar | Usar en su lugar |
-|--------|-----------------|
-| "en el ambito de" | "en", "dentro de" |
-| "es fundamental destacar" | "cabe senalar", "es relevante" |
-| "cabe mencionar que" | eliminarlo, ir directo al punto |
-| "en otras palabras" | reformular directamente |
-| "en este sentido" | "por ello", "asi", "entonces" |
-| "como se menciono anteriormente" | referenciar seccion, no repetir |
-| "no solo... sino tambien" | usar max 1 vez por documento |
-| "resulta interesante notar" | eliminarlo, no aporta |
-| "vale la pena destacar" | solo si es realmente necesario |
-| "en relacion con" | "sobre", "respecto a" |
-| "a modo de ejemplo" | "por ejemplo", "como" |
-| "cabe preguntarse" | pregunta directa sin preambulo |
-| "es importante considerar" | eliminarlo o reformular |
-| "desde una perspectiva" | "desde", "segun" |
-| "en consecuencia" | "por tanto", "asi que" |
-| "asimismo" | "tambien", "ademas" (max 1-2 veces) |
-| "por otra parte" | "en contraste", "sin embargo" |
-| "resulta evidente que" | afirmacion directa |
-| "cabe destacar que" | eliminarlo |
-| "es preciso senalar" | eliminarlo |
-| "con respecto a" | "sobre", "respecto a" |
+| Avoid | Use instead |
+|-------|-------------|
+| "in the realm of" | "in", "within" |
+| "it is fundamental to highlight" | "notably", "relevantly" |
+| "it is worth mentioning that" | remove it, get straight to the point |
+| "in other words" | rephrase directly |
+| "in this regard" | "thus", "therefore", "then" |
+| "as previously mentioned" | reference the section, do not repeat |
+| "not only... but also" | use max 1 time per document |
+| "it is interesting to note" | remove it, adds no value |
+| "it is worth highlighting" | only if truly necessary |
+| "in relation to" | "about", "regarding" |
+| "as an example" | "for example", "like" |
+| "one might wonder" | direct question without preamble |
+| "it is important to consider" | remove or rephrase |
+| "from a perspective" | "from", "according to" |
+| "consequently" | "therefore", "so" |
+| "likewise" | "also", "furthermore" (max 1-2 times) |
+| "on the other hand" | "in contrast", "however" |
+| "it is evident that" | direct statement |
+| "it should be noted that" | remove it |
+| "it is necessary to point out" | remove it |
+| "with regard to" | "about", "regarding" |
 
-### 1.2 Romper patrones estructurales
+### 1.2 Break structural patterns
 
-**Paralelismo excesivo:** variar estructura gramatical entre parrafos.
-**Transiciones mecanicas:** no iniciar todos los parrafos con conector logico.
-**Cierre artificial:** no terminar cada seccion con "En conclusion...".
+**Excessive parallelism:** vary grammatical structure between paragraphs.
+**Mechanical transitions:** do not start every paragraph with a logical connector.
+**Artificial closure:** do not end every section with "In conclusion...".
 
-### 1.3 Variacion de estructura sintactica
+### 1.3 Syntactic structure variation
 
 ```
-ANTES (IA):  El estudio analizo 150 pacientes. Los resultados mostraron
-             una mejora significativa. La desviacion estandar fue minima.
+BEFORE (AI):  The study analyzed 150 patients. The results showed
+              a significant improvement. The standard deviation was minimal.
 
-DESPUES:     En el estudio, 150 pacientes fueron analizados durante seis
-             meses. Los resultados, que mostraron una mejora significativa,
-             se alinean con investigaciones previas. La desviacion estandar,
-             cabe notar, se mantuvo dentro de rangos esperados.
+AFTER:        In the study, 150 patients were analyzed over six months.
+              The results, which showed a significant improvement, align
+              with previous research. The standard deviation, notably,
+              remained within expected ranges.
 ```
 
-Reglas:
-- Alternar: SVO / verbo-sujeto / frase introductoria
-- No mas de 2 oraciones seguidas con la misma estructura
-- Cada parrafo: 1 oracion larga (>25 palabras) por cada 2 cortas (<15)
+Rules:
+- Alternate: SVO / verb-subject / introductory phrase
+- No more than 2 consecutive sentences with the same structure
+- Per paragraph: 1 long sentence (>25 words) for every 2 short ones (<15)
 
-### 1.4 Variacion de apertura de parrafo
+### 1.4 Paragraph opening variation
 
-Ningun parrafo debe comenzar igual que los 2 anteriores. Rotar entre:
-afirmacion directa, pregunta retorica, conector suave, dato especifico,
-referencia temporal, condicion.
+No paragraph should start the same way as the previous 2. Rotate between:
+direct statement, rhetorical question, soft connector, specific data,
+temporal reference, condition.
 
-### 1.5 Variacion de vocabulario
+### 1.5 Vocabulary variation
 
-| Concepto | Alternativas |
-|----------|-------------|
-| "demuestra" | "sugiere", "indica", "revela", "deja ver", "apunta a", "evidencia" |
-| "importante" | "relevante", "significativo", "determinante", "clave" |
-| "analiza" | "examina", "evalua", "estudia", "aborda", "revisa", "explora" |
-| "resultado" | "hallazgo", "outcome", "desenlace", "producto", "consecuencia" |
-| "muestra" | "evidencia", "refleja", "expone", "revela", "presenta" |
-| "significativo" | "considerable", "notable", "sustancial", "apreciable" |
+| Concept | Alternatives |
+|---------|-------------|
+| "demonstrates" | "suggests", "indicates", "reveals", "shows", "points to", "evidences" |
+| "important" | "relevant", "significant", "determinant", "key" |
+| "analyzes" | "examines", "evaluates", "studies", "addresses", "reviews", "explores" |
+| "result" | "finding", "outcome", "consequence", "product", "consequence" |
+| "shows" | "evidences", "reflects", "exposes", "reveals", "presents" |
+| "significant" | "considerable", "notable", "substantial", "appreciable" |
 
-No usar la misma palabra mas de 2 veces en 3 parrafos consecutivos.
+Do not use the same word more than 2 times in 3 consecutive paragraphs.
 
-### 1.6 Puntuacion natural
+### 1.6 Natural punctuation
 
-Los textos de IA evitan `;`, `:`, `()`, `—`. Agregarlos:
-- 1-2 puntos y coma por cada 10 oraciones
-- 1-2 guiones largos por seccion
-- Parentesis para aclaraciones (1-2 por seccion)
-- Dos puntos para introducir explicaciones
+AI text avoids `;`, `:`, `()`, `—`. Add them:
+- 1-2 semicolons per 10 sentences
+- 1-2 em dashes per section
+- Parentheses for clarifications (1-2 per section)
+- Colons to introduce explanations
 
 ### 1.7 Burstiness
 
-Mezclar oraciones de 5 a 40+ palabras. Desviacion estandar de longitud >12.
+Mix sentences from 5 to 40+ words. Standard deviation of length >12.
 
-### 1.8 Voz activa > pasiva
+To automatically calculate burstiness (SD of sentence lengths):
+```bash
+# Linux/macOS:
+python -c "import sys,statistics;s=sys.stdin.read();l=[len(o.split()) for o in s.replace('?','.').replace('!','.').split('.') if o.strip()];print(f'Sentences: {len(l)}, Mean: {statistics.mean(l):.1f}, SD: {statistics.stdev(l):.1f}')" < document.md
 
-Max 20% de oraciones en pasiva (40% en metodologia).
+# Windows (PowerShell):
+Get-Content document.md | python -c "import sys,statistics;s=sys.stdin.read();l=[len(o.split()) for o in s.replace('?','.').replace('!','.').split('.') if o.strip()];print(f'Sentences: {len(l)}, Mean: {statistics.mean(l):.1f}, SD: {statistics.stdev(l):.1f}')"
+```
 
-### 1.9 Imperfecciones controladas
+### 1.8 Active voice > passive
 
-1-2 por cada 3 secciones: oracion iniciando con "Y"/"Pero",
-parrafo mas corto/largo, anfora, conector no ideal.
+Max 20% of sentences in passive (40% in methodology).
+
+### 1.9 Controlled imperfections
+
+1-2 per every 3 sections: sentence starting with "And"/"But",
+shorter/longer paragraph, anaphora, non-ideal connector.
 
 ---
 
-## 2. DETECTAR — Verificar con detect_ai.py
+## 2. DETECT — Verify with detect_ai.py
 
-Una vez humanizado el documento, ejecutar el detector local para confirmar
-que el texto pase como humano:
+After humanizing the document, run the local detector to confirm
+the text passes as human:
 
 ```bash
-# Instalar dependencias (1 vez)
+# Install dependencies (once)
 pip install transformers torch
 
-# Probar el documento completo
-python skills/content-humanizer/detect_ai.py --file documento.md --verbose
+# Test the complete document (run from project root)
+python scripts/detect_ai.py --file document.md --verbose
 ```
 
-### Interpretacion de resultados
+### Result interpretation
 
 ```
-  AI:   12.3%            ← probabilidad de ser IA (debe ser <50%)
-  Human: 87.7%           ← probabilidad de ser humano
-  Verdict: PASA           ← PASA o DETECTADO
+  AI:   12.3%            ← probability of being AI (should be <50%)
+  Human: 87.7%           ← probability of being human
+  Verdict: PASS           ← PASS or DETECTED
 ```
 
-| Resultado | Significado | Accion |
-|-----------|-------------|--------|
-| AI < 30% | Texto humano | Listo. Entregar. |
-| AI 30-50% | Texto dudoso | Revisar secciones senaladas, aplicar mas variacion |
-| AI > 50% | Texto detectado | Repetir humanizacion en secciones con mayor puntaje |
-| AI > 70% | Texto muy detectable | Reescribir desde cero con las tecnicas de este skill |
+| Result | Meaning | Action |
+|--------|---------|--------|
+| AI < 30% | Human text | Ready. Submit. |
+| AI 30-50% | Ambiguous text | Review flagged sections, apply more variation |
+| AI > 50% | Detected text | Repeat humanization on sections with highest score |
+| AI > 70% | Highly detectable | Rewrite from scratch using this skill's techniques |
 
-### Analisis por seccion (--verbose)
+### Section-level analysis (--verbose)
 
-El detector senala que secciones tienen mayor probabilidad AI.
-Aplicar humanizacion adicional especificamente en esas secciones
-y volver a ejecutar el detector.
+The detector flags which sections have higher AI probability.
+Apply additional humanization specifically to those sections
+and re-run the detector.
 
-### Si no se puede instalar transformers
+### If transformers cannot be installed
 
-Usar detectores web via `webfetch`:
-1. Enviar texto a https://www.zerogpt.com (gratuito, sin API key)
-2. Enviar a https://gptzero.me (gratuito limitado)
-3. Comparar resultados entre ambos
-4. Si ambos dicen "AI", volver al paso 1 con mas tecnicas
+Use web detectors via `webfetch`:
+1. Send text to https://www.zerogpt.com (free, no API key)
+2. Send to https://gptzero.me (limited free)
+3. Compare results between both
+4. If both say "AI", go back to step 1 with more techniques
 
 ---
 
-## 3. ITERAR — Loop de verificacion
+## 3. ITERATE — Verification loop
 
 ```
 while True:
-    humanizar(documento)
-    resultado = detectar(documento)
-    if resultado.verdict == "PASA":
+    humanize(document)
+    result = detect(document)
+    if result.verdict == "PASS":
         break
     else:
-        humanizar(resultado.secciones_problematicas)
+        humanize(result.flagged_sections)
 ```
 
-Maximo 3 iteraciones. Si despues de 3 intentos sigue detectado,
-revisar manualmente las secciones mas problematicas.
+Maximum 3 iterations. If after 3 attempts still detected,
+manually review the most problematic sections.
 
 ---
 
-## Checklist Final
+## Final Checklist
 
-- [ ] Escanear y reemplazar frases de la tabla roja
-- [ ] Variar apertura de parrafos (ninguno igual a los 2 anteriores)
-- [ ] Dividir o unir oraciones para romper uniformidad
-- [ ] Insertar 2-3 incisos con guiones o parentesis
-- [ ] Convertir pasiva a activa (donde corresponda)
-- [ ] Verificar burstiness: desviacion estandar de longitud >12
-- [ ] Contar conectores repetidos y reemplazar
-- [ ] No hay "como se menciono anteriormente" ni similares
-- [ ] Cada seccion termina sin cierre forzado
-- [ ] **Ejecutar detect_ai.py → Verdict: PASA**
+- [ ] Scan and replace red-table phrases
+- [ ] Vary paragraph openings (none same as previous 2)
+- [ ] Split or merge sentences to break uniformity
+- [ ] Insert 2-3 asides with dashes or parentheses
+- [ ] Convert passive to active (where applicable)
+- [ ] Verify burstiness: standard deviation of length >12
+- [ ] Count repeated connectors and replace
+- [ ] No "as previously mentioned" or similar
+- [ ] Each section ends without forced closure
+- [ ] **Run detect_ai.py → Verdict: PASS**
 
 ---
 
-## Restricciones
+## Dependencies
+```bash
+pip install transformers torch
+```
+For web-based detection: no additional packages (uses webfetch tool).
 
-- **DO NOT** modificar datos, cifras, fechas, nombres
-- **DO NOT** alterar citas textuales ni sus comillas o formato
-- **DO NOT** eliminar o modificar referencias
-- **DO NOT** cambiar estructura academica (secciones, headers)
-- **DO NOT** agregar informacion nueva
-- **DO NOT** eliminar informacion relevante
-- **DO NOT** reducir el rigor academico o la precision tecnica
+## Restrictions
+
+- **DO NOT** modify data, figures, dates, names
+- **DO NOT** alter direct quotes or their formatting
+- **DO NOT** remove or modify references
+- **DO NOT** change academic structure (sections, headers)
+- **DO NOT** add new information
+- **DO NOT** remove relevant information
+- **DO NOT** reduce academic rigor or technical precision
+
+## Error handling
+- **detect_ai.py not found:** Look in `scripts/detect_ai.py` relative to the skill
+- **transformers not installed:** Use web detectors via webfetch (ZeroGPT, GPTZero)
+- **Document too long:** Process by sections, humanize each separately
+- **AI score > 70% after 3 iterations:** Manually rewrite the most problematic sections
+- **Encoding error:** Ensure UTF-8 in the input file
+
+## File structure
+```
+content-humanizer/
+├── SKILL.md
+├── scripts/
+│   └── detect_ai.py       # AI detection script (local)
+└── tests/
+    └── test_detect.py     # Tests for detection script
+```

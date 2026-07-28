@@ -1,0 +1,23 @@
+{
+  "name": "",
+  "email": "",
+  "phone": "",
+  "location": "",
+  "city_search": "",
+  "current_role": "",
+  "years_experience": null,
+  "skills": [],
+  "soft_skills": [],
+  "education": "",
+  "languages": [],
+  "salary_expected": "",
+  "remote_preference": "no-preference",
+  "job_types": ["full-time"],
+  "work_type": "full-time",
+  "industries": [],
+  "deal_breakers": [],
+  "experience": {
+    "years": null,
+    "roles": []
+  }
+}

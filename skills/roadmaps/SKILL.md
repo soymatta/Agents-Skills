@@ -111,3 +111,40 @@ Quick-start skeletons for common project types. Copy + fill values.
 
 - All milestones completed + final step completed + user confirms goal met
 - Set `Status: completed`, archive steps under "## Completed", delete `.roadmap-state`
+
+## When to use
+- Any multi-step project or task
+- Keywords: "roadmap", "plan", "step-by-step", "milestones", "workflow", "task breakdown"
+- "break this down", "what should I do next", "how do I achieve X"
+- When `roadmap.md` exists in project root
+
+## When NOT to use
+- Single-step tasks
+- Tasks already broken down in issue tracker
+- User explicitly doesn't want planning overhead
+
+## Dependencies
+No external dependencies.
+
+## Error handling
+- **roadmap.md corrupted:** Rebuild from `.roadmap-state` cache if available
+- **Step blocked by external dependency:** Mark blocked, skip to independent step
+- **User changed scope mid-roadmap:** Rewrite roadmap from current position
+- **Loop stall (3+ no progress):** Pause and ask user for guidance
+
+## File structure
+```
+roadmaps/
+├── SKILL.md
+├── evals/
+│   └── evals.json           # Test prompts
+├── scripts/
+│   └── validate_roadmap.py  # Roadmap validation
+├── templates/
+│   ├── web-app.md           # Web app template
+│   ├── ml-model.md          # ML model template
+│   ├── api-service.md       # API service template
+│   └── migration.md         # Migration template
+└── tests/
+    └── test_roadmaps.py     # Tests
+```

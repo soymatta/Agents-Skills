@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+*.whl
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# opencode / AI assistants
+.opencode/
+.claude/
+.cowork/
+AGENTS.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Runtime
+*.log
+*.state.json
+.roadmap-state
+roadmap.md
+
+# Skill runtime outputs (not version-controlled)
+skills/*/scored.json
+skills/*/results.json
+skills/*/profile.json
+skills/*/projects.json
+osint_output/

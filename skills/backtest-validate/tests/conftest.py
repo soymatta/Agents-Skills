@@ -12,7 +12,7 @@ import pytest
 @pytest.fixture(scope="module")
 def evaluator_module():
     """Load evaluate_backtest.py as a module for unit tests."""
-    script_path = Path(__file__).resolve().parents[1] / "evaluate_backtest.py"
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "evaluate_backtest.py"
     spec = importlib.util.spec_from_file_location("evaluate_backtest", script_path)
     if spec is None or spec.loader is None:
         raise RuntimeError("Failed to load evaluate_backtest.py")

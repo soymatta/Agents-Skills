@@ -1,0 +1,48 @@
+{
+    "name": "{{FULL_NAME}}",
+    "title": "{{PROFESSIONAL_TITLE}}",
+    "contact": {
+        "email": "{{EMAIL}}",
+        "phone": "{{PHONE}}",
+        "linkedin": "{{LINKEDIN_URL}}",
+        "location": "{{CITY, COUNTRY}}",
+        "website": "{{WEBSITE_URL}}"
+    },
+    "profile": "{{Brief professional summary}}",
+    "skills": {
+        "{{Category1}}": "{{Skill1, Skill2, Skill3}}",
+        "{{Category2}}": "{{Skill4, Skill5, Skill6}}"
+    },
+    "experience": [
+        {
+            "company": "{{COMPANY}}",
+            "role": "{{ROLE}}",
+            "period": "{{MMM YYYY - MMM YYYY}}",
+            "bullets": [
+                "{{Achievement 1}}",
+                "{{Achievement 2}}"
+            ]
+        }
+    ],
+    "projects": [
+        {
+            "name": "{{PROJECT_NAME}}",
+            "role": "{{ROLE}}",
+            "bullets": [
+                "{{Description}}"
+            ]
+        }
+    ],
+    "education": [
+        {
+            "institution": "{{INSTITUTION}}",
+            "degree": "{{DEGREE}}",
+            "period": "{{YYYY - YYYY}}",
+            "details": "{{Additional details}}"
+        }
+    ],
+    "languages": {
+        "{{Language1}}": "{{Level}}",
+        "{{Language2}}": "{{Level}}"
+    }
+}

@@ -1,0 +1,13 @@
+{
+  "goal": "Describe the target — e.g., 'Reach 92% accuracy on validation set'",
+  "target": 92.0,
+  "current_metric": null,
+  "best_metric": null,
+  "iterations": 0,
+  "achieved": false,
+  "history": [],
+  "blockers": [],
+  "last_action": null,
+  "approach_tried": [],
+  "approach_ceiling": null
+}

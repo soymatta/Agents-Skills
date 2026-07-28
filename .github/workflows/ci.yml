@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest requests
+          if [ -f skills/requirements.txt ]; then pip install -r skills/requirements.txt; fi
+
+      - name: Validate SKILL.md files exist
+        run: |
+          for skill in skills/*/; do
+            skill_name=$(basename "$skill")
+            if [ -f "$skill/SKILL.md" ]; then
+              echo "OK: $skill_name has SKILL.md"
+            elif [ -d "$skill/scripts" ] || [ -d "$skill/templates" ]; then
+              echo "SKIP: $skill_name is infrastructure (scripts/templates only)"
+            else
+              echo "ERROR: $skill_name has no SKILL.md and is not infrastructure"
+              exit 1
+            fi
+          done
+          echo "All skill directories validated"
+
+      - name: Validate agents exist
+        run: |
+          for agent in agents/*.md; do
+            if [ ! -f "$agent" ]; then
+              echo "ERROR: No agent files found"
+              exit 1
+            fi
+          done
+          echo "All agents present"
+
+      - name: Run setup.py syntax check
+        run: python -c "import py_compile; py_compile.compile('setup.py', doraise=True)"
+
+      - name: Run skill tests
+        run: |
+          failed=0
+          for skill_dir in skills/*/; do
+            if [ -d "$skill_dir/tests" ]; then
+              skill_name=$(basename "$skill_dir")
+              echo "=== Testing $skill_name ==="
+              cd "$skill_dir"
+              if python -m pytest tests/ -v; then
+                echo "PASS: $skill_name"
+              else
+                echo "FAIL: $skill_name"
+                failed=1
+              fi
+              cd ../..
+            fi
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Some skill tests failed"
+            exit 1
+          fi
+          echo "All skill tests passed"

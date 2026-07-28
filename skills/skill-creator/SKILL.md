@@ -1,11 +1,25 @@
 ---
 name: skill-creator
 description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
+compatibility: Bundled subagents in agents/ (grader, comparator, analyzer). Scripts for benchmarking, eval running, and description optimization. Requires subagent support for full eval workflow.
 ---
 
 # Skill Creator
 
 A skill for creating new skills and iteratively improving them.
+
+## When to use
+- User wants to create a new skill from scratch
+- User wants to improve or optimize an existing skill
+- User wants to run evals to test a skill's quality
+- User wants to benchmark skill performance with variance analysis
+- User wants to optimize a skill's description for better triggering accuracy
+- User says "crear skill", "create skill", "improve skill", "optimize skill", "eval skill", "test skill"
+
+## When NOT to use
+- User wants to use an existing skill (not create/edit one)
+- User wants to configure opencode agents or MCP servers (use `customize-opencode`)
+- Problem can be solved without creating a new skill
 
 At a high level, the process of creating a skill goes like this:
 
@@ -466,6 +480,23 @@ The agents/ directory contains instructions for specialized subagents. Read them
 
 The references/ directory has additional documentation:
 - `references/schemas.md` — JSON structures for evals.json, grading.json, etc.
+
+## Dependencies
+No additional pip packages required for core skill creation. The eval-viewer and benchmark scripts use only Python standard library + built-in modules.
+
+## Error handling
+- **Script not found:** Check that the skill-creator directory structure is intact (agents/, scripts/, eval-viewer/, references/)
+- **Subagent spawn fails:** Fall back to inline evaluation. Read the relevant agent .md file and follow its instructions directly
+- **Eval viewer won't start:** Use `--static <output_path>` flag to generate a standalone HTML file instead of starting a server
+- **Benchmark aggregation fails:** Check that timing.json files exist in each run directory
+- **Description optimization fails:** Verify `claude` CLI is available (required for `run_loop.py`)
+
+## Restrictions
+- **DO NOT** create skills that facilitate unauthorized access, data exfiltration, or malicious activities
+- **DO NOT** skip the human review step — always let the user review outputs before proceeding
+- **DO NOT** optimize on the test set when improving descriptions (use train/test split)
+- **DO NOT** ship a skill without running at least 2-3 test prompts
+- **DO NOT** use excessively rigid MUSTs/NEVERs — explain reasoning instead
 
 ---
 

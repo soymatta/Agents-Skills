@@ -35,9 +35,9 @@ This agent comes bundled with `vault-researcher` (sub-agent). When info is missi
 - Follow `[[note-name]]` links to access referenced notes
 - If info not found: "I did not find information regarding this in the project"
 
-### When info is missing, suggest subagents
-- `vault-search` skill — search specific topics
-- `vault-organizer` skill — where to place new info
+### When info is missing, suggest agents
+- `vault-search` agent — search specific topics
+- `vault-organizer` agent — where to place new info
 - `vault-researcher` sub-agent — external concept verification
 
 ## Restrictions
