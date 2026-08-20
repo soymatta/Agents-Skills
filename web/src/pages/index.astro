@@ -3,45 +3,21 @@ import Layout from '../layouts/Layout.astro';
 
 const agents = [
 	{
-		name: "vault-indexer",
-		description: "Reads and indexes all .md notes in the vault. Answers exclusively from file contents.",
-		permissions: "read, glob, grep, task",
-		type: "agent" as const,
-	},
-	{
-		name: "vault-search",
-		description: "Searches topics inside the vault using glob and grep. Complement to the vault-indexer.",
-		permissions: "read, glob, grep, task",
-		type: "agent" as const,
-	},
-	{
-		name: "vault-organizer",
-		description: "Analyzes vault structure and suggests where to place new information.",
-		permissions: "read, glob, grep, task",
+		name: "vault",
+		description: "Unified Obsidian vault manager. Index, search, organize, verify, create notes, run health checks, and detect broken links — all in one agent with bilingual support (EN/ES).",
+		permissions: "read, glob, grep, task, edit",
 		type: "agent" as const,
 	},
 	{
 		name: "paper-researcher",
-		description: "Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver).",
+		description: "Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES.",
 		permissions: "bash, read, glob, grep, webfetch, task, edit",
-		type: "agent" as const,
-	},
-	{
-		name: "roadmaps",
-		description: "Creates, updates, and follows adaptive roadmaps for any project.",
-		permissions: "bash, read, glob, grep, task, edit",
 		type: "agent" as const,
 	},
 	{
 		name: "jobfinder",
-		description: "Analyzes professional profile, searches jobs, calculates match scores, and generates reports.",
+		description: "Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs and cover letters, and tracks applications.",
 		permissions: "bash, read, glob, grep, webfetch, task, edit",
-		type: "agent" as const,
-	},
-	{
-		name: "metric-optimizer",
-		description: "Optimizes numerical metrics via autonomous iterative improvement loop.",
-		permissions: "bash, read, glob, grep, task, edit",
 		type: "agent" as const,
 	},
 ];
@@ -105,16 +81,37 @@ const skills = [
 	},
 	{
 		name: "osint",
-		description: "OSINT investigation framework with 7 reference guides and 4 scripts for person/company/domain research.",
+		description: "OSINT investigation framework with 7 reference guides and 5 scripts for person/company/domain research.",
 		dependencies: [],
 		category: "investigation",
 		type: "first-party" as const,
 	},
 	{
-		name: "goal-pursuit",
-		description: "Autonomous optimization loop for numerical metrics via iterative improvement. Never asks for input.",
+		name: "metric-optimizer",
+		description: "Optimizes numerical metrics via autonomous iterative improvement loop. Never asks for input.",
 		dependencies: [],
 		category: "automation",
+		type: "first-party" as const,
+	},
+	{
+		name: "roadmaps",
+		description: "Creates, updates, and follows adaptive roadmaps for any project. Validates structure and detects cycles.",
+		dependencies: [],
+		category: "automation",
+		type: "first-party" as const,
+	},
+	{
+		name: "project-analyzer",
+		description: "Read-only project analysis: structure, code quality, bugs, security, performance, and dependency health with severity levels.",
+		dependencies: [],
+		category: "automation",
+		type: "first-party" as const,
+	},
+	{
+		name: "agent-self-improver",
+		description: "Self-improvement framework for agents: collects feedback, detects patterns, suggests improvements with human supervision.",
+		dependencies: [],
+		category: "meta",
 		type: "first-party" as const,
 	},
 	{
@@ -138,11 +135,220 @@ const skills = [
 		repo: "https://github.com/pbakaus/impeccable",
 	},
 	{
-		name: "project-analyzer",
-		description: "Read-only project analysis: structure, code quality, bugs, security, performance, and dependency health with severity levels.",
+		name: "ai-job-search",
+		description: "AI job application framework: 5D fit evaluation, CV tailoring, cover letters, interview prep, and application tracking.",
 		dependencies: [],
-		category: "automation",
-		type: "first-party" as const,
+		category: "career",
+		type: "third-party" as const,
+		author: "MadsLorentzen",
+		license: "MIT",
+		repo: "https://github.com/MadsLorentzen/ai-job-search",
+	},
+];
+
+const commands = [
+	{
+		skill: "osint",
+		scripts: [
+			{ cmd: "python skills/osint/scripts/generate_plan.py", desc: "Generate OSINT investigation plan", args: "--target-type person --target-value \"John Doe\" --depth standard" },
+			{ cmd: "python skills/osint/scripts/run_investigation.py", desc: "Execute OSINT pipeline from plan", args: "--plan investigation_plan.json --interactive" },
+			{ cmd: "python skills/osint/scripts/phone_parser.py", desc: "Parse and normalize phone numbers", args: "+1234567890 --json" },
+			{ cmd: "python skills/osint/scripts/scrape_directories.py", desc: "Scrape free public phone directories", args: "+1234567890 --json" },
+			{ cmd: "python skills/osint/scripts/gen_report.py", desc: "Generate OSINT investigation report", args: "--target \"John Doe\" --target-type person --format both" },
+		],
+	},
+	{
+		skill: "jobfinder",
+		scripts: [
+			{ cmd: "python skills/jobfinder/scripts/search_jobs.py", desc: "Search jobs across multiple boards", args: "--keywords \"python developer\" --location \"Remote\" --remote-only" },
+			{ cmd: "python skills/jobfinder/scripts/score_match.py", desc: "Score jobs against your profile (5D)", args: "--profile profile.json --jobs results.json" },
+			{ cmd: "python skills/jobfinder/scripts/gap_analysis.py", desc: "Analyze skill gaps for target roles", args: "--profile profile.json --scored scored.json" },
+			{ cmd: "python skills/jobfinder/scripts/generate_cv_pdf.py", desc: "Generate professional CV PDF", args: "--profile profile.json --lang en" },
+			{ cmd: "python skills/jobfinder/scripts/generate_cover_letter.py", desc: "Generate tailored cover letter", args: "--profile profile.json --job job.json" },
+			{ cmd: "python skills/jobfinder/scripts/suggest_projects.py", desc: "Suggest GitHub projects for skill gaps", args: "--missing-skills \"kubernetes,docker\" --job-title \"SRE\"" },
+			{ cmd: "python skills/jobfinder/scripts/track_application.py", desc: "Track job applications", args: "add --company \"Acme\" --role \"Dev\"" },
+		],
+	},
+	{
+		skill: "backtest-validate",
+		scripts: [
+			{ cmd: "python skills/backtest-validate/scripts/evaluate_backtest.py", desc: "Score backtest quality (5D framework)", args: "--total-trades 200 --win-rate 0.58 --avg-win-pct 2.1 --avg-loss-pct 1.5 --max-drawdown-pct 12 --years-tested 3 --num-parameters 8 --slippage-tested" },
+		],
+	},
+	{
+		skill: "citation-formatter",
+		scripts: [
+			{ cmd: "python skills/citation-formatter/scripts/generate_outputs.py", desc: "Generate formatted academic document", args: "--file paper.md --norm apa --html" },
+		],
+	},
+	{
+		skill: "content-humanizer",
+		scripts: [
+			{ cmd: "python skills/content-humanizer/scripts/detect_ai.py", desc: "Detect AI-generated text patterns", args: "--file essay.md --verbose" },
+		],
+	},
+	{
+		skill: "roadmaps",
+		scripts: [
+			{ cmd: "python skills/roadmaps/scripts/validate_roadmap.py", desc: "Validate roadmap structure and detect cycles", args: "--file roadmap.md" },
+		],
+	},
+];
+
+const usageGuides = [
+	{
+		name: "vault",
+		type: "agent" as const,
+		triggers: [
+			"Find notes about Python",
+			"Organize my vault by topic",
+			"Create a daily note",
+		],
+	},
+	{
+		name: "paper-researcher",
+		type: "agent" as const,
+		triggers: [
+			"Write a research paper on X in APA",
+			"Find academic sources for my thesis",
+			"Review my paper's citations",
+		],
+	},
+	{
+		name: "jobfinder",
+		type: "agent" as const,
+		triggers: [
+			"Find remote Python developer jobs",
+			"Score my CV against this posting",
+			"Generate a cover letter for this role",
+		],
+	},
+	{
+		name: "telegram-notify",
+		type: "skill" as const,
+		triggers: [
+			"Notify me on Telegram when this completes",
+			"Send alert to my Telegram chat",
+		],
+	},
+	{
+		name: "academic-source-search",
+		type: "skill" as const,
+		triggers: [
+			"Find papers about machine learning",
+			"Search arXiv for recent studies",
+		],
+	},
+	{
+		name: "citation-formatter",
+		type: "skill" as const,
+		triggers: [
+			"Format my citations in APA 7th",
+			"Generate a references section in IEEE",
+		],
+	},
+	{
+		name: "content-humanizer",
+		type: "skill" as const,
+		triggers: [
+			"Make this text undetectable by AI",
+			"Run AI detection on this essay",
+		],
+	},
+	{
+		name: "osint",
+		type: "skill" as const,
+		triggers: [
+			"Run an OSINT investigation on this target",
+			"Look up this phone number",
+		],
+	},
+	{
+		name: "metric-optimizer",
+		type: "skill" as const,
+		triggers: [
+			"Optimize this metric to 95% accuracy",
+			"Maximize model performance",
+		],
+	},
+	{
+		name: "roadmaps",
+		type: "skill" as const,
+		triggers: [
+			"Create a plan for this project",
+			"Break this feature into steps",
+		],
+	},
+	{
+		name: "project-analyzer",
+		type: "skill" as const,
+		triggers: [
+			"Analyze this codebase for issues",
+			"Audit this project's security",
+		],
+	},
+	{
+		name: "research-pipeline",
+		type: "skill" as const,
+		triggers: [
+			"Research this prediction market question",
+			"Test this hypothesis with data",
+		],
+	},
+	{
+		name: "backtest-run",
+		type: "skill" as const,
+		triggers: [
+			"Backtest this trading strategy",
+			"Run a backtest with slippage",
+		],
+	},
+	{
+		name: "backtest-validate",
+		type: "skill" as const,
+		triggers: [
+			"Validate this backtest quality",
+			"Score this strategy before deploying",
+		],
+	},
+	{
+		name: "math-notation",
+		type: "skill" as const,
+		triggers: [
+			"Auto-applied when writing math in academic docs",
+		],
+	},
+	{
+		name: "agent-self-improver",
+		type: "skill" as const,
+		triggers: [
+			"Improve this agent's performance",
+			"Review agent patterns and issues",
+		],
+	},
+	{
+		name: "skill-creator",
+		type: "skill" as const,
+		triggers: [
+			"Create a new skill from scratch",
+			"Optimize this skill's triggers",
+		],
+	},
+	{
+		name: "impeccable",
+		type: "skill" as const,
+		triggers: [
+			"Polish this landing page UI",
+			"Audit this design for accessibility",
+		],
+	},
+	{
+		name: "ai-job-search",
+		type: "skill" as const,
+		triggers: [
+			"Evaluate this job posting fit",
+			"Tailor my CV for this role",
+		],
 	},
 ];
 
@@ -155,6 +361,7 @@ const categoryColors: Record<string, string> = {
 	automation: "var(--accent)",
 	meta: "var(--text-dim)",
 	design: "var(--purple)",
+	career: "var(--green)",
 };
 ---
 
@@ -167,8 +374,10 @@ const categoryColors: Record<string, string> = {
 			</a>
 			<div class="nav-links">
 				<a href="#install">Install</a>
+				<a href="#usage">Usage</a>
 				<a href="#skills">Skills</a>
 				<a href="#agents">Agents</a>
+				<a href="#commands">Commands</a>
 				<a href="#third-party">Third-Party</a>
 				<a href="https://github.com/soymatta/Agents-Skills" target="_blank">GitHub</a>
 			</div>
@@ -196,6 +405,10 @@ const categoryColors: Record<string, string> = {
 			<div class="stat">
 				<span class="stat-num">{agents.length}</span>
 				<span class="stat-label">Agents</span>
+			</div>
+			<div class="stat">
+				<span class="stat-num">{commands.reduce((acc, c) => acc + c.scripts.length, 0)}</span>
+				<span class="stat-label">Commands</span>
 			</div>
 			<div class="stat">
 				<span class="stat-num">4</span>
@@ -241,6 +454,33 @@ python setup.py --all --platform opencode --local</code></pre>
 			<div class="install-note">
 				<strong>Requirements:</strong> Python &ge; 3.11 &middot;
 				<strong>Environment:</strong> Copy <code>.env.example</code> to <code>.env</code> and set <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_CHAT_ID</code> for notification skills.
+			</div>
+		</div>
+	</section>
+
+	<section id="usage" class="section section-alt">
+		<div class="container">
+			<h2>Quick Usage</h2>
+			<p class="section-desc">Talk to agents and skills in natural language. The AI detects your intent and executes the right workflow automatically.</p>
+
+			<div class="usage-grid">
+				{usageGuides.map(item => (
+					<div class="usage-card">
+						<div class="usage-header">
+							<h3 class="usage-name">{item.name}</h3>
+							<span class={`usage-badge usage-badge-${item.type}`}>{item.type}</span>
+						</div>
+						<ul class="usage-triggers">
+							{item.triggers.map(t => (
+								<li><code>{t}</code></li>
+							))}
+						</ul>
+					</div>
+				))}
+			</div>
+
+			<div class="usage-note">
+				<strong>Tip:</strong> Agents and skills activate from natural conversation — no special syntax needed. Just describe what you want.
 			</div>
 		</div>
 	</section>
@@ -301,7 +541,40 @@ python setup.py --all --platform opencode --local</code></pre>
 		</div>
 	</section>
 
-	<section id="third-party" class="section section-alt">
+	<section id="commands" class="section section-alt">
+		<div class="container">
+			<h2>Commands</h2>
+			<p class="section-desc">Runnable CLI scripts you can execute directly from the terminal. Each skill may include scripts that work standalone without the AI agent.</p>
+
+			<div class="commands-grid">
+				{commands.map(group => (
+					<div class="command-group">
+						<div class="command-group-header">
+							<h3 class="command-skill-name">{group.skill}</h3>
+							<span class="command-count">{group.scripts.length} script{group.scripts.length > 1 ? 's' : ''}</span>
+						</div>
+						<div class="command-list">
+							{group.scripts.map(script => (
+								<div class="command-item">
+									<div class="command-top">
+										<span class="command-desc">{script.desc}</span>
+									</div>
+									<pre class="command-code"><code>{script.cmd} \</code>
+<code>  {script.args}</code></pre>
+								</div>
+							))}
+						</div>
+					</div>
+				))}
+			</div>
+
+			<div class="commands-note">
+				<strong>Tip:</strong> All scripts accept <code>--help</code> for full usage info. Run from the repo root directory.
+			</div>
+		</div>
+	</section>
+
+	<section id="third-party" class="section">
 		<div class="container">
 			<h2>Third-Party Skills</h2>
 			<p class="section-desc">These skills are authored externally and included with their original licenses. Do not modify them — pull updates from the upstream source.</p>
@@ -327,8 +600,9 @@ python setup.py --all --platform opencode --local</code></pre>
 			<div class="tp-rules">
 				<h3>Modification Rules</h3>
 				<ul>
-					<li><code>skill-creator</code> — authored by <strong>Anthropic, PBC</strong> (Apache 2.0). If it needs updates, pull from the upstream source.</li>
-					<li><code>impeccable</code> — authored by <strong>pbakaus</strong> (Apache 2.0). To update, run <code>npx impeccable install --providers=opencode --scope=project --force</code>.</li>
+					<li><code>skill-creator</code> — authored by <strong>Anthropic, PBC</strong> (Apache 2.0). Do not modify. To update, pull from the upstream source.</li>
+					<li><code>impeccable</code> — authored by <strong>pbakaus</strong> (Apache 2.0). Do not modify. To update, run <code>npx impeccable install --providers=opencode --scope=project --force</code>.</li>
+					<li><code>ai-job-search</code> — authored by <strong>MadsLorentzen</strong> (MIT). Do not modify. To update, pull from the upstream source.</li>
 				</ul>
 			</div>
 		</div>
@@ -343,14 +617,15 @@ python setup.py --all --platform opencode --local</code></pre>
 				<pre><code># All tests
 python -m pytest skills/ -v
 
-# Single skill
+# By skill
 python -m pytest skills/backtest-validate/tests/ -v
 python -m pytest skills/osint/tests/ -v
 python -m pytest skills/content-humanizer/tests/ -v
 python -m pytest skills/skill-creator/tests/ -v
-python -m pytest skills/goal-pursuit/tests/ -v
 python -m pytest skills/roadmaps/tests/ -v
-python -m pytest skills/jobfinder/tests/ -v</code></pre>
+python -m pytest skills/jobfinder/tests/ -v
+python -m pytest skills/ai-job-search/tests/ -v
+python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 			</div>
 		</div>
 	</section>
@@ -842,6 +1117,192 @@ python -m pytest skills/jobfinder/tests/ -v</code></pre>
 		max-width: 600px;
 	}
 
+	/* Commands */
+	.commands-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 24px;
+		margin-bottom: 32px;
+	}
+
+	.command-group {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		overflow: hidden;
+	}
+
+	.command-group-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 14px 20px;
+		border-bottom: 1px solid var(--border-subtle);
+		background: var(--bg-card);
+	}
+
+	.command-skill-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: var(--mono);
+		color: var(--accent-light);
+	}
+
+	.command-count {
+		font-size: 0.75rem;
+		color: var(--text-dim);
+		padding: 2px 10px;
+		background: var(--accent-glow);
+		border-radius: 999px;
+	}
+
+	.command-list {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.command-item {
+		padding: 14px 20px;
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.command-item:last-child {
+		border-bottom: none;
+	}
+
+	.command-top {
+		margin-bottom: 8px;
+	}
+
+	.command-desc {
+		font-size: 0.85rem;
+		color: var(--text-muted);
+	}
+
+	.command-code {
+		font-family: var(--mono);
+		font-size: 0.78rem;
+		color: var(--text-dim);
+		background: var(--bg-card);
+		border: 1px solid var(--border-subtle);
+		border-radius: 6px;
+		padding: 10px 14px;
+		overflow-x: auto;
+		line-height: 1.6;
+		margin: 0;
+	}
+
+	.commands-note {
+		padding: 16px 20px;
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		border-radius: var(--radius-sm);
+		font-size: 0.875rem;
+		color: var(--text-muted);
+	}
+
+	.commands-note strong {
+		color: var(--text);
+	}
+
+	.commands-note code {
+		font-family: var(--mono);
+		font-size: 0.8rem;
+		background: var(--bg-card);
+		padding: 2px 6px;
+		border-radius: 4px;
+		border: 1px solid var(--border);
+	}
+
+	/* Usage */
+	.usage-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 16px;
+		margin-bottom: 32px;
+	}
+
+	.usage-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 20px;
+		transition: border-color 0.2s;
+	}
+
+	.usage-card:hover {
+		border-color: var(--accent);
+	}
+
+	.usage-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 12px;
+	}
+
+	.usage-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: var(--mono);
+	}
+
+	.usage-badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 999px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.usage-badge-agent {
+		background: var(--cyan-dim);
+		color: var(--cyan);
+	}
+
+	.usage-badge-skill {
+		background: var(--accent-glow);
+		color: var(--accent-light);
+	}
+
+	.usage-triggers {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+
+	.usage-triggers li {
+		font-size: 0.82rem;
+		color: var(--text-muted);
+		line-height: 1.5;
+	}
+
+	.usage-triggers code {
+		font-family: var(--mono);
+		font-size: 0.78rem;
+		background: var(--bg-card);
+		border: 1px solid var(--border-subtle);
+		border-radius: 4px;
+		padding: 3px 8px;
+		color: var(--text-dim);
+		display: inline-block;
+	}
+
+	.usage-note {
+		padding: 16px 20px;
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		border-radius: var(--radius-sm);
+		font-size: 0.875rem;
+		color: var(--text-muted);
+	}
+
+	.usage-note strong {
+		color: var(--text);
+	}
+
 	/* Footer */
 	.footer {
 		border-top: 1px solid var(--border-subtle);
@@ -881,8 +1342,15 @@ python -m pytest skills/jobfinder/tests/ -v</code></pre>
 		}
 
 		.skill-grid,
-		.agent-grid {
+		.agent-grid,
+		.usage-grid {
 			grid-template-columns: 1fr;
+		}
+
+		.command-group-header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 6px;
 		}
 
 		.third-party-grid {
