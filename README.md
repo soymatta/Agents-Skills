@@ -24,29 +24,55 @@ Talk to these agents in natural language. They auto-detect intent and run the ap
 | `vault` | "Find notes about Python", "Organize my vault by topic", "Create a daily note" |
 | `paper-researcher` | "Write a research paper on X in APA", "Find academic sources for my thesis", "Review my paper's citations" |
 | `jobfinder` | "Find remote Python developer jobs", "Score my CV against this posting", "Generate a cover letter for this role" |
+| `constructor` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Optimize this metric to 95%", "Improve this skill" |
+| `planner` | "Analyze the codebase and propose an approach", "Design the architecture for X", "Plan this change without editing anything" |
 
 ### Skills
 
 Skills are triggered automatically when the AI detects relevant keywords. Just describe what you need.
 
-| Skill | Trigger Phrases |
-|-------|----------------|
-| `telegram-notify` | "Notify me on Telegram when this completes", "Send alert to my chat" |
-| `academic-source-search` | "Find papers about machine learning", "Search arXiv for recent studies" |
-| `citation-formatter` | "Format my citations in APA 7th", "Generate a references section in IEEE" |
-| `content-humanizer` | "Make this text undetectable by AI", "Run AI detection on this essay" |
-| `osint` | "Run an OSINT investigation on this target", "Look up this phone number" |
-| `metric-optimizer` | "Optimize this metric to 95% accuracy", "Maximize model performance" |
-| `roadmaps` | "Create a plan for this project", "Break this feature into steps" |
-| `project-analyzer` | "Analyze this codebase for issues", "Audit this project's security" |
-| `research-pipeline` | "Research this prediction market question", "Test this hypothesis with data" |
-| `backtest-run` | "Backtest this trading strategy", "Run a backtest with slippage" |
-| `backtest-validate` | "Validate this backtest quality", "Score this strategy before deploying" |
+| Skill | Usage Example |
+|-------|--------------|
+| `telegram-notify` | "Notify me on Telegram when this completes" |
+| `academic-source-search` | "Find papers about machine learning" |
+| `citation-formatter` | "Format my citations in APA 7th" |
+| `content-humanizer` | "Make this text undetectable by AI" |
+| `osint` | "Run an OSINT investigation on this target" |
+| `metric-optimizer` | "Optimize this metric to 95% accuracy" |
+| `roadmaps` | "Create a plan for this project" |
+| `project-analyzer` | "Analyze this codebase for issues" |
+| `research-pipeline` | "Research this prediction market question" |
+| `backtest-run` | "Backtest this trading strategy" |
+| `backtest-validate` | "Validate this backtest quality" |
 | `math-notation` | Auto-applied when writing math in academic docs |
-| `agent-self-improver` | "Improve this agent's performance", "Review agent patterns and issues" |
-| `skill-creator` | "Create a new skill from scratch", "Optimize this skill's triggers" |
-| `impeccable` | "Polish this landing page UI", "Audit this design for accessibility" |
-| `ai-job-search` | "Evaluate this job posting fit", "Tailor my CV for this role" |
+| `agent-self-improver` | "Improve this agent's performance" |
+| `skill-creator` | "Create a new skill from scratch" |
+| `impeccable` | `/init`, `/shape`, `/critique`, `/polish`, `/audit` |
+| `ai-job-search` | `/setup`, `/apply`, `/scrape`, `/rank`, `/interview` |
+
+### Commands
+
+Slash commands you can type directly in your AI assistant:
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| `impeccable` | `/init` | Capture product context in PRODUCT.md |
+| | `/shape [feature]` | Plan UX/UI before writing code |
+| | `/critique [target]` | UX design review with heuristic scoring |
+| | `/audit [target]` | Technical quality checks (a11y, perf, responsive) |
+| | `/polish [target]` | Final quality pass before shipping |
+| | `/bolder [target]` | Amplify safe or bland designs |
+| | `/harden [target]` | Production-ready: errors, i18n, edge cases |
+| | `/animate [target]` | Add purposeful animations and motion |
+| | `/layout [target]` | Fix spacing, rhythm, and visual hierarchy |
+| | `/document` | Generate DESIGN.md from existing code |
+| | `/live` | Visual variant mode in the browser |
+| `ai-job-search` | `/setup` | Onboarding: fill in candidate profile |
+| | `/apply <url>` | Full workflow: evaluate fit, draft CV + cover letter |
+| | `/scrape` | Search multiple job portals with fit ratings |
+| | `/rank` | Batch-score scraped jobs into ranked shortlist |
+| | `/interview` | Stage-specific interview prep + mock interview |
+| | `/upskill` | Skill gap analysis with learning plans |
 
 ## Repository Structure
 
@@ -55,9 +81,11 @@ Agents-Skills/
   setup.py               # Interactive installer (TUI menu)
   README.md              # This file
   agents/                # Agent definitions (YAML frontmatter + markdown)
-    vault.md             # Unified Obsidian vault manager
+    vault.md             # Unified notes manager (Obsidian, OneNote, Notion)
     paper-researcher.md  # Academic paper writer
     jobfinder.md         # Job application assistant
+    constructor.md       # Build Mod — full-access dev agent (clone of opencode build)
+    planner.md           # Plan Mod — read-only analysis/planning agent (clone of opencode plan)
   skills/                # Skill definitions + scripts
     requirements.txt     # Python dependencies
     pyproject.toml       # Project config + pytest settings
@@ -84,9 +112,11 @@ Agents-Skills/
 
 | Agent | Description | Permissions |
 |-------|-------------|-------------|
-| `vault` | Unified Obsidian vault manager. Index, search, organize, verify, create notes, health checks, broken links, and link suggestions — 8 workflows, bilingual EN/ES. | read, glob, grep, task, edit |
+| `vault` | Unified notes manager for Obsidian, OneNote, Notion, and any markdown-based app. Index, search, organize, verify, create notes, health checks, broken links, and link suggestions — 8 workflows, bilingual EN/ES. | read, glob, grep, task, edit |
 | `paper-researcher` | Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES. | bash, read, glob, grep, webfetch, task, edit |
 | `jobfinder` | Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs/cover letters, and tracks applications. | bash, read, glob, grep, webfetch, task, edit |
+| `constructor` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). | all tools (allow), question, plan_enter |
+| `planner` | Clone del agente opencode `plan` (Plan Mod) con nombre mejorado: agente read-only para análisis y planificación; no edita archivos salvo planes. | read, glob, grep, list, bash, question; edit (deny salvo planes) |
 
 ## Skills
 
@@ -113,75 +143,46 @@ Agents-Skills/
 
 ## Commands
 
-Runnable CLI scripts you can execute directly from the terminal:
+Slash commands you can type directly in your AI assistant:
 
-### OSINT
+### impeccable (23 commands)
 
-```bash
-# Generate investigation plan
-python skills/osint/scripts/generate_plan.py --target-type person --target-value "John Doe" --depth standard
+| Command | Description |
+|---------|-------------|
+| `/init` | Capture product context in PRODUCT.md |
+| `/shape [feature]` | Plan UX/UI before writing code |
+| `/critique [target]` | UX design review with heuristic scoring |
+| `/audit [target]` | Technical quality checks (a11y, perf, responsive) |
+| `/polish [target]` | Final quality pass before shipping |
+| `/bolder [target]` | Amplify safe or bland designs |
+| `/quieter [target]` | Tone down aggressive designs |
+| `/distill [target]` | Strip to essence, remove complexity |
+| `/harden [target]` | Production-ready: errors, i18n, edge cases |
+| `/onboard [target]` | Design first-run flows, empty states |
+| `/animate [target]` | Add purposeful animations and motion |
+| `/colorize [target]` | Add strategic color to monochromatic UIs |
+| `/typeset [target]` | Improve typography hierarchy and fonts |
+| `/layout [target]` | Fix spacing, rhythm, and visual hierarchy |
+| `/delight [target]` | Add personality and memorable touches |
+| `/clarify [target]` | Improve UX copy, labels, and error messages |
+| `/adapt [target]` | Adapt for different devices and screen sizes |
+| `/optimize [target]` | Diagnose and fix UI performance |
+| `/document` | Generate DESIGN.md from existing code |
+| `/extract [target]` | Pull reusable tokens and components |
+| `/live` | Visual variant mode in the browser |
 
-# Execute OSINT pipeline
-python skills/osint/scripts/run_investigation.py --plan investigation_plan.json --interactive
+### ai-job-search (8 commands)
 
-# Parse phone numbers
-python skills/osint/scripts/phone_parser.py +1234567890 --json
-
-# Scrape free directories
-python skills/osint/scripts/scrape_directories.py +1234567890 --json
-
-# Generate report
-python skills/osint/scripts/gen_report.py --target "John Doe" --target-type person --format both
-```
-
-### Job Search
-
-```bash
-# Search jobs
-python skills/jobfinder/scripts/search_jobs.py --keywords "python developer" --location "Remote" --remote-only
-
-# Score job matches (5D framework)
-python skills/jobfinder/scripts/score_match.py --profile profile.json --jobs results.json
-
-# Analyze skill gaps
-python skills/jobfinder/scripts/gap_analysis.py --profile profile.json --scored scored.json
-
-# Generate CV PDF
-python skills/jobfinder/scripts/generate_cv_pdf.py --profile profile.json --lang en
-
-# Generate cover letter
-python skills/jobfinder/scripts/generate_cover_letter.py --profile profile.json --job job.json
-
-# Suggest projects for skill gaps
-python skills/jobfinder/scripts/suggest_projects.py --missing-skills "kubernetes,docker" --job-title "SRE"
-
-# Track applications
-python skills/jobfinder/scripts/track_application.py add --company "Acme" --role "Dev"
-```
-
-### Finance
-
-```bash
-# Evaluate backtest quality
-python skills/backtest-validate/scripts/evaluate_backtest.py --total-trades 200 --win-rate 0.58 --avg-win-pct 2.1 --avg-loss-pct 1.5 --max-drawdown-pct 12 --years-tested 3 --num-parameters 8 --slippage-tested
-```
-
-### Writing
-
-```bash
-# Detect AI-generated text
-python skills/content-humanizer/scripts/detect_ai.py --file essay.md --verbose
-
-# Generate formatted academic document
-python skills/citation-formatter/scripts/generate_outputs.py --file paper.md --norm apa --html
-```
-
-### Planning
-
-```bash
-# Validate roadmap structure
-python skills/roadmaps/scripts/validate_roadmap.py --file roadmap.md
-```
+| Command | Description |
+|---------|-------------|
+| `/setup` | Onboarding: fill in candidate profile |
+| `/apply <url>` | Full workflow: evaluate fit, draft CV + cover letter |
+| `/scrape` | Search multiple job portals with fit ratings |
+| `/rank` | Batch-score scraped jobs into ranked shortlist |
+| `/interview` | Stage-specific interview prep + mock interview |
+| `/outcome` | Record application results, track follow-ups |
+| `/upskill` | Skill gap analysis with learning plans |
+| `/expand` | Enrich profile from public sources |
 
 ## Dependency Graph
 
@@ -196,6 +197,12 @@ paper-researcher (agent)
 
 jobfinder (agent)
   +-- scripts/ (7 scripts: scoring, scraping, CV, reports, tracking)
+
+constructor (agent, Build Mod)
+  +-- agent-self-improver (skill)  # feedback collection + pattern detection
+  +-- skill-creator (skill)        # create/improve/benchmark skills
+  +-- metric-optimizer (skill)     # autonomous numerical goal optimization
+  +-- roadmaps (skill)             # multi-step task tracking (goal + steps)
 
 telegram-notify (skill)
   +-- backtest-run (skill)

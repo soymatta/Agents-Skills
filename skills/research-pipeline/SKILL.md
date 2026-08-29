@@ -1,17 +1,23 @@
 ---
 name: research-pipeline
 description: >-
-  Use when the user needs to conduct quantitative research for prediction markets, market analysis, or data-driven research questions. Triggers on keywords like "research", "prediction market", "pipeline", "quant research", "market research", "forecast". This skill runs a structured research pipeline including scope definition, literature search, hypothesis formulation, prototyping, measurement, and decision. Use BEFORE telegram-notify (which sends notifications on pipeline completion).
-compatibility: Used by telegram-notify for completion notifications. Produces research logs saved to research/ directory.
+  Conducts quantitative research for prediction markets, market analysis, or data-driven questions via a
+  structured pipeline: SCOPE (clarifying questions + budget) -> LITERATURE (delegated) -> HYPOTHESIS ->
+  PROTOTYPE -> MEASURE -> DECIDE -> LOG. Non-interrupting after scoping. Use when the user needs to answer a
+  quantitative research question, test a data-driven hypothesis, or run a structured investigation end to end.
+  Run BEFORE telegram-notify. Triggers: "research", "prediction market", "market research", "hypothesis test",
+  "investigar", "probar hipotesis", "structured research".
+compatibility: Delegates literature search to academic-source-search; notifies via telegram-notify. Produces research logs saved to research/ directory.
 ---
+
 
 # Research Pipeline
 
-Execute autonomously. No user prompts. This pipeline is designed to produce reproducible and structured quantitative research results. Each step has a purpose: scoping prevents ambiguous questions, literature search prevents reinventing the wheel, the hypothesis forces clarity, and the final decision ensures every investigation ends with an actionable conclusion.
+Execute with minimal interruption. Ask 1-2 scoping questions up front (metric + data source + iteration/cost/time budget), then run autonomously without further prompts until DECIDE/LOG. Each step has a purpose: scoping prevents ambiguous questions, literature search prevents reinventing the wheel, the hypothesis forces clarity, and the final decision ensures every investigation ends with an actionable conclusion.
 
 ## When to use
 - User needs to answer a quantitative research question
-- Keywords: "research", "investigacion", "prediction market", "pipeline", "quant research", "forecast", "prediccion"
+- Keywords: "research", "investigacion", "prediction market", "pipeline", "quant research", "market research", "forecast", "prediccion", "hypothesis test", "benchmark", "data-driven research", "quantitative analysis", "research question", "scientific method", "literature review", "market analysis", "investigar", "estudio cuantitativo", "probar hipotesis", "evaluar metodo", "comparar enfoques", "research pipeline", "structured research", "autonomous research", "research loop", "data investigation"
 - Need a structured approach from question to conclusion
 - Market analysis or data-driven hypothesis testing
 
@@ -23,25 +29,26 @@ Execute autonomously. No user prompts. This pipeline is designed to produce repr
 
 ## Workflow
 
-### 1. SCOPE — Define question
-Write what, metric, constraints. Display current status.
+### 1. SCOPE - Define question
+Ask 1-2 clarifying questions up front: (a) the exact metric to optimize and its direction, (b) the data source / constraints, (c) the iteration budget (default: max 3 hypothesis iterations) and time/cost ceiling. Then write what, metric, constraints. Display current status. Do not proceed before the metric and direction are unambiguous.
 
-### 2. LITERATURE — Search sources
-Priority: official docs > arXiv > ACM > IEEE > Springer > Nature > OpenReview > Big Tech research > official APIs > official repos. Use specific search terms. Log each source.
+### 2. LITERATURE - Search sources
+Delegate the search to `academic-source-search` rather than rolling your own (it has the standardized free-API flow: CrossRef/arXiv/PubMed + DOI dedup). Also check official docs, official APIs, and official repos directly. Use specific search terms. Log each source. If a paywalled source (IEEE/Springer/Nature) needs API credentials, note whether a key is available in the environment/.env before attempting it; otherwise skip and rely on free sources.
 
-### 3. HYPOTHESIS — Write testable claim
+### 3. HYPOTHESIS - Write testable claim
 Format: "Using METHOD on DATA, we expect METRIC to improve by X%."
 
-### 4. PROTOTYPE — Minimum implementation
-Smallest possible code. Must run in <60s. Auto-fix errors.
+### 4. PROTOTYPE - Minimum implementation
+Smallest possible code. Must run in <60s. Auto-fix errors up to 3 attempts.
 
-### 5. MEASURE — Quantify result
+### 5. MEASURE - Quantify result
 Compare against deterministic baseline. Auto-retry on failure.
 
-### 6. DECIDE — Keep, iterate, or discard
+### 6. DECIDE - Keep, iterate, or discard
 - Metric improves > integrate into pipeline
 - Ambiguous > refine hypothesis, test again
 - Worse > discard, document why
+- **Iteration cap:** do not iterate more than 3 rounds (or the agreed budget). After the cap, pick the best result or discard with a documented reason — do NOT loop indefinitely.
 
 ### 7. LOG
 Save to `research/YYYY-MM-DD-topic.md`. Include: question, method, result table (metric, before, after, delta), conclusion.
@@ -61,18 +68,21 @@ No additional pip packages required. Uses built-in tools and standard Python lib
 - **No relevant literature found:** Proceed with hypothesis based on domain knowledge, note in LOG
 - **Measurement produces NaN/inf:** Re-run with different parameters, log failure
 - **Scope too broad:** Narrow to a single testable metric before proceeding
+- **Source needs an API key that is unavailable:** Skip that source and rely on free ones; note in LOG
 
 ## File structure
 ```
 research-pipeline/
-└── SKILL.md
+��� SKILL.md
 ```
 
 ## Restrictions
-- **DO NOT** prompt the user for input — execute autonomously
-- **DO NOT** skip the SCOPE step — every pipeline needs a clear question
-- **DO NOT** skip the DECIDE step — every pipeline must end with a conclusion
+- **DO** ask 1-2 scoping questions up front (metric, data source, iteration/time budget), then execute without further prompts
+- **DO NOT** skip the SCOPE step - every pipeline needs a clear question and metric direction
+- **DO NOT** skip the DECIDE step - every pipeline must end with a conclusion
+- **DO NOT** exceed the iteration cap (default 3) - pick best or discard rather than loop forever
 - **DO NOT** proceed to PROTOTYPE without a written HYPOTHESIS
+- **DO NOT** roll your own literature scraper when `academic-source-search` already exists
 - **DO NOT** discard results without documenting why
 
 ## Workflow Example

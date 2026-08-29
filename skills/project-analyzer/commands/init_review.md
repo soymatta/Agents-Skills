@@ -1,20 +1,14 @@
 ---
-description: Analyze the project, list issues, and suggest improvements (read-only)
+description: Analyze the project and suggest improvements (read-only; delegates to the project-analyzer skill)
 ---
 
-Run the project-analyzer: do a read-only analysis of this entire project. Understand how it's structured, find issues (bugs, security problems, code quality concerns, performance bottlenecks, dependency issues), and suggest concrete improvements.
+Run the **project-analyzer** skill (see `skills/project-analyzer/SKILL.md` for full workflow, severity
+taxonomy, security triage rules, prioritization, and baseline/delta).
 
-**Important rules:**
-- Do NOT edit, create, or delete any files — this is read-only analysis
-- Present the findings as a structured report with severity levels (CRITICAL > MAJOR > MINOR > SUGGESTION)
-- Cite specific file paths and line numbers
-- Acknowledge what the project does well too
-
-Cover these areas:
-1. Project overview and structure
-2. Code quality
-3. Potential bugs and issues
-4. Security concerns
-5. Performance considerations
-6. Dependency health
-7. Prioritized recommendations
+Essentials if the skill body can't be loaded:
+- Read-only with respect to the audited code — never edit/create/delete project files.
+- Ask one optional scoping question ("audit everything, or focus on X?"), then run non-stop.
+- Exclude `node_modules`, `.git`, build/dist, venvs, caches.
+- Produce a structured report with severity levels CRITICAL > MAJOR > MINOR > SUGGESTION.
+- Cite specific file paths and line ranges; explain user-visible impact; acknowledge strengths.
+- Write findings copy to `reports/audit-<iso>.json` for baseline/delta on re-runs.

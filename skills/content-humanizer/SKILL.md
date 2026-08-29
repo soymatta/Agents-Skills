@@ -1,11 +1,12 @@
 ---
 name: content-humanizer
-description: >
-  Final document revision to reduce AI-detectable patterns
-  (Turnitin, GPTZero, Originality). Adjusts structure, vocabulary, and flow
-  while maintaining academic rigor. Run ONLY at the end, when content
-  is complete and referenced. Includes detection script to verify
-  the text passes as human-written.
+description: >-
+  Final revision pass to reduce AI-detectable patterns and pass AI detection tools (Turnitin, GPTZero,
+  Originality.ai, ZeroGPT). Adjusts sentence structure, vocabulary, punctuation, and burstiness while keeping
+  academic rigor; includes detect_ai.py for local verification. Run ONLY at the end when content, citations,
+  and references are finalized. Use when the user wants to humanize text, avoid AI detection, or pass Turnitin/
+  GPTZero. Triggers: "humanize", "anti-AI", "Turnitin", "GPTZero", "pasar Turnitin", "revision final",
+  "make this sound human", "AI detector".
 ---
 
 # Content Humanizer
@@ -13,12 +14,19 @@ description: >
 Final humanization pass. Run ONLY when the document is complete, reviewed,
 and all references verified.
 
-**Do not alter:** data, citations, references, academic structure, metadata.
+**Do not alter:** data, citations, references, academic structure, metadata,
+or inline notation tokens.
+
+> **Pipeline token protection (mandatory):** this pass may run after math-notation
+> has been applied. **Do not** "clean up" or rewrite `_text_`, `^{...}`, `_{...}`
+> (variables/italics/super/subscripts used by `generate_outputs.py`). In
+> particular do NOT turn `_r_{0}` into `r₀` or `_x_` into `*x*` — that would
+> silently break the downstream generator. Only humanize the surrounding prose.
 
 ## When to use
 - Final pass before submitting academic documents
 - After all content, citations, and references are finalized
-- Keywords: "humanize", "anti-AI", "Turnitin", "GPTZero", "detect AI", "final pass"
+- Keywords: "humanize", "anti-AI", "Turnitin", "GPTZero", "Originality.ai", "ZeroGPT", "detect AI", "final pass", "humanizar texto", "pasar Turnitin", "evitar deteccion IA", "revision final", "texto humano", "make this sound human", "AI detector", "originality check", "does this pass as human"
 - When document scores high on AI detection tools
 
 ## When NOT to use
@@ -56,6 +64,31 @@ and all references verified.
 | "it should be noted that" | remove it |
 | "it is necessary to point out" | remove it |
 | "with regard to" | "about", "regarding" |
+
+### 1.1b Spanish high-frequency AI phrases
+
+| Evitar | Usar en su lugar |
+|--------|------------------|
+| "en el ámbito de" | "en", "dentro de" |
+| "es fundamental señalar" | "cabe destacar", "notablemente" |
+| "es importante mencionar" | eliminarlo, ir al grano |
+| "en otras palabras" | reformular directamente |
+| "en este sentido" | "por lo tanto", "así", "luego" |
+| "como se mencionó anteriormente" | remitir a la sección, no repetir |
+| "no solo... sino también" | máximo 1 vez por documento |
+| "resulta interesante destacar" | eliminarlo, no aporta valor |
+| "cabe resaltar" | solo si es imprescindible |
+| "en relación con" | "sobre", "acerca de" |
+| "a modo de ejemplo" | "por ejemplo", "como" |
+| "cabe preguntarse" | pregunta directa sin preámbulo |
+| "es preciso considerar" | eliminar o reformular |
+| "desde una perspectiva" | "desde", "según" |
+| "en consecuencia" | "por tanto", "así" |
+| "asimismo" | "también", "además" (máx. 1-2 veces) |
+| "por otro lado" | "en cambio", "sin embargo" |
+| "es evidente que" | enunciado directo |
+| "conviene señalar que" | eliminarlo |
+| "con respecto a" | "sobre", "acerca de" |
 
 ### 1.2 Break structural patterns
 
@@ -120,6 +153,12 @@ python -c "import sys,statistics;s=sys.stdin.read();l=[len(o.split()) for o in s
 Get-Content document.md | python -c "import sys,statistics;s=sys.stdin.read();l=[len(o.split()) for o in s.replace('?','.').replace('!','.').split('.') if o.strip()];print(f'Sentences: {len(l)}, Mean: {statistics.mean(l):.1f}, SD: {statistics.stdev(l):.1f}')"
 ```
 
+> **Counting note:** the snippet above splits on every `.`, which counts decimal
+> points and abbreviations (e.g. `i.e.`, `$1.5`) as sentence breaks. That inflates
+> both the sentence count and the SD toward an artificially high "burstiness".
+> Interpret the SD number as a **relative signal**, not an absolute target, and
+> when in doubt eyeball the actual sentence boundaries.
+
 ### 1.8 Active voice > passive
 
 Max 20% of sentences in passive (40% in methodology).
@@ -133,8 +172,8 @@ shorter/longer paragraph, anaphora, non-ideal connector.
 
 ## 2. DETECT — Verify with detect_ai.py
 
-After humanizing the document, run the local detector to confirm
-the text passes as human:
+After humanizing the document, run the local detector to gauge how detectable
+the text is:
 
 ```bash
 # Install dependencies (once)
@@ -144,20 +183,36 @@ pip install transformers torch
 python scripts/detect_ai.py --file document.md --verbose
 ```
 
+The script is bilingual in output: `AI`/`Human:` percentages plus a verdict that
+prints **`PASA`** (passed/human) or **`DETECTADO`** (detected/AI) in Spanish.
+The default AI threshold is `--threshold 0.5` (50%): the verdict is `PASA` only
+when the global AI probability is ≤ the threshold **and** no individual section
+exceeds it.
+
 ### Result interpretation
 
 ```
-  AI:   12.3%            ← probability of being AI (should be <50%)
-  Human: 87.7%           ← probability of being human
-  Verdict: PASS           ← PASS or DETECTED
+  DETECTOR DE IA - Resultados
+  AI:   12.3%            ← probability of being AI (should be < threshold)
+  Human: 87.7%
+  Verdict: PASA          ← PASA (passed) or DETECTADO (detected)
 ```
 
-| Result | Meaning | Action |
-|--------|---------|--------|
-| AI < 30% | Human text | Ready. Submit. |
-| AI 30-50% | Ambiguous text | Review flagged sections, apply more variation |
-| AI > 50% | Detected text | Repeat humanization on sections with highest score |
+| Verdict | Meaning | Action |
+|---------|---------|--------|
+| AI ≤ threshold, no bad section | Human-like | Ready to submit (see calibration note below) |
+| AI near threshold | Ambiguous text | Review flagged sections, apply more variation |
+| AI > threshold or a section exceeds it | Detected text | Repeat humanization on sections with highest score |
 | AI > 70% | Highly detectable | Rewrite from scratch using this skill's techniques |
+
+Use `--threshold X` to set a stricter/looser bar (e.g. `--threshold 0.4`).
+
+> **Calibration (important):** `detect_ai.py` uses a 2019 RoBERTa-based detector
+> with a **high false-positive rate**. Treat a `PASA` as "this text no longer
+> carries the obvious AI fingerprints this skill targets" — **not** as a
+> guarantee it will pass Turnitin/GPTZero/ZeroGPT, which use different models.
+> Always pair it with the offline techniques (burstiness, structure, phrases)
+> and a human read.
 
 ### Section-level analysis (--verbose)
 
@@ -167,24 +222,26 @@ and re-run the detector.
 
 ### If transformers cannot be installed
 
-Use web detectors via `webfetch`:
-1. Send text to https://www.zerogpt.com (free, no API key)
-2. Send to https://gptzero.me (limited free)
-3. Compare results between both
-4. If both say "AI", go back to step 1 with more techniques
+Do NOT use `webfetch` to hit ZeroGPT/GPTZero directly — those sites are
+interactive POST pages behind anti-bot controls and cannot be scraped this way.
+Instead:
+1. Ask the user to run the text through an online checker (e.g. ZeroGPT, GPTZero)
+   and paste the result back.
+2. Compare the result against the local detector output.
+3. If both indicate AI, return to humanization with more techniques.
 
 ---
 
 ## 3. ITERATE — Verification loop
 
 ```
-while True:
+for iteration in 1..3:
     humanize(document)
-    result = detect(document)
-    if result.verdict == "PASS":
+    ok = run('python scripts/detect_ai.py --file document.md')  # exit 0 == PASA (human)
+    if ok:
         break
     else:
-        humanize(result.flagged_sections)
+        humanize(flagged_sections)   # from --verbose output
 ```
 
 Maximum 3 iterations. If after 3 attempts still detected,
@@ -203,7 +260,7 @@ manually review the most problematic sections.
 - [ ] Count repeated connectors and replace
 - [ ] No "as previously mentioned" or similar
 - [ ] Each section ends without forced closure
-- [ ] **Run detect_ai.py → Verdict: PASS**
+- [ ] **Run detect_ai.py → Verdict: PASA (exit 0)**
 
 ---
 
@@ -211,7 +268,8 @@ manually review the most problematic sections.
 ```bash
 pip install transformers torch
 ```
-For web-based detection: no additional packages (uses webfetch tool).
+For online verification, ask the user to run the text through an online checker
+and paste the result (no tool dependency).
 
 ## Restrictions
 
@@ -222,10 +280,11 @@ For web-based detection: no additional packages (uses webfetch tool).
 - **DO NOT** add new information
 - **DO NOT** remove relevant information
 - **DO NOT** reduce academic rigor or technical precision
+- **DO NOT** touch inline notation tokens (`_…_`, `^{…}`, `_{…}`) from math-notation — humanize the prose, never the parser notation
 
 ## Error handling
 - **detect_ai.py not found:** Look in `scripts/detect_ai.py` relative to the skill
-- **transformers not installed:** Use web detectors via webfetch (ZeroGPT, GPTZero)
+- **transformers not installed:** Ask the user to run the text through an online checker (ZeroGPT/GPTZero) and paste the result; do NOT webfetch those interactive sites
 - **Document too long:** Process by sections, humanize each separately
 - **AI score > 70% after 3 iterations:** Manually rewrite the most problematic sections
 - **Encoding error:** Ensure UTF-8 in the input file

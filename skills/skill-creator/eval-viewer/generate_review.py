@@ -288,22 +288,37 @@ def generate_html(
 def _kill_port(port: int) -> None:
     """Kill any process listening on the given port."""
     try:
-        result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
-            capture_output=True, text=True, timeout=5,
-        )
-        for pid_str in result.stdout.strip().split("\n"):
-            if pid_str.strip():
-                try:
-                    os.kill(int(pid_str.strip()), signal.SIGTERM)
-                except (ProcessLookupError, ValueError):
-                    pass
-        if result.stdout.strip():
-            time.sleep(0.5)
+        if sys.platform == "win32":
+            result = subprocess.run(
+                ["netstat", "-ano"],
+                capture_output=True, text=True, timeout=5,
+            )
+            for line in result.stdout.splitlines():
+                if f":{port}" in line and "LISTENING" in line:
+                    parts = line.split()
+                    pid_str = parts[-1]
+                    try:
+                        subprocess.run(["taskkill", "/F", "/PID", pid_str],
+                                       capture_output=True, timeout=5)
+                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                        pass
+        else:
+            result = subprocess.run(
+                ["lsof", "-ti", f":{port}"],
+                capture_output=True, text=True, timeout=5,
+            )
+            for pid_str in result.stdout.strip().split("\n"):
+                if pid_str.strip():
+                    try:
+                        os.kill(int(pid_str.strip()), signal.SIGTERM)
+                    except (ProcessLookupError, ValueError):
+                        pass
+            if result.stdout.strip():
+                time.sleep(0.5)
     except subprocess.TimeoutExpired:
         pass
     except FileNotFoundError:
-        print("Note: lsof not found, cannot check if port is in use", file=sys.stderr)
+        print("Note: cannot check if port is in use (lsof/taskkill not found)", file=sys.stderr)
 
 class ReviewHandler(BaseHTTPRequestHandler):
     """Serves the review HTML and handles feedback saves.

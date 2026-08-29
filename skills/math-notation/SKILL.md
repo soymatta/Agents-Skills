@@ -1,10 +1,19 @@
 ---
 name: math-notation
-description: >
-  Math notation rules for the inline parser of the generator.
-  Use ONLY _text_ for italic (NEVER *text*), ^{...} for superscript,
-  _{...} for subscript, and _X_{...} for italic+subscript combined.
-  Activates when writing formulas, variables, and math expressions.
+description: >-
+  Math notation rules for the custom inline parser used by generate_outputs.py.
+  CRITICAL RULE: Use ONLY _text_ for italic (NEVER *text*), ^{...} for superscript,
+  _{...} for subscript, _X_{...} for italic+subscript, and _X_^{...} for italic+superscript.
+  Bold uses **text** (standard Markdown). Escape literal underscores with \_.
+  Use when: writing mathematical formulas, variables, expressions, equations in Markdown documents
+  that will be processed by generate_outputs.py (PDF/DOCX generation).
+  Triggers on: "math notation", "math formatting", "subscript", "superscript", "italic math",
+  "math variables", "formula formatting", "inline math", "LaTeX simplificado",
+  "notacion matematica", "subindice", "superindice", "variables en italica",
+  "r_0", "x^{2}", "generador de PDF", "PDF formulas", "DOCX math",
+  "generate_outputs", "inline parser", "math in markdown", "equation format",
+  "scientific notation markdown", "academic formulas", "citation math variables".
+  Referenced by academic-source-search and citation-formatter.
 compatibility: Requires generate_outputs.py from citation-formatter skill for verification. Referenced by academic-source-search when formatting mathematical content in citations.
 ---
 
@@ -148,9 +157,12 @@ The parser will always try to interpret `_..._` as italic. Escape literal unders
 
 ## Scripts
 
-| Script | Args | Description |
-|--------|------|-------------|
-| `scripts/generate_outputs.py` | — | Generator that uses the inline parser (in citation-formatter) |
+This skill has **no scripts of its own** — the verification snippet below runs
+`generate_outputs.py`, which lives in `citation-formatter/scripts/`:
+
+| Script (in citation-formatter) | Purpose |
+|--------|------|
+| `skills/citation-formatter/scripts/generate_outputs.py` | Inline parser used to verify notation |
 
 ## Output format
 - Correctly formatted Markdown using `_text_` for italics, `^{...}` for superscripts, `_{...}` for subscripts
@@ -162,7 +174,8 @@ No additional pip packages required for notation rules. Verification requires `g
 ## Error handling
 - **Underscore accidentally interpreted as italic:** Escape with `\_` before the underscore
 - **Unicode superscript/subscript used by mistake:** Replace with `^{...}` or `_{...}` syntax
-- **Verification fails:** Check that `generate_outputs.py` is accessible from project root
+- **Verification fails:** Ensure `sys.path` includes `skills/citation-formatter/scripts` (see 9b), then re-run
+- **Literal `_` appears in parser output:** the notation folded incorrectly — escape or restructure per the tables
 
 ## File structure
 ```
@@ -175,15 +188,38 @@ math-notation/
 - Do NOT use Unicode superscript/subscript characters — use `^{...}` / `_{...}`
 - Do NOT use `__text__` for bold — use `**text**`
 - Do NOT use classic Markdown `*text*` — the parser does not recognize it as italic
+- **Downstream no-touch contract:** do NOT "clean up" `_…_`, `^{…}`, or `_{…}`
+  written by this skill (e.g. `_r_{0}` → `r₀`). They are intentional parser
+  notation, not style clutter. Downstream passes (e.g. content-humanizer) must
+  leave them untouched.
 
 ## 9. VERIFICATION
 
-After writing formulas, verify with (requires `generate_outputs.py` in the path or at project root):
+After writing formulas, lint the document for violations, then verify the parser
+output. Both steps are required.
+
+### 9a. Lint for violations
+Scan the target document for the common mistakes and fix them before verifying:
+
+```bash
+# Find classic-markdown italic (should be `_text_`)
+grep -nE '\*[^*]+\*' doc.md
+# Find Unicode super/subscripts (should be ^{...} / _{...})
+grep -nE '[²³¹⁴⁵⁶⁷⁸⁹⁰⁻₀₁₂₃₄₅₆₇₈₉ₙᵉᵈ]' doc.md
+```
+
+Replace each hit according to the tables above.
+
+### 9b. Verify with the parser
+`generate_outputs.py` lives in the `citation-formatter` skill. Run the check from
+the repo root with the correct module path (this is what works reliably on
+Windows and Linux):
 
 ```bash
 python -c "
+import sys; sys.path.insert(0, 'skills/citation-formatter/scripts')
 from generate_outputs import split_inline, tokens_to_html
-tests = ['gcd(_a_, _b_)', '_r_{0}', '_M_^{e}', '2^{255}']
+tests = ['gcd(_a_, _b_)', '_r_{0}', '_M_^{e}', '2^{255}', '**bold**']
 for t in tests:
     html = tokens_to_html(split_inline(t))
     print(t, '->', html)
@@ -192,3 +228,17 @@ for t in tests:
 
 Every formula should produce HTML tags `<em>`, `<sub>`, `<sup>` as appropriate.
 If a literal `_` appears in the output, the notation is incorrect.
+
+> **Note on the self-check mismatch:** this skill's examples say `gcd(...)` but
+> the generator's own built-in self-test uses `mcd(...)` (Spanish). Both exercise
+> the same parser path; use the literal `mcd(_a_, _b_)` only if you run the
+> generator's docstring example. In your own documents use whichever is correct
+> for the content.
+
+### 9c. Whitespace ambiguity in `_..._`
+`_text_` only becomes *italic* when the underscores telescope cleanly
+(`_x_` with no internal whitespace on both sides). Treat `_word with spaces_`
+as ambiguous: the parser's `ITALIC` pattern does not match internal spaces, so
+it may fall through to raw text/other tokens. If you need italics around a
+multi-word phrase, double-check the parser output in 9b rather than assuming it
+works.

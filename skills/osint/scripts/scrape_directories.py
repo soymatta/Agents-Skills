@@ -23,7 +23,10 @@ HEADERS = {
 
 
 def fetch_url(url: str, timeout: int = 10) -> Optional[str]:
-    """Fetch URL content with error handling."""
+    """Fetch URL content with error handling (http/https only)."""
+    scheme = url.split(":", 1)[0].lower()
+    if scheme not in ("http", "https"):
+        return None
     try:
         req = urllib.request.Request(url, headers=HEADERS)
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -188,7 +191,12 @@ def scrape_whoCalledMe(phone: str) -> dict:
 
 def run_scraping(phone: str, scrapers: Optional[list[str]] = None) -> dict:
     """Run all scrapers on a phone number."""
-    from phone_parser import detect_country, clean_phone
+    try:
+        from phone_parser import detect_country, clean_phone
+    except ImportError:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from phone_parser import detect_country, clean_phone
 
     cleaned = clean_phone(phone)
     country = detect_country(cleaned)

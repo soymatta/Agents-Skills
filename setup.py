@@ -89,7 +89,8 @@ PLATFORMS: dict[str, dict] = {
         "label": "OpenCode",
         "config_dir": ".opencode",
         "skills_subdir": "skills",
-        "agents_file": "agents.json",
+        "agents_subdir": "agent",
+        "uses_agents_json": False,
         "detect_files": [".opencode"],
         "global_dir": Path.home() / ".config" / "opencode",
     },
@@ -97,7 +98,8 @@ PLATFORMS: dict[str, dict] = {
         "label": "Claude Code",
         "config_dir": ".claude",
         "skills_subdir": "skills",
-        "agents_file": "agents.json",
+        "agents_subdir": "agents",
+        "uses_agents_json": True,
         "detect_files": [".claude"],
         "global_dir": Path.home() / ".claude",
     },
@@ -105,7 +107,8 @@ PLATFORMS: dict[str, dict] = {
         "label": "Cursor",
         "config_dir": ".cursor",
         "skills_subdir": "skills",
-        "agents_file": "agents.json",
+        "agents_subdir": "agents",
+        "uses_agents_json": True,
         "detect_files": [".cursor"],
         "global_dir": Path.home() / ".cursor",
     },
@@ -113,7 +116,8 @@ PLATFORMS: dict[str, dict] = {
         "label": "Windsurf",
         "config_dir": ".windsurf",
         "skills_subdir": "skills",
-        "agents_file": "agents.json",
+        "agents_subdir": "agents",
+        "uses_agents_json": True,
         "detect_files": [".windsurf"],
         "global_dir": Path.home() / ".windsurf",
     },
@@ -190,16 +194,37 @@ def _prompt_platform() -> str:
         print(f"  {RED}Invalid choice. Enter a number 1-{len(platform_list)}.{RST}")
 
 
-def _get_install_paths(platform_id: str, mode: str) -> tuple[Path, Path]:
-    """Return (skills_dir, agents_file) based on platform and mode."""
+def _get_install_paths(platform_id: str, mode: str) -> dict:
+    """Return install paths for the platform and mode.
+
+    Returns dict with keys: skills_dir, agents_file, agents_dir, uses_agents_json.
+    """
     info = PLATFORMS[platform_id]
     if mode == "global":
         base = info["global_dir"]
     else:
         base = Path.cwd() / info["config_dir"]
     skills_dir = base / info["skills_subdir"]
-    agents_file = base / info["agents_file"]
-    return skills_dir, agents_file
+    agents_dir = base / info["agents_subdir"]
+    agents_file = base / f"{info['agents_subdir']}.json"
+    return {
+        "skills_dir": skills_dir,
+        "agents_file": agents_file,
+        "agents_dir": agents_dir,
+        "uses_agents_json": info["uses_agents_json"],
+    }
+
+
+def _normalize_dest(prefix: str) -> str:
+    """Strip the leading 'skills/' portion of a source path.
+
+    Item dirs/bundles live under ``skills/`` in the repo, but the install
+    destination root is already the platform's ``skills`` directory, so the
+    prefix must be removed to avoid double-nesting (``skills/skills/...``).
+    """
+    if prefix.startswith("skills/"):
+        return prefix[len("skills/"):]
+    return prefix
 
 
 # ── ITEMS definition ──────────────────────────────────────────────────────────
@@ -207,12 +232,11 @@ def _get_install_paths(platform_id: str, mode: str) -> tuple[Path, Path]:
 ITEMS: list[dict] = [
     # ── agents ────────────────────────────────────────────────────────────────
     {
-        "id": "vault-indexer",
-        "dir": "agents/vault-indexer.md",
-        "label": "Vault Indexer",
+        "id": "vault",
+        "dir": "agents/vault.md",
+        "label": "Vault (Obsidian Manager)",
         "type": "agent",
         "dependencies": [],
-        "bundles": ["agents/vault-researcher.md"],
     },
     {
         "id": "paper-researcher",
@@ -220,28 +244,6 @@ ITEMS: list[dict] = [
         "label": "Paper Researcher",
         "type": "agent",
         "dependencies": ["academic-source-search", "citation-formatter"],
-    },
-    {
-        "id": "vault-search",
-        "dir": "agents/vault-search.md",
-        "label": "Vault Search",
-        "type": "agent",
-        "dependencies": ["vault-indexer"],
-    },
-    {
-        "id": "vault-organizer",
-        "dir": "agents/vault-organizer.md",
-        "label": "Vault Organizer",
-        "type": "agent",
-        "dependencies": ["vault-indexer", "vault-search"],
-    },
-    {
-        "id": "roadmaps",
-        "dir": "agents/roadmaps.md",
-        "label": "Roadmaps",
-        "type": "agent",
-        "dependencies": ["telegram-notify"],
-        "bundles": ["skills/roadmaps/scripts", "skills/roadmaps/templates", "skills/roadmaps/evals"],
     },
     {
         "id": "jobfinder",
@@ -252,27 +254,33 @@ ITEMS: list[dict] = [
         "bundles": ["skills/jobfinder/scripts", "skills/jobfinder/templates"],
     },
     {
-        "id": "metric-optimizer",
-        "dir": "agents/metric-optimizer.md",
-        "label": "Metric Optimizer",
+        "id": "constructor",
+        "dir": "agents/constructor.md",
+        "label": "Constructor (Build Mod)",
+        "type": "agent",
+        "dependencies": ["agent-self-improver", "skill-creator", "metric-optimizer", "roadmaps"],
+    },
+    {
+        "id": "planner",
+        "dir": "agents/planner.md",
+        "label": "Planner (Plan Mod)",
         "type": "agent",
         "dependencies": [],
-        "bundles": ["skills/metric-optimizer/templates"],
     },
     # ── skills ────────────────────────────────────────────────────────────────
-    {
-        "id": "research-pipeline",
-        "dir": "skills/research-pipeline",
-        "label": "Research Pipeline",
-        "type": "skill",
-        "dependencies": ["telegram-notify"],
-    },
     {
         "id": "telegram-notify",
         "dir": "skills/telegram-notify",
         "label": "Telegram Notify",
         "type": "skill",
         "dependencies": [],
+    },
+    {
+        "id": "research-pipeline",
+        "dir": "skills/research-pipeline",
+        "label": "Research Pipeline",
+        "type": "skill",
+        "dependencies": ["telegram-notify"],
     },
     {
         "id": "backtest-run",
@@ -308,13 +316,7 @@ ITEMS: list[dict] = [
         "label": "Math Notation",
         "type": "skill",
         "dependencies": ["citation-formatter"],
-    },
-    {
-        "id": "skill-creator",
-        "dir": "skills/skill-creator",
-        "label": "Skill Creator",
-        "type": "skill",
-        "dependencies": [],
+        "bundles": ["skills/citation-formatter/scripts/generate_outputs.py"],
     },
     {
         "id": "content-humanizer",
@@ -331,9 +333,16 @@ ITEMS: list[dict] = [
         "dependencies": [],
     },
     {
-        "id": "impeccable",
-        "dir": "skills/impeccable",
-        "label": "Impeccable (third-party)",
+        "id": "metric-optimizer",
+        "dir": "skills/metric-optimizer",
+        "label": "Metric Optimizer",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "roadmaps",
+        "dir": "skills/roadmaps",
+        "label": "Roadmaps",
         "type": "skill",
         "dependencies": [],
     },
@@ -343,7 +352,34 @@ ITEMS: list[dict] = [
         "label": "Project Analyzer",
         "type": "skill",
         "dependencies": [],
-        "commands": ["commands/init_review.md"],
+    },
+    {
+        "id": "agent-self-improver",
+        "dir": "skills/agent-self-improver",
+        "label": "Agent Self-Improver",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "skill-creator",
+        "dir": "skills/skill-creator",
+        "label": "Skill Creator",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "impeccable",
+        "dir": "skills/impeccable",
+        "label": "Impeccable (third-party)",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "ai-job-search",
+        "dir": "skills/ai-job-search",
+        "label": "AI Job Search (third-party)",
+        "type": "skill",
+        "dependencies": [],
     },
 ]
 
@@ -638,14 +674,19 @@ def _commands_root(skills_root: Path) -> Path:
     return skills_root.parent / "commands"
 
 
-def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Path) -> None:
-    """Copy enabled items into the project (files or directories)."""
+def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Path, agents_dir: Path) -> None:
+    """Copy enabled items into the project (files or directories).
+
+    ``skills_root`` is the platform's skills directory (e.g. ``.opencode/skills``);
+    agents are installed to ``agents_dir`` (e.g. ``.opencode/agent``) so the
+    platform can discover them.
+    """
     skills_root.mkdir(parents=True, exist_ok=True)
     cmds_root = _commands_root(skills_root)
 
     for it in ITEMS:
         src = project_root / it["dir"]
-        dst = skills_root / it["dir"]
+        dst = _item_dest(it, skills_root, agents_dir)
         enabled = toggled.get(it["id"], False)
 
         if enabled:
@@ -654,10 +695,10 @@ def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Pat
             else:
                 _copy_one(src, dst)
                 print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}{ARR}{RST}  {_rel_path(dst)}")
-            # bundled files (sub-agents, etc.)
+            # bundled files (sub-agents, cross-skill scripts, etc.)
             for bundle_src in it.get("bundles", []):
                 bundle_path = project_root / bundle_src
-                bundle_dst = skills_root / bundle_src
+                bundle_dst = skills_root / _normalize_dest(bundle_src)
                 if bundle_path.exists():
                     _copy_one(bundle_path, bundle_dst)
                     print(f"  {GRN}{TIK}{RST} {bundle_src}  {DIM}{ARR}{RST}  {_rel_path(bundle_dst)}")
@@ -673,12 +714,19 @@ def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Pat
             _remove_one(dst)
             # also remove bundled files
             for bundle_src in it.get("bundles", []):
-                bundle_dst = skills_root / bundle_src
+                bundle_dst = skills_root / _normalize_dest(bundle_src)
                 _remove_one(bundle_dst)
             # also remove command files
             for cmd_src in it.get("commands", []):
                 cmd_dst = cmds_root / cmd_src
                 _remove_one(cmd_dst)
+
+
+def _item_dest(item: dict, skills_root: Path, agents_dir: Path) -> Path:
+    """Compute the install destination for a single item."""
+    if item["type"] == "agent":
+        return agents_dir / Path(item["dir"]).name
+    return skills_root / _normalize_dest(item["dir"])
 
 
 def cleanup_repo(skills_dir: Path | None = None) -> None:
@@ -692,14 +740,20 @@ def cleanup_repo(skills_dir: Path | None = None) -> None:
 
 
 def cleanup_orphaned_mds(skills_dir: Path) -> None:
-    """Remove standalone .md files in skills dir that are leftovers from old installs."""
+    """Remove stale leftovers from previous (double-nested) installs.
+
+    Older installs placed items under ``<skills>/skills/`` and agents under
+    ``<skills>/agents/``. New installs put skills directly in ``skills_dir``
+    and agents in the platform's ``agent``/``agents`` directory, so any
+    nested ``skills/`` or ``agents/`` dir inside the skills root is stale.
+    """
     if not skills_dir.exists():
         return
-    for md_file in skills_dir.rglob("*.md"):
-        # Only remove .md files directly in skills/skills/ (not SKILL.md inside subdirs)
-        if md_file.parent == skills_dir / "skills" and md_file.name != "SKILL.md":
-            md_file.unlink()
-            print(f"  {YLW}{X}{RST} Removed orphaned: {_rel_path(md_file)}")
+    for stale in ("skills", "agents"):
+        nested = skills_dir / stale
+        if nested.exists():
+            shutil.rmtree(nested)
+            print(f"  {YLW}{X}{RST} Removed stale nested dir: {_rel_path(nested)}")
 
 
 # ── adapt / push / pull ───────────────────────────────────────────────────────
@@ -793,9 +847,15 @@ def main() -> None:
         print(f"  {GRN}{TIK}{RST} Mode: {'Global (machine)' if mode == 'global' else 'Local project'}")
 
     # ── Resolve paths ──
-    skills_dir, agents_file = _get_install_paths(platform_id, mode)
+    paths = _get_install_paths(platform_id, mode)
+    skills_dir = paths["skills_dir"]
+    agents_file = paths["agents_file"]
+    agents_dir = paths["agents_dir"]
+    uses_agents_json = paths["uses_agents_json"]
     print(f"  {DIM}Skills dir: {skills_dir}{RST}")
-    print(f"  {DIM}Agents file: {agents_file}{RST}")
+    print(f"  {DIM}Agents dir: {agents_dir}{RST}")
+    if uses_agents_json:
+        print(f"  {DIM}Agents file: {agents_file}{RST}")
 
     # ── Toggle menu or --all ──
     if cli["all"]:
@@ -804,8 +864,9 @@ def main() -> None:
         toggled = run_toggle_menu()
 
     print(f"\n  {BLD}Installing to {PLATFORMS[platform_id]['label']} ({mode})...{RST}\n")
-    install_items(toggled, base, skills_dir)
-    agent_targets(agents_file=agents_file)
+    install_items(toggled, base, skills_dir, agents_dir)
+    if uses_agents_json:
+        agent_targets(agents_file=agents_file)
     cleanup_orphaned_mds(skills_dir)
 
     print(f"\n  {GRN}{BLD}{TIK} Done.{RST}")

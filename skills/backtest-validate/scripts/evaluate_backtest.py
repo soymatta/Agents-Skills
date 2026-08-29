@@ -258,7 +258,9 @@ def detect_red_flags(
             {
                 "id": "too_good",
                 "severity": "medium",
-                "message": "Results look too good — audit for look-ahead bias or data issues.",
+                "message": "Results look suspiciously good (win_rate > 90% with <5% drawdown). "
+                "This is a heuristic, NOT proof of bias — manually audit for look-ahead, "
+                "survivorship, or data leakage before trusting it.",
             }
         )
 
@@ -305,8 +307,14 @@ def evaluate(
     years_tested: int,
     num_parameters: int,
     slippage_tested: bool,
+    force_abandon_on_high_redflag: bool = False,
 ) -> dict:
-    """Run full 5-dimension evaluation and return structured result."""
+    """Run full 5-dimension evaluation and return structured result.
+
+    When `force_abandon_on_high_redflag` is True, the presence of any
+    high-severity red flag overrides the verdict to "Abandon" (hard override),
+    even if the numeric score would otherwise be Deploy/Refine.
+    """
     validate_inputs(
         total_trades,
         win_rate,
@@ -325,9 +333,26 @@ def evaluate(
     total = d1 + d2 + d3 + d4 + d5
     total = max(0, min(100, total))
 
+    red_flags = detect_red_flags(
+        total_trades,
+        win_rate,
+        avg_win_pct,
+        avg_loss_pct,
+        max_drawdown_pct,
+        years_tested,
+        num_parameters,
+        slippage_tested,
+    )
+
+    verdict = get_verdict(total)
+    high_red_flag = any(f["severity"] == "high" for f in red_flags)
+    if force_abandon_on_high_redflag and high_red_flag:
+        verdict = "Abandon"
+
     return {
         "total_score": total,
-        "verdict": get_verdict(total),
+        "verdict": verdict,
+        "red_flag_override": bool(force_abandon_on_high_redflag and high_red_flag),
         "dimensions": [
             {"name": "Sample Size", "score": d1, "max_score": 20},
             {"name": "Expectancy", "score": d2, "max_score": 20},
@@ -335,16 +360,7 @@ def evaluate(
             {"name": "Robustness", "score": d4, "max_score": 20},
             {"name": "Execution Realism", "score": d5, "max_score": 20},
         ],
-        "red_flags": detect_red_flags(
-            total_trades,
-            win_rate,
-            avg_win_pct,
-            avg_loss_pct,
-            max_drawdown_pct,
-            years_tested,
-            num_parameters,
-            slippage_tested,
-        ),
+        "red_flags": red_flags,
         "profit_factor": calc_profit_factor(win_rate, avg_win_pct, avg_loss_pct),
         "expectancy": calc_expectancy(win_rate, avg_win_pct, avg_loss_pct),
         "inputs": {
@@ -446,31 +462,42 @@ def parse_args() -> argparse.Namespace:
         description="Evaluate backtest quality using a 5-dimension scoring framework."
     )
     parser.add_argument(
-        "--total-trades", type=int, required=True, help="Number of trades in backtest"
+        "--input",
+        default=None,
+        help="Path to backtest-run results JSON (reports/backtest_*.json) to read "
+        "all metrics from, instead of passing them as flags.",
     )
     parser.add_argument(
-        "--win-rate", type=float, required=True, help="Win rate in percent (e.g. 58)"
+        "--total-trades", type=int, default=None, help="Number of trades in backtest"
     )
     parser.add_argument(
-        "--avg-win-pct", type=float, required=True, help="Average winning trade in percent"
+        "--win-rate", type=float, default=None, help="Win rate in percent (e.g. 58)"
+    )
+    parser.add_argument(
+        "--avg-win-pct", type=float, default=None, help="Average winning trade in percent"
     )
     parser.add_argument(
         "--avg-loss-pct",
         type=float,
-        required=True,
+        default=None,
         help="Average losing trade in percent (positive number)",
     )
     parser.add_argument(
-        "--max-drawdown-pct", type=float, required=True, help="Maximum drawdown in percent"
+        "--max-drawdown-pct", type=float, default=None, help="Maximum drawdown in percent"
     )
     parser.add_argument(
-        "--years-tested", type=int, required=True, help="Number of years in backtest period"
+        "--years-tested", type=int, default=None, help="Number of years in backtest period"
     )
     parser.add_argument(
-        "--num-parameters", type=int, required=True, help="Number of tunable parameters in strategy"
+        "--num-parameters", type=int, default=None, help="Number of tunable parameters in strategy"
     )
     parser.add_argument(
         "--slippage-tested", action="store_true", help="Whether slippage/friction was modeled"
+    )
+    parser.add_argument(
+        "--force-abandon-on-high-redflag",
+        action="store_true",
+        help="Hard-override verdict to Abandon when any high-severity red flag is present.",
     )
     parser.add_argument(
         "--output-dir", default="reports/", help="Output directory (default: reports/)"
@@ -478,24 +505,96 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def load_from_input(path: str) -> dict:
+    """Load metrics from a backtest-run results JSON.
+
+    Expects keys under `metrics` (total_return, sharpe_ratio, max_drawdown,
+    win_rate, num_trades) plus `years_tested` / `num_parameters` if present.
+    Unknown/missing numeric fields fall back to conservative defaults.
+    """
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    m = data.get("metrics", data)
+    return {
+        "total_trades": int(m.get("num_trades", data.get("num_trades", 0)) or 0),
+        "win_rate": float(m.get("win_rate", 0.0) or 0.0) * 100.0,
+        "avg_win_pct": float(m.get("avg_win_pct", 0.0) or 0.0),
+        "avg_loss_pct": float(m.get("avg_loss_pct", 0.0) or 0.0),
+        "max_drawdown_pct": float(m.get("max_drawdown", 0.0) or 0.0) * 100.0,
+        "years_tested": int(data.get("years_tested", 0) or 0),
+        "num_parameters": int(data.get("num_parameters", 0) or 0),
+        "slippage_tested": bool(data.get("slippage_tested", False)
+                              or m.get("slippage_tested", False)),
+    }
+
+
 def main() -> int:
     args = parse_args()
 
+    if args.input:
+        loaded = load_from_input(args.input)
+        vals = loaded
+        if args.total_trades is not None:
+            vals["total_trades"] = args.total_trades
+        if args.win_rate is not None:
+            vals["win_rate"] = args.win_rate
+        if args.avg_win_pct is not None:
+            vals["avg_win_pct"] = args.avg_win_pct
+        if args.avg_loss_pct is not None:
+            vals["avg_loss_pct"] = args.avg_loss_pct
+        if args.max_drawdown_pct is not None:
+            vals["max_drawdown_pct"] = args.max_drawdown_pct
+        if args.years_tested is not None:
+            vals["years_tested"] = args.years_tested
+        if args.num_parameters is not None:
+            vals["num_parameters"] = args.num_parameters
+        if args.slippage_tested:
+            vals["slippage_tested"] = True
+        print(f"Loaded metrics from {args.input}")
+    else:
+        missing = [
+            name for name, val in {
+                "--total-trades": args.total_trades,
+                "--win-rate": args.win_rate,
+                "--avg-win-pct": args.avg_win_pct,
+                "--avg-loss-pct": args.avg_loss_pct,
+                "--max-drawdown-pct": args.max_drawdown_pct,
+                "--years-tested": args.years_tested,
+                "--num-parameters": args.num_parameters,
+            }.items() if val is None
+        ]
+        if missing:
+            raise SystemExit(
+                f"Missing required argument(s) (or use --input JSON): {', '.join(missing)}"
+            )
+        vals = {
+            "total_trades": args.total_trades,
+            "win_rate": args.win_rate,
+            "avg_win_pct": args.avg_win_pct,
+            "avg_loss_pct": args.avg_loss_pct,
+            "max_drawdown_pct": args.max_drawdown_pct,
+            "years_tested": args.years_tested,
+            "num_parameters": args.num_parameters,
+            "slippage_tested": args.slippage_tested,
+        }
+
     result = evaluate(
-        total_trades=args.total_trades,
-        win_rate=args.win_rate,
-        avg_win_pct=args.avg_win_pct,
-        avg_loss_pct=args.avg_loss_pct,
-        max_drawdown_pct=args.max_drawdown_pct,
-        years_tested=args.years_tested,
-        num_parameters=args.num_parameters,
-        slippage_tested=args.slippage_tested,
+        total_trades=vals["total_trades"],
+        win_rate=vals["win_rate"],
+        avg_win_pct=vals["avg_win_pct"],
+        avg_loss_pct=vals["avg_loss_pct"],
+        max_drawdown_pct=vals["max_drawdown_pct"],
+        years_tested=vals["years_tested"],
+        num_parameters=vals["num_parameters"],
+        slippage_tested=bool(vals["slippage_tested"]),
+        force_abandon_on_high_redflag=args.force_abandon_on_high_redflag,
     )
 
     output_dir = Path(args.output_dir)
     json_path, md_path = write_outputs(result, output_dir)
 
     print(f"Score: {result['total_score']}/100 — Verdict: {result['verdict']}")
+    if result.get("red_flag_override"):
+        print("RED-FLAG OVERRIDE: high-severity red flag forced verdict to Abandon.")
     if result["red_flags"]:
         print(f"Red flags: {len(result['red_flags'])}")
         for flag in result["red_flags"]:

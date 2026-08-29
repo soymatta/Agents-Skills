@@ -1,6 +1,22 @@
 ---
 name: skill-creator
-description: Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.
+description: >-
+  Creates new skills, modifies and improves existing skills, and measures skill performance.
+  Full skill lifecycle: capture intent → interview → write SKILL.md → create test cases →
+  run evals → grade → benchmark with variance analysis → iterate → package.
+  Includes description optimization loop (run_loop.py) for better triggering accuracy
+  using train/test split with multiple runs per query. Bundles grader, comparator, analyzer subagents.
+  Use when: user wants to create a skill from scratch, edit a skill, improve a skill, optimize a skill,
+  run evals to test a skill, benchmark skill performance, optimize skill description for triggering,
+  or iterate on a skill based on test results.
+  Triggers on: "crear skill", "create skill", "improve skill", "optimize skill", "eval skill",
+  "test skill", "skill improvement", "skill testing", "skill benchmark", "skill eval",
+  "make a new skill", "write a skill", "edit SKILL.md", "skill description",
+  "triggering accuracy", "skill performance", "benchmark skill", "skill loop",
+  "skill iteration", "skill quality", "skill review", "skill audit",
+  "crear nueva habilidad", "mejorar skill", "optimizar skill", "evaluar skill",
+  "probar skill", "skill packaging", "package skill", ".skill file",
+  "skill creator", "skill builder", "skill framework", "skill development".
 compatibility: Bundled subagents in agents/ (grader, comparator, analyzer). Scripts for benchmarking, eval running, and description optimization. Requires subagent support for full eval workflow.
 ---
 

@@ -1,18 +1,14 @@
 ---
 name: osint
 description: >-
-  Use when the user wants to perform OSINT (Open Source Intelligence) investigation
-  on any target: person, company, domain, email, phone, username, IP, or cryptocurrency
-  wallet. Triggers on keywords like "osint", "investigar", "investigate", "recon",
-  "intelligence", "reconocimiento", "buscar información", "lookup", "dossier",
-  "background check", "due diligence", "verificar identidad",
-  "verify identity", "who is", "whois", "phone lookup", "email lookup",
-  "username search", "company research", "persona", "digital footprint",
-  "huella digital", "perfil", "antecedentes", "DNI", "identificacion",
-  "numero de telefono", "investigar persona", "investigar empresa".
-  ALWAYS ask the user what they want to investigate and get explicit confirmation
-  before running any command. This skill generates OSINT commands, tools, and
-  structured investigation plans — it does NOT execute anything without approval.
+  Performs OSINT (Open Source Intelligence) investigation on any target: person, company, domain, email,
+  phone, username, IP, or crypto wallet. Generates structured plans with phases, tools, and commands, backed
+  by real scripts (phone parsing, plan/command/report generation, directory scraping, tool check). websearch
+  is the primary method; curl-based commands are fallbacks. ALWAYS confirms role/consent and gets approval
+  before running investigative commands — never executes without approval. Use when the user wants to
+  investigate someone, check an email/phone/username, verify identity, or do due diligence. Triggers:
+  "osint", "investigar", "investigate", "recon", "background check", "due diligence", "whois",
+  "verificar identidad", "OSINT report".
 ---
 
 # OSINT Investigation Framework
@@ -22,16 +18,35 @@ structured investigation plans, tools, and commands for gathering intelligence o
 any target: persons, companies, domains, emails, phones, usernames, IPs, or
 crypto wallets.
 
+## When to use
+- User wants to investigate a person/company, check an email/phone/username, look up a domain or IP, verify identity, do due diligence or a background check, or gather OSINT intelligence on any target
+- **Keywords:** "osint", "investigar", "investigate", "recon", "lookup", "dossier", "background check", "due diligence", "verify identity", "verificar identidad", "whois", "phone lookup", "email lookup", "username search", "investigar persona/empresa", "numero de telefono", "data breach", "HIBP", "sherlock", "maigret", "shodan", "domain recon", "subdomain enumeration", "OSINT report", "filtracion", "huella digital", "crypto wallet check", "reverse image search", "breach check"
+
 ## Restrictions
-- **DO NOT** execute any command without explicit user approval — present plan first, get confirmation
-- **DO NOT** access systems without authorization
+- **DO NOT** execute any *investigative* command against a third-party target without explicit user approval — present plan first, get confirmation. Offline/local scripts (phone_parser, generate_plan, gen_commands, tools_check) that touch no external target are exempt from this gate
+- **DO NOT** run ACTIVE scans (e.g. nmap) or any probe against a host you don't own or lack written authorization for
 - **DO NOT** use for stalking, harassment, or unauthorized access
 - **DO NOT** skip documenting findings — always save to a structured report
 - **DO NOT** expose API keys or credentials in reports
 - **DO NOT** use paid tools without confirming user has API keys
+- **DO NOT** report a single-source finding as fact — corroborate before writing it into the report
 - Only use publicly available, legal OSINT tools and sources
+- Respect consent, proportionality, and data retention: only collect what the stated purpose requires, and delete intermediate files (`findings.json`, `commands.sh`, `investigation_plan.json`) when the investigation is done or keep them only as long as the purpose requires
 
 ## Workflow
+
+### Step 0: Ethical gate + tool check
+Before any investigation, confirm **role / consent / proportionality**:
+- Are you the data subject, the target's owner, an authorized client (e.g. due diligence, security engagement, hiring with candidate consent), or an unrelated third party?
+- Is the purpose legitimate, and is the planned depth/scope **proportional** to it (scoped for background checks, deeper only when justified)?
+- Only proceed with a legitimate purpose and consent/authority. If the user is an unrelated third party with no legitimate purpose, stop and explain.
+
+Then verify required tools are installed (the missing "Step 0" today):
+```bash
+cd scripts
+python tools_check.py
+```
+Flag or skip any tool that is missing before generating a plan.
 
 ### Step 1: Target Identification
 
@@ -40,7 +55,10 @@ Before any investigation, ask the user:
 ```
 Ask the user for:
 
-1. TARGET TYPE: What are you investigating?
+1. ROLE / CONSENT: Are you the subject, an authorized client, or a third party?
+   (If a third party with no legitimate purpose, stop.)
+
+2. TARGET TYPE: What are you investigating?
    - Person (name, DNI/ID, email, phone)
    - Company (name, domain, registration)
    - Domain/Website
@@ -50,23 +68,24 @@ Ask the user for:
    - IP address
    - Cryptocurrency wallet
 
-2. TARGET VALUE: The actual value to investigate
+3. TARGET VALUE: The actual value to investigate
    Example: "{{EMAIL}}", "{{PHONE}}", "{{COMPANY_NAME}}"
 
-3. PURPOSE: Why are you investigating?
-   - Background check / hiring
+4. PURPOSE: Why are you investigating?
+   - Background check / hiring (with candidate consent)
    - Due diligence / business
-   - Security investigation
-   - Personal curiosity
+   - Security investigation (authorized)
+   - Personal curiosity (your own data)
    - Legal/compliance
    - Other: ___
 
-4. DEPTH: How deep should the investigation go?
+5. DEPTH: How deep should the investigation go?
    - Quick (5-10 minutes): Basic lookup, key findings
    - Standard (30-60 minutes): Comprehensive scan
    - Deep (2+ hours): Full profile with cross-references
+   Only go as deep as the purpose proportionally justifies.
 
-5. BUDGET: Do you have API keys for paid services?
+6. BUDGET: Do you have API keys for paid services?
    - Free only (no API keys)
    - Have some API keys (list them)
    - Full access (Bright Data, Shodan, etc.)
@@ -347,7 +366,7 @@ pip install theHarvester       # Email/domain recon
 # System tools (install separately)
 # whois - domain registration lookup
 # nslookup/dig - DNS resolution
-# nmap - port scanning (passive)
+# nmap - ACTIVE port scanning (requires host owner authorization — see domain_osint.md)
 # curl/wget - HTTP probing
 ```
 
@@ -433,3 +452,29 @@ websearch('site:{domain}', numResults=8)
 websearch('"{domain}" whois OR registrar', numResults=5)
 websearch('"{domain}" technology OR stack OR builtwith', numResults=5)
 ```
+
+## Methodology: corroboration, confidence, and "no data"
+
+- **Corroboration rule:** a finding from a single source is a *lead*, not a fact.
+  Do not write it into the report until it is cross-checked against at least one
+  independent source (a second directory, an official record, or the target's own
+  primary account). Label each finding with the sources that corroborate it.
+- **Confidence levels:**
+  - **High** — corroborated by 2+ independent, authoritative sources
+  - **Medium** — corroborated by secondary sources or one authoritative source
+  - **Low / Unverified** — single source, scraped data, or self-reported; state the caveat
+- **No data found:** "absence of evidence is not evidence of absence." Report
+  explicitly when an expected surface (e.g. no breach history, no social profile)
+  is empty, and note that data may simply be under the surface.
+- **Fragile/legacy endpoints:** several plan commands target public pages/APIs
+  (TrueCaller, Whitepages, DeBank, OpenSea, some `curl` lookups) that change or
+  block scrapers. Treat their output as **possibly stale/unverified** — prefer an
+  `websearch`-backed confirmation before treating scraped data as a finding.
+- **Source labelling:** in the report, mark each tool/source as `verified` vs
+  `possibly stale — prefer websearch` so the reader can weight the evidence.
+
+## Cleanup
+Delete intermediate artifacts (`investigation_plan.json`, `commands.sh`,
+`scrape_directories` output, `findings.json`) once the report is finalized, or
+keep them only as long as the stated purpose requires. Do not leave raw scraped
+data about a person/company lying around indefinitely.

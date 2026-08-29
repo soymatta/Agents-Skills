@@ -1,4 +1,4 @@
-"""Tests for jobfinder score_match module."""
+"""Tests for jobfinder score_match module (5-Dimension Framework)."""
 
 from __future__ import annotations
 
@@ -113,7 +113,142 @@ class TestExtractSkillsFromDescription:
 
 
 # ---------------------------------------------------------------------------
-# score_job_match
+# Pre-scoring gates
+# ---------------------------------------------------------------------------
+
+class TestEligibilityGate:
+    def test_no_requirement_passes(self, score_match_module):
+        result = score_match_module.check_eligibility_gate({}, {"title": "Dev", "description": "Python role"})
+        assert result["pass"] is True
+
+    def test_citizenship_requirement_fails(self, score_match_module):
+        profile = {"nationality": "brazilian"}
+        job = {"title": "Dev", "description": "US citizen required"}
+        result = score_match_module.check_eligibility_gate(profile, job)
+        assert result["pass"] is False
+
+    def test_international_applicants_pass(self, score_match_module):
+        job = {"title": "Dev", "description": "We welcome international applicants"}
+        result = score_match_module.check_eligibility_gate({}, job)
+        assert result["pass"] is True
+
+
+class TestLanguageGate:
+    def test_no_language_requirement_passes(self, score_match_module):
+        result = score_match_module.check_language_gate({}, {"title": "Dev", "description": "Python role"})
+        assert result["pass"] is True
+
+    def test_undeclared_language_fails(self, score_match_module):
+        profile = {"languages": {"spanish": "native"}}
+        job = {"title": "Dev", "description": "Fluent English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is False
+
+    def test_declared_language_passes(self, score_match_module):
+        profile = {"languages": {"english": "fluent", "spanish": "native"}}
+        job = {"title": "Dev", "description": "Fluent English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is True
+
+    def test_insufficient_level_flagged(self, score_match_module):
+        profile = {"languages": {"english": "beginner"}}
+        job = {"title": "Dev", "description": "Fluent English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is True
+        assert result["flag"] is True
+
+
+# ---------------------------------------------------------------------------
+# 5D Scoring dimensions
+# ---------------------------------------------------------------------------
+
+class TestScoreTechnicalSkills:
+    def test_perfect_match(self, score_match_module):
+        profile = {"skills": ["python", "react", "docker"]}
+        job = {"description": "Python and React developer with Docker experience"}
+        score, matched, missing = score_match_module.score_technical_skills(profile, job)
+        assert score == 100.0
+        assert "python" in matched
+        assert "react" in matched
+
+    def test_partial_match(self, score_match_module):
+        profile = {"skills": ["python"]}
+        job = {"description": "Python and React developer"}
+        score, matched, missing = score_match_module.score_technical_skills(profile, job)
+        assert 0 < score < 100
+        assert "python" in matched
+        assert "react" in missing
+
+    def test_no_match(self, score_match_module):
+        profile = {"skills": ["cobol"]}
+        job = {"description": "Python and React developer"}
+        score, matched, missing = score_match_module.score_technical_skills(profile, job)
+        assert score == 0.0
+        assert matched == []
+
+    def test_empty_job_skills_defaults_to_50(self, score_match_module):
+        profile = {"skills": ["python"]}
+        job = {"description": "A general management role"}
+        score, matched, missing = score_match_module.score_technical_skills(profile, job)
+        assert score == 50.0
+
+
+class TestScoreExperience:
+    def test_exact_match(self, score_match_module):
+        profile = {"experience": {"years": 5}}
+        job = {"description": "5+ years experience required"}
+        assert score_match_module.score_experience(profile, job) == 100.0
+
+    def test_near_match(self, score_match_module):
+        profile = {"experience": {"years": 4}}
+        job = {"description": "5+ years experience required"}
+        assert score_match_module.score_experience(profile, job) == 70.0
+
+    def test_far_below(self, score_match_module):
+        profile = {"experience": {"years": 1}}
+        job = {"description": "5+ years experience required"}
+        assert score_match_module.score_experience(profile, job) < 50.0
+
+    def test_not_mentioned_defaults_to_50(self, score_match_module):
+        profile = {"experience": {"years": 5}}
+        job = {"description": "Some role"}
+        assert score_match_module.score_experience(profile, job) == 50.0
+
+
+class TestScoreLocation:
+    def test_remote_only_matches_remote(self, score_match_module):
+        profile = {"remote_preference": "remote-only"}
+        job = {"is_remote": True}
+        result, note = score_match_module.score_location(profile, job)
+        assert result == "PASS"
+
+    def test_remote_only_fails_onsite(self, score_match_module):
+        profile = {"remote_preference": "remote-only"}
+        job = {"is_remote": False}
+        result, note = score_match_module.score_location(profile, job)
+        assert result == "FAIL"
+
+    def test_no_preference_always_passes(self, score_match_module):
+        profile = {"remote_preference": "no-preference"}
+        job = {"is_remote": True}
+        result, note = score_match_module.score_location(profile, job)
+        assert result == "PASS"
+
+    def test_onsite_pref_favours_onsite(self, score_match_module):
+        profile = {"remote_preference": "on-site"}
+        job = {"is_remote": False}
+        result, note = score_match_module.score_location(profile, job)
+        assert result == "PASS"
+
+    def test_onsite_pref_flags_remote(self, score_match_module):
+        profile = {"remote_preference": "on-site"}
+        job = {"is_remote": True}
+        result, note = score_match_module.score_location(profile, job)
+        assert result == "FLAG"
+
+
+# ---------------------------------------------------------------------------
+# score_job_match (full pipeline)
 # ---------------------------------------------------------------------------
 
 class TestScoreJobMatch:
@@ -122,19 +257,17 @@ class TestScoreJobMatch:
         return {
             "skills": ["python", "react", "typescript", "docker", "aws"],
             "experience": {"years": 5},
-            "salary_expected": 80000,
             "remote_preference": "remote-only",
-            "education": "Bachelor's Degree",
+            "languages": {"english": "fluent", "spanish": "native"},
+            "career_goals": ["senior", "growth"],
         }
 
     @pytest.fixture
     def full_job(self):
         return {
             "title": "Senior Python Developer",
-            "description": "Looking for a Python developer with React and AWS experience. 3+ years experience required.",
+            "description": "Looking for a Python developer with React and AWS experience. 3+ years experience required. Fast-paced startup environment.",
             "company": "TechCorp",
-            "salary_min": 70000,
-            "salary_max": 100000,
             "is_remote": True,
         }
 
@@ -154,131 +287,54 @@ class TestScoreJobMatch:
     def test_no_matching_skills(self, score_match_module, full_job):
         profile = {"skills": ["cobol", "fortran"], "experience": {"years": 20}}
         result = score_match_module.score_job_match(profile, full_job)
-        assert result["skills_score"] == 0
-
-    def test_empty_job_skills_defaults_to_50(self, score_match_module):
-        profile = {"skills": ["python"]}
-        job = {"title": "Manager", "description": "A general management role with no tech stack"}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["skills_score"] == 50
+        assert result["technical_score"] == 0.0
 
     def test_experience_exact_match(self, score_match_module):
         profile = {"skills": ["python"], "experience": {"years": 5}}
         job = {"title": "Dev", "description": "5+ years experience", "is_remote": False}
         result = score_match_module.score_job_match(profile, job)
-        assert result["experience_score"] == 100
+        assert result["experience_score"] == 100.0
 
     def test_experience_near_match_70pct(self, score_match_module):
         profile = {"skills": ["python"], "experience": {"years": 4}}
         job = {"title": "Dev", "description": "5+ years experience", "is_remote": False}
         result = score_match_module.score_job_match(profile, job)
-        assert result["experience_score"] == 70
+        assert result["experience_score"] == 70.0
 
     def test_experience_far_below(self, score_match_module):
         profile = {"skills": ["python"], "experience": {"years": 1}}
         job = {"title": "Dev", "description": "5+ years experience", "is_remote": False}
         result = score_match_module.score_job_match(profile, job)
-        assert result["experience_score"] < 50
+        assert result["experience_score"] < 50.0
 
     def test_experience_not_mentioned_defaults_to_50(self, score_match_module):
         profile = {"skills": ["python"], "experience": {"years": 5}}
         job = {"title": "Dev", "description": "Some role", "is_remote": False}
         result = score_match_module.score_job_match(profile, job)
-        assert result["experience_score"] == 50
+        assert result["experience_score"] == 50.0
 
-    def test_salary_in_range(self, score_match_module):
-        profile = {"skills": ["python"], "salary_expected": 80000}
-        job = {"title": "Dev", "description": "Dev role", "salary_min": 70000, "salary_max": 100000, "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["salary_score"] == 100
-
-    def test_salary_below_minimum(self, score_match_module):
-        profile = {"skills": ["python"], "salary_expected": 50000}
-        job = {"title": "Dev", "description": "Dev role", "salary_min": 70000, "salary_max": 100000, "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["salary_score"] == 80
-
-    def test_salary_above_max(self, score_match_module):
-        profile = {"skills": ["python"], "salary_expected": 150000}
-        job = {"title": "Dev", "description": "Dev role", "salary_min": 70000, "salary_max": 100000, "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["salary_score"] < 50
-
-    def test_salary_string_parsing(self, score_match_module):
-        profile = {"skills": ["python"], "salary_expected": "$80000"}
-        job = {"title": "Dev", "description": "Dev role", "salary_min": 70000, "salary_max": 100000, "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["salary_score"] == 100
-
-    def test_remote_only_matches_remote_job(self, score_match_module):
+    def test_location_gate_fail(self, score_match_module):
         profile = {"skills": ["python"], "remote_preference": "remote-only"}
-        job = {"title": "Dev", "description": "Dev role", "is_remote": True}
+        job = {"title": "Dev", "description": "On-site role", "is_remote": False}
         result = score_match_module.score_job_match(profile, job)
-        assert result["location_score"] == 100
+        assert result["location_result"] == "FAIL"
+        assert result["total_score"] == 0
 
-    def test_remote_only_penalized_for_onsite(self, score_match_module):
+    def test_location_gate_pass(self, score_match_module):
         profile = {"skills": ["python"], "remote_preference": "remote-only"}
-        job = {"title": "Dev", "description": "Dev role", "is_remote": False}
+        job = {"title": "Dev", "description": "Remote role", "is_remote": True}
         result = score_match_module.score_job_match(profile, job)
-        assert result["location_score"] == 10
-
-    def test_no_preference_always_100(self, score_match_module):
-        profile = {"skills": ["python"], "remote_preference": "no-preference"}
-        job = {"title": "Dev", "description": "Dev role", "is_remote": True}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["location_score"] == 100
-
-    def test_onsite_pref_favours_onsite(self, score_match_module):
-        profile = {"skills": ["python"], "remote_preference": "on-site"}
-        job = {"title": "Dev", "description": "Dev role", "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["location_score"] == 90
-
-    def test_onsite_pref_penalty_for_remote(self, score_match_module):
-        profile = {"skills": ["python"], "remote_preference": "on-site"}
-        job = {"title": "Dev", "description": "Dev role", "is_remote": True}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["location_score"] == 60
-
-    def test_education_bachelors_passes(self, score_match_module):
-        profile = {"skills": ["python"], "education": "Bachelor's Degree"}
-        job = {"title": "Dev", "description": "Requires university degree", "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["education_score"] == 100
-
-    def test_education_not_specified_passes_when_no_requirement(self, score_match_module):
-        profile = {"skills": ["python"], "education": "Not specified"}
-        job = {"title": "Dev", "description": "General role", "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["education_score"] == 100
-
-    def test_education_list_format(self, score_match_module):
-        profile = {
-            "skills": ["python"],
-            "education": [{"degree": "Master's Degree"}, {"degree": "Bachelor's Degree"}],
-        }
-        job = {"title": "Dev", "description": "General role", "is_remote": False}
-        result = score_match_module.score_job_match(profile, job)
-        assert result["education_score"] == 100
-
-    def test_weighted_total_is_correct(self, score_match_module, full_profile, full_job):
-        result = score_match_module.score_job_match(full_profile, full_job)
-        expected = (
-            result["skills_score"] * 0.35
-            + result["experience_score"] * 0.20
-            + result["salary_score"] * 0.15
-            + result["location_score"] * 0.15
-            + result["education_score"] * 0.10
-            + result["industry_score"] * 0.05
-        )
-        assert abs(result["total_score"] - round(expected, 1)) < 0.2
+        assert result["location_result"] == "PASS"
+        assert result["total_score"] > 0
 
     def test_result_keys_present(self, score_match_module, full_profile, full_job):
         result = score_match_module.score_job_match(full_profile, full_job)
         required_keys = {
-            "total_score", "skills_score", "matched_skills", "missing_skills",
-            "experience_score", "salary_score", "location_score", "education_score",
-            "industry_score", "nice_to_have", "analysis",
+            "total_score", "technical_score", "experience_score",
+            "behavioral_score", "career_score", "location_result",
+            "location_note", "eligibility_gate", "language_gate",
+            "language_flag", "matched_skills", "missing_skills",
+            "nice_to_have", "analysis",
         }
         assert required_keys.issubset(result.keys())
 
@@ -294,40 +350,71 @@ class TestScoreJobMatch:
         result = score_match_module.score_job_match(profile, job)
         assert 0 <= result["total_score"] <= 100
 
-    def test_analysis_contains_match_info(self, score_match_module, full_profile, full_job):
+    def test_analysis_contains_fit_verdict(self, score_match_module, full_profile, full_job):
         result = score_match_module.score_job_match(full_profile, full_job)
-        assert "match" in result["analysis"].lower()
+        assert "fit" in result["analysis"].lower()
+
+    def test_eligibility_gate_failure(self, score_match_module):
+        profile = {"nationality": "brazilian", "skills": ["python"]}
+        job = {"title": "Dev", "description": "US citizen required", "is_remote": True}
+        result = score_match_module.score_job_match(profile, job)
+        assert result["total_score"] == 0
+        assert "eligibility" in result["analysis"].lower()
+
+    def test_language_gate_failure(self, score_match_module):
+        profile = {"skills": ["python"], "languages": {"spanish": "native"}}
+        job = {"title": "Dev", "description": "Fluent English required", "is_remote": True}
+        result = score_match_module.score_job_match(profile, job)
+        assert result["total_score"] == 0
+        assert "language" in result["analysis"].lower()
 
 
 # ---------------------------------------------------------------------------
-# _generate_analysis
+# _generate_analysis_5d
 # ---------------------------------------------------------------------------
 
-class TestGenerateAnalysis:
-    def test_excellent_for_high_score(self, score_match_module):
-        analysis = score_match_module._generate_analysis(90, {"python"}, set(), 100, 100)
-        assert "excellent" in analysis
+class TestGenerateAnalysis5D:
+    def test_strong_fit_for_high_score(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            85, 100, 100, 80, 90, ["python"], [], "PASS", "", False, "")
+        assert "strong fit" in analysis.lower()
 
-    def test_strong_for_medium_high(self, score_match_module):
-        analysis = score_match_module._generate_analysis(75, {"python"}, set(), 100, 100)
-        assert "strong" in analysis
+    def test_good_fit_for_medium_high(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            65, 70, 80, 60, 70, ["python"], ["react"], "PASS", "", False, "")
+        assert "good fit" in analysis.lower()
 
-    def test_moderate_for_medium(self, score_match_module):
-        analysis = score_match_module._generate_analysis(55, set(), set(), 50, 50)
-        assert "moderate" in analysis
+    def test_moderate_fit_for_medium(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            50, 50, 50, 50, 50, [], ["react", "docker"], "PASS", "", False, "")
+        assert "moderate fit" in analysis.lower()
 
-    def test_low_for_low_score(self, score_match_module):
-        analysis = score_match_module._generate_analysis(30, set(), set(), 30, 30)
-        assert "low" in analysis
+    def test_weak_fit_for_low_score(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            35, 30, 40, 30, 40, [], ["python", "react"], "PASS", "", False, "")
+        assert "weak fit" in analysis.lower()
+
+    def test_poor_fit_for_very_low(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            10, 0, 20, 10, 20, [], ["python", "react", "docker"], "PASS", "", False, "")
+        assert "poor fit" in analysis.lower()
 
     def test_missing_skills_mentioned(self, score_match_module):
-        analysis = score_match_module._generate_analysis(50, {"python"}, {"react", "typescript"}, 50, 50)
+        analysis = score_match_module._generate_analysis_5d(
+            50, 50, 50, 50, 50, ["python"], ["react", "typescript"], "PASS", "", False, "")
         assert "react" in analysis or "typescript" in analysis
 
     def test_low_experience_mentioned(self, score_match_module):
-        analysis = score_match_module._generate_analysis(50, set(), set(), 30, 50)
-        assert "experience" in analysis
+        analysis = score_match_module._generate_analysis_5d(
+            50, 50, 30, 50, 50, [], [], "PASS", "", False, "")
+        assert "experience" in analysis.lower()
 
-    def test_high_salary_mentioned(self, score_match_module):
-        analysis = score_match_module._generate_analysis(50, set(), set(), 50, 30)
-        assert "salary" in analysis.lower()
+    def test_location_flag_mentioned(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            70, 80, 80, 70, 80, ["python"], [], "FLAG", "Remote but you prefer on-site", False, "")
+        assert "location" in analysis.lower()
+
+    def test_language_flag_mentioned(self, score_match_module):
+        analysis = score_match_module._generate_analysis_5d(
+            70, 80, 80, 70, 80, ["python"], [], "PASS", "", True, "Requires fluent english")
+        assert "language" in analysis.lower()

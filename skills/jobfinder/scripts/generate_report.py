@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import html as _html
 import json
 import sys
 import tempfile
@@ -259,17 +260,18 @@ def generate_markdown(profile: dict, scored_jobs: list, projects: list) -> str:
 
 
 def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
-    name = profile.get("name", "Desconocido")
+    _e = _html.escape
+    name = _e(profile.get("name", "Desconocido"))
     exp = profile.get("experience", {})
     roles = exp.get("roles", []) if isinstance(exp, dict) else []
     years = exp.get("years", "N/A") if isinstance(exp, dict) else "N/A"
     skills = profile.get("skills", [])
-    location = profile.get("location", "N/A")
-    salary = profile.get("salary_expected", "No especificado")
-    education = _format_education(profile.get("education", "N/A"))
-    work_pref = profile.get("remote_preference", "N/A")
+    location = _e(profile.get("location", "N/A"))
+    salary = _e(profile.get("salary_expected", "No especificado"))
+    education = _e(_format_education(profile.get("education", "N/A")))
+    work_pref = _e(profile.get("remote_preference", "N/A"))
 
-    skills_html = " ".join(f'<span class="skill-tag skill-match">{s}</span>' for s in skills)
+    skills_html = " ".join(f'<span class="skill-tag skill-match">{_e(s)}</span>' for s in skills)
 
     jobs_html = ""
     for i, job in enumerate(scored_jobs[:10], 1):
@@ -279,9 +281,9 @@ def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
         badge_cls = "high" if score >= 70 and viable else "mid" if score >= 50 else "low" if viable else "viable"
         badge_text = f"{score:.0f}%" if viable else f"{score:.0f}% (No viable)"
 
-        matched_html = " ".join(f'<span class="skill-tag skill-match">{s}</span>' for s in job.get("matched_skills", []))
-        missing_html = " ".join(f'<span class="skill-tag skill-missing">{s}</span>' for s in job.get("missing_skills", []))
-        nice_html = " ".join(f'<span class="skill-tag skill-nice">{s}</span>' for s in job.get("nice_to_have", []))
+        matched_html = " ".join(f'<span class="skill-tag skill-match">{_e(s)}</span>' for s in job.get("matched_skills", []))
+        missing_html = " ".join(f'<span class="skill-tag skill-missing">{_e(s)}</span>' for s in job.get("missing_skills", []))
+        nice_html = " ".join(f'<span class="skill-tag skill-nice">{_e(s)}</span>' for s in job.get("nice_to_have", []))
 
         salary_str = _format_salary_cop_usd(job.get("salary_min"), job.get("salary_max"), job.get("salary_currency", "USD"))
 
@@ -304,16 +306,16 @@ def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
 <div class="job-card {score_cls}">
   <div class="job-header">
     <div>
-      <div class="job-title">{i}. {job.get("title", "N/A")}</div>
-      <div class="job-company">{job.get("company", "N/A")}</div>
+      <div class="job-title">{i}. {_e(job.get("title", "N/A"))}</div>
+      <div class="job-company">{_e(job.get("company", "N/A"))}</div>
     </div>
-    <div class="score-badge {badge_cls}">{badge_text}</div>
+    <div class="score-badge {badge_cls}">{_e(badge_text)}</div>
   </div>
   <div class="job-meta">
-    <div><span class="profile-label">Ubicación</span><br>{job.get("location", "N/A")}</div>
-    <div><span class="profile-label">Salario</span><br>{salary_str}</div>
-    <div><span class="profile-label">Tipo</span><br>{job.get("job_type", "N/A")}</div>
-    <div><span class="profile-label">Publicado</span><br>{job.get("posted", "N/A")}</div>
+    <div><span class="profile-label">Ubicación</span><br>{_e(job.get("location", "N/A"))}</div>
+    <div><span class="profile-label">Salario</span><br>{_e(salary_str)}</div>
+    <div><span class="profile-label">Tipo</span><br>{_e(job.get("job_type", "N/A"))}</div>
+    <div><span class="profile-label">Publicado</span><br>{_e(job.get("posted", "N/A"))}</div>
   </div>
   <div>
     {"<strong>Skills:</strong> " + matched_html if matched_html else ""}
@@ -321,7 +323,7 @@ def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
     {"<br><strong>Deseables:</strong> " + nice_html if nice_html else ""}
   </div>
   {exp_note}
-  <div class="analysis">{job.get("analysis", "")}</div>
+  <div class="analysis">{_e(job.get("analysis", ""))}</div>
   <div style="margin-top:0.5rem"><a href="{job.get("url", "#")}" target="_blank">Ver vacante →</a></div>
   {project_html}
 </div>'''
@@ -339,7 +341,7 @@ def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
         priority_cls = "priority-high" if pct > 30 else "priority-mid" if pct > 15 else ""
         priority_text = "ALTA" if pct > 30 else "MEDIA" if pct > 15 else "BAJA"
         has_skill = "Sí" if skill in [s.lower() for s in skills] else "No"
-        gap_html += f'<tr><td>{skill}</td><td>{pct:.0f}%</td><td>{has_skill}</td><td class="{priority_cls}">{priority_text}</td></tr>'
+        gap_html += f'<tr><td>{_e(skill)}</td><td>{pct:.0f}%</td><td>{_e(has_skill)}</td><td class="{priority_cls}">{_e(priority_text)}</td></tr>'
 
     # Projects (1 per vacancy, deduplicated)
     seen_jobs = set()
@@ -354,10 +356,10 @@ def generate_html(profile: dict, scored_jobs: list, projects: list) -> str:
     for proj in unique_projects:
         projects_html += f'''
 <div class="project-card">
-  <strong>Para: {proj.get("job_title", "N/A")}</strong>
-  <div style="margin-top:0.3rem"><a href="{proj.get("url", "#")}" target="_blank">{proj.get("name", "N/A")}</a>
+  <strong>Para: {_e(proj.get("job_title", "N/A"))}</strong>
+  <div style="margin-top:0.3rem"><a href="{proj.get("url", "#")}" target="_blank">{_e(proj.get("name", "N/A"))}</a>
   <span class="project-stars">({proj.get("stars", "")} stars)</span></div>
-  <div class="project-why">{proj.get("reason", "")}</div>
+  <div class="project-why">{_e(proj.get("reason", ""))}</div>
 </div>'''
 
     # Actions

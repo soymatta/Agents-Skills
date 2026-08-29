@@ -15,6 +15,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+try:
+    from .gen_commands import is_shell_step
+except Exception:  # pragma: no cover - fallback for direct script invocation
+    from gen_commands import is_shell_step
+
 
 def run_command(cmd: str, timeout: int = 30) -> dict:
     """Execute a command and capture output."""
@@ -97,6 +102,12 @@ def execute_plan(plan: dict, interactive: bool = False) -> dict:
                 print(f"  [{j}] {tool}: {purpose} [SKIPPED - condition not met]")
                 continue
 
+            # Web-search steps are pseudo-commands (e.g. `search "..."`) and
+            # cannot be shell-executed — skip them here; run via the websearch tool.
+            if not is_shell_step(step):
+                print(f"  [{j}] {tool}: {purpose} [WEBSEARCH - run via agent websearch tool]")
+                continue
+
             print(f"  [{j}] {tool}: {purpose}")
             print(f"      Command: {command[:80]}...")
 
@@ -105,6 +116,14 @@ def execute_plan(plan: dict, interactive: bool = False) -> dict:
                 if response != "y":
                     print(f"      [SKIPPED by user]")
                     continue
+
+            # Authorization gate: always require explicit confirmation before
+            # running any external command against a third-party target.
+            if not interactive:
+                print(f"      [ABORTED] No explicit approval provided.")
+                print(f"      Re-run with --interactive and confirm each step, or")
+                print(f"      run the command manually with authorization.")
+                continue
 
             result = run_command(command, timeout=30)
             result["tool"] = tool

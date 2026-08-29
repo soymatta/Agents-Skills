@@ -1,6 +1,14 @@
 ---
 name: backtest-validate
-description: Use when the user needs to validate, evaluate, or verify the quality of a backtested trading strategy before live deployment. Triggers on keywords like "validar", "validate", "backtest review", "backtest quality", "scoring", "backtest score", "strategy evaluation", "stress test", "robustness check", "is this backtest any good". This skill scores backtest quality across 5 dimensions (Sample Size, Expectancy, Risk Management, Robustness, Execution Realism), detects red flags, and outputs a Deploy/Refine/Abandon verdict. Use AFTER backtest-run (which produces the backtest results to validate).
+description: >-
+  Validates, evaluates, and scores a backtested trading strategy before live deployment. Scores across 5
+  dimensions (Sample Size, Expectancy, Risk Management, Robustness, Execution Realism), runs ±50% stop-loss
+  / ±20% profit-target sensitivity, out-of-sample walk-forward, and overfitting heuristics, then outputs a
+  Deploy (>=70) / Refine (40-69) / Abandon (<40) verdict with an optional hard red-flag override.
+  Includes evaluate_backtest.py (flag or --input JSON mode). Use when validating a backtest, checking if a
+  strategy is good, stress-testing it, or deciding whether to deploy. Run AFTER backtest-run.
+  Triggers: "validar backtest", "validate", "backtest review", "is this backtest any good", "should I deploy",
+  "evaluar estrategia", "deploy or not".
 compatibility: Requires backtest-run output to validate. Produces reports consumed by telegram-notify. Includes evaluate_backtest.py scoring script.
 ---
 
@@ -13,7 +21,7 @@ Systematic backtest quality validation. Goal: find strategies that "break the le
 - Assessing robustness before committing real capital
 - Troubleshooting misleading backtests
 - Detecting overfitting, look-ahead bias, survivorship bias
-- Keywords: "validar", "validate", "backtest review", "backtest quality", "scoring", "backtest score", "strategy evaluation", "stress test", "robustness check", "is this backtest any good"
+- Keywords: "validar backtest", "validate", "backtest review", "backtest quality", "scoring", "backtest score", "strategy evaluation", "stress test", "robustness check", "is this backtest any good", "is the strategy good", "should I deploy", "es bueno este backtest", "evaluar estrategia", "revisar backtest", "overfitting check", "walk-forward", "parameter sensitivity", "strategy robustness", "backtest report", "deploy or not"
 
 ## When NOT to use
 - Running a new backtest (use `backtest-run` first)
@@ -42,9 +50,22 @@ Min 5 years (pref 10+). Multiple market regimes. Realistic commissions + conserv
 Walk-forward analysis. Compare in-sample vs out-of-sample. Warning if OOS <50% of IS.
 
 ### 6. Run Evaluation Script
+
+Two ways to run the scorer:
+
+**a) From backtest-run output (preferred, no transcription):** read the metrics
+directly from the `reports/backtest_*.json` written by backtest-run:
 ```bash
-# Desde la raiz del proyecto:
-python3 scripts/evaluate_backtest.py \
+python skills/backtest-validate/scripts/evaluate_backtest.py \
+  --input reports/backtest_<timestamp>.json \
+  --years-tested 8 --num-parameters 3 \
+  --force-abandon-on-high-redflag \
+  --output-dir reports/
+```
+
+**b) Manual flag mode** (when only summary metrics are available):
+```bash
+python skills/backtest-validate/scripts/evaluate_backtest.py \
   --total-trades 150 --win-rate 62 \
   --avg-win-pct 1.8 --avg-loss-pct 1.2 \
   --max-drawdown-pct 15 --years-tested 8 \
@@ -52,24 +73,33 @@ python3 scripts/evaluate_backtest.py \
   --output-dir reports/
 ```
 
-El script genera `reports/backtest_eval_<timestamp>.json` y `.md`. Si el directorio `reports/` no existe, se crea automaticamente.
+The script writes `reports/backtest_eval_<timestamp>.json` and `.md`
+(auto-creating `reports/` if missing).
+
+> **`--input` mapping notes:** backtest-run's JSON exposes `win_rate`, `max_drawdown`,
+> and `num_trades`, but not `avg_win_pct`/`avg_loss_pct` per trade. Those default to
+> `0.0` (conservative), which depresses the Expectancy/Risk scores. Pass explicit
+> `--avg-win-pct`/`--avg-loss-pct` when you have them.
 
 ### 7. Decide
 - **Deploy** (score ≥70): Survives all stress tests
 - **Refine** (score 40-69): Core logic sound, needs adjustment
 - **Abandon** (score <40): Fails stress tests or fragile
+- **Hard override:** with `--force-abandon-on-high-redflag`, any high-severity red
+  flag forces **Abandon** regardless of score — this implements the
+  "trust red flags over score" principle as a hard rule, not just guidance.
 
 ## Scripts
 
 | Script | Args | Description |
 |--------|------|-------------|
-| `scripts/evaluate_backtest.py` | `--total-trades`, `--win-rate`, `--avg-win-pct`, `--avg-loss-pct`, `--max-drawdown-pct`, `--years-tested`, `--num-parameters`, `--slippage-tested`, `--output-dir` | Scores backtest quality across 5 dimensions |
+| `scripts/evaluate_backtest.py` | `--input JSON` (preferred), or `--total-trades`, `--win-rate`, `--avg-win-pct`, `--avg-loss-pct`, `--max-drawdown-pct`, `--years-tested`, `--num-parameters`, `--slippage-tested`; `--force-abandon-on-high-redflag`, `--output-dir` | Scores backtest quality across 5 dimensions |
 
 ## Scoring Dimensions
 Each 0-20 pts, total 100: Sample Size, Expectancy, Risk Management, Robustness, Execution Realism.
 
 ## Output format
-- `reports/backtest_eval_<timestamp>.json` — structured scores, red flags, verdict
+- `reports/backtest_eval_<timestamp>.json` — structured scores, red flags, verdict (+ `red_flag_override` when forced)
 - `reports/backtest_eval_<timestamp>.md` — human-readable report
 
 ## Dependencies
@@ -80,7 +110,7 @@ No additional pip packages required. Uses only standard Python libraries.
 - **Missing parameters:** Use conservative defaults for any missing metric
 - **Script fails:** Log error, fall back to manual scoring using the 5 dimensions
 - **reports/ directory doesn't exist:** Auto-create it
-- **Conflicting signals (high score but red flags):** Always trust red flags over score — flag in verdict
+- **Conflicting signals (high score but high-severity red flags):** Trust red flags over score — pass `--force-abandon-on-high-redflag` so the verdict is hard-forced to Abandon, and flag it in the verdict
 
 ## File structure
 ```
@@ -97,5 +127,6 @@ backtest-validate/
 - **DO NOT** validate a backtest with fewer than 30 trades — recommend more data
 - **DO NOT** skip stress testing — it is 80% of the validation work
 - **DO NOT** recommend Deploy with score <70
-- **DO NOT** ignore red flags even if overall score is high
+- **DO NOT** ignore red flags even if overall score is high — prefer the hard `--force-abandon-on-high-redflag` override
+- **DO NOT** claim the script *detected* look-ahead/survivorship bias — it only flags heuristic signs; real bias needs manual audit
 - **DO NOT** run backtest-run — this skill validates existing results only

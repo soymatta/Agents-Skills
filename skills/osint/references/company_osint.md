@@ -71,7 +71,7 @@ site:linkedin.com/jobs "{company}"
 site:glassdoor.com/Jobs "{company}"
 ```
 
-## Red Freuds
+## Red Flags
 - Multiple name changes
 - Frequent leadership turnover
 - Negative news coverage

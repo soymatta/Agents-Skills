@@ -14,10 +14,8 @@ def parse_pdf(path: str) -> str:
     try:
         import pdfplumber
     except ImportError:
-        print("  Installing pdfplumber...")
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pdfplumber", "-q"])
-        import pdfplumber
+        print("  Error: pdfplumber not installed. Run: pip install pdfplumber")
+        sys.exit(1)
 
     text_parts = []
     with pdfplumber.open(path) as pdf:
@@ -33,10 +31,8 @@ def parse_docx(path: str) -> str:
     try:
         import docx
     except ImportError:
-        print("  Installing python-docx...")
-        import subprocess
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "python-docx", "-q"])
-        import docx
+        print("  Error: python-docx not installed. Run: pip install python-docx")
+        sys.exit(1)
 
     doc = docx.Document(path)
     return "\n".join(para.text for para in doc.paragraphs)

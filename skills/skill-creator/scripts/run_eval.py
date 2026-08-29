@@ -8,13 +8,18 @@ for a set of queries. Outputs results as JSON.
 import argparse
 import json
 import os
-import select
 import subprocess
 import sys
 import time
 import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
+
+try:
+    import select
+    _HAS_SELECT = True
+except ImportError:
+    _HAS_SELECT = False
 
 from scripts.utils import parse_skill_md
 
@@ -105,9 +110,12 @@ def run_single_query(
                         buffer += remaining.decode("utf-8", errors="replace")
                     break
 
-                ready, _, _ = select.select([process.stdout], [], [], 1.0)
-                if not ready:
-                    continue
+                if _HAS_SELECT and sys.platform != "win32":
+                    ready, _, _ = select.select([process.stdout], [], [], 1.0)
+                    if not ready:
+                        continue
+                else:
+                    time.sleep(0.1)
 
                 chunk = os.read(process.stdout.fileno(), 8192)
                 if not chunk:

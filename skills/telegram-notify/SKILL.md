@@ -1,7 +1,14 @@
 ---
 name: telegram-notify
-description: Use when the user wants to send Telegram messages from their project — notifications, alerts, file uploads, or status updates. Triggers on keywords like "notificar", "notify", "telegram", "alerta", "alert", "notificacion", "mensaje telegram", "bot telegram", "enviar telegram", "send telegram". This skill provides a complete Telegram Bot API client with support for text, photos, documents, videos, audio, media groups, webhooks, and polling. It never blocks execution — failures are logged as warnings and the main process continues.
-compatibility: Provides notification service used by roadmaps, backtest-run, and research-pipeline. Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env or environment. Bundles telegram_bot.py with full Bot API coverage.
+description: >-
+  Sends Telegram messages from projects — notifications, alerts, file uploads, status updates. Full Telegram
+  Bot API client (text MarkdownV2/HTML, photos, documents, videos, audio, media groups, webhooks, polling,
+  edit/delete) with auto-retry and exponential backoff. Never blocks execution (failures log as warnings).
+  Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID (real values, never placeholders). Notification backbone
+  for backtest-run, backtest-validate, research-pipeline, and roadmaps. Use when the user wants to send/notify
+  via Telegram or upload a file. Triggers: "telegram", "notificar", "notify", "alerta", "alert",
+  "enviar telegram", "send message".
+compatibility: Provides notification service used by roadmaps, backtest-run, and research-pipeline. Requires TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env or environment.
 ---
 
 # Telegram Notify
@@ -10,7 +17,7 @@ Send Telegram notifications for project events using the bundled `telegram_bot.p
 
 ## When to use
 - User wants to send Telegram messages from their project
-- Keywords: "notificar", "notify", "telegram", "alerta", "alert", "notificacion", "mensaje telegram", "bot telegram", "enviar telegram", "send telegram"
+- Keywords: "notificar", "notify", "telegram", "alerta", "alert", "notificacion", "mensaje telegram", "bot telegram", "enviar telegram", "send telegram", "send message", "upload file telegram", "sendDocument", "status update telegram", "backtest notification", "research notification"
 - Need to send alerts, status updates, file uploads, or completion notifications
 - Other skills (backtest-run, research-pipeline, roadmaps) trigger notifications automatically
 
@@ -30,23 +37,32 @@ pip install requests
 
 ### Credentials
 
-Create a `.env` file in the project root:
+Set these as **real** values — either in a `.env` file in the project root (loaded
+by your assistant's env loader) or as environment variables. **Never** auto-create
+a `.env` with placeholder values: writing fake credentials makes every downstream
+send fail silently and teaches the pipeline to look healthy when it is not.
 
 ```
 TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 TELEGRAM_CHAT_ID=-1001234567890
 ```
 
-Or set environment variables directly.
-
-**Getting credentials:**
-
+**Getting real credentials:**
 1. Talk to [@BotFather](https://t.me/BotFather) on Telegram to create a bot and get a token
 2. Add the bot to your chat/channel
 3. Send a message to the chat
 4. Visit `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates` to find your chat_id
 
+If the token/chat_id are missing or empty, **fail fast**: log a clear message
+with the setup instructions above and return a failure. Do not invent credentials.
+
 ## Usage
+
+The `telegram_notify.scripts.telegram_bot` import resolves when the repo root is
+importable (e.g. `pip install -e .` from the repo, or the repo being on
+`PYTHONPATH`). If you're launched from inside the skill directory, import the
+module directly instead:
+`from telegram_bot import TelegramBot` with `scripts/` on the path.
 
 ```python
 from telegram_notify.scripts.telegram_bot import TelegramBot
@@ -109,12 +125,13 @@ pip install requests
 ```
 
 ## Error handling
-- **Missing .env file:** Auto-create `.env` with placeholder values and report to user
-- **Invalid bot token:** Log warning, do not block execution
-- **Chat not found:** Log warning, suggest adding bot to chat first
-- **Rate limited (429):** Auto-retry with exponential backoff
-- **Network error:** Auto-retry up to 3 times, then log warning and continue
-- **Message too long (>4000 chars):** Use `send_document()` instead
+- **Token/chat_id missing or empty:** fail fast with clear setup instructions (BotFather + getUpdates). Never auto-create placeholder `.env`.
+- **Invalid bot token:** log a warning, do not block execution.
+- **Chat not found:** log a warning, suggest adding the bot to the chat first.
+- **Rate limited (429):** auto-retry with exponential backoff.
+- **Network error:** auto-retry up to 3 times, then log a warning and continue.
+- **Message too long (>4000 chars):** truncate at 4000 and append `…`, or use `send_document()` for full content.
+- **Corrupt/partial credentials:** treat empty token or empty chat_id as distinct failure states and report which one is missing.
 
 ## File structure
 ```
@@ -145,12 +162,12 @@ bot.notify("Backtest done: Sharpe 2.1, Return +15%")
 ```
 
 ## Restrictions
-- Max 4000 chars per message. Use `send_document()` for longer content.
+- Max 4000 chars per message. Truncate at 4000 + `…`, or use `send_document()` for longer content.
 - Key metrics only. `key: value` format
 - Do NOT include bot name — not needed
 - Use the convenience methods: `notify()`, `notify_silent()`, `notify_error()`
 - Always notify on completion of long-running tasks
 - Silent on failure: log as warning, never block execution
-- Auto-create `.env` with placeholder if missing and report it to the user
+- **DO NOT** auto-create `.env` or any file with placeholder credentials — fail fast with setup instructions instead
 - **DO NOT** block main execution flow on notification failure
-- **DO NOT** store bot token in code — always use .env or environment variables
+- **DO NOT** store bot token in code — always use `.env` or environment variables

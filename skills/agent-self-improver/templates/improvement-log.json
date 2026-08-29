@@ -1,0 +1,52 @@
+{
+  "analyzed_at": "2026-08-27T20:00:21.002791+00:00",
+  "total_sessions": 2,
+  "summary": {
+    "avg_rating": 4.0,
+    "total_issues": 8,
+    "issue_density": 0.2162,
+    "retry_rate": 2.5,
+    "avg_tokens_per_session": 40000,
+    "total_duration_seconds": 1800
+  },
+  "issue_breakdown": {
+    "by_type": {
+      "format-compliance": 3,
+      "xml-structure": 2,
+      "i18n-support": 2,
+      "script-bug": 1
+    },
+    "by_severity": {
+      "high": 5,
+      "medium": 2,
+      "low": 1
+    }
+  },
+  "patterns_detected": [
+    {
+      "id": "pattern-001",
+      "type": "high_retry_rate",
+      "description": "1 sessions with 3+ retries",
+      "frequency": 0.5,
+      "affected_sessions": [
+        "session-001"
+      ],
+      "severity": "high"
+    }
+  ],
+  "suggestions": [
+    {
+      "pattern_id": "pattern-001",
+      "pattern_type": "high_retry_rate",
+      "issue_type": "high_retry_rate",
+      "frequency": 0.5,
+      "severity": "high",
+      "suggested_action": "Improve first-attempt success rate. Add pre-flight checks before generating output.",
+      "confidence": 0.75,
+      "requires_human_approval": true
+    }
+  ],
+  "top_improvements": [
+    "Improve first-attempt success rate. Add pre-flight checks before generating output."
+  ]
+}

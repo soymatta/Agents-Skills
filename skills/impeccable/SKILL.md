@@ -1,6 +1,22 @@
 ---
 name: impeccable
-description: Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+description: >-
+  Design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate,
+  colorize, extract, or otherwise improve any frontend interface. Covers websites, landing pages, dashboards,
+  product UI, app shells, components, forms, settings, onboarding, empty states, mobile apps (iOS/Android/adaptive).
+  Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility (a11y),
+  performance, responsive behavior, theming, typography, fonts, spacing, layout, alignment, color,
+  motion, micro-interactions, UX copy, error states, edge cases, i18n, reusable design systems and tokens.
+  Also use for: bland designs needing boldness, loud designs needing quiet, live browser iteration,
+  ambitious visual effects, native mobile UI, progressive web apps.
+  Triggers on: "design", "UI", "UX", "landing page", "dashboard", "component", "typography", "layout",
+  "color", "theme", "responsive", "accessibility", "a11y", "animation", "micro-interactions",
+  "diseno", "interfaz", "diseñar", "mejorar interfaz", "audit UI", "critique design", "polish UI",
+  "bolder", "quieter", "typeset", "colorize", "animate", "distill", "harden", "clarify",
+  "redesign", "make it beautiful", "make it pop", "visual design", "frontend design",
+  "app shell", "empty states", "onboarding flow", "error states", "design system",
+  "tokens", "spacing", "alignment", "hierarchy", "information architecture".
+  NOT for backend-only or non-UI tasks.
 version: 4.0.2
 user-invocable: true
 argument-hint: "[shape · audit|critique · animate|bolder|colorize|delight|layout|overdrive|quieter|typeset · adapt|clarify|distill · harden|onboard|optimize|polish · init|document|extract|live] [target]"

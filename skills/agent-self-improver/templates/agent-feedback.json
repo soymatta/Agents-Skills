@@ -1,0 +1,114 @@
+[
+  {
+    "id": "session-001",
+    "timestamp": "2026-08-25T15:00:00Z",
+    "agent": "paper-researcher",
+    "task": "Generate IEEE DOCX with clickable citation hyperlinks from markdown",
+    "category": "document-generation",
+    "rating": 3,
+    "issues": [
+      {
+        "type": "format-compliance",
+        "description": "Used 12pt double spacing instead of 10pt single spacing for IEEE",
+        "severity": "high",
+        "fix_applied": "Changed FONT_SIZE_BODY to Pt(10), spacing to SINGLE",
+        "root_cause": "Copied APA defaults without checking IEEE spec"
+      },
+      {
+        "type": "format-compliance",
+        "description": "Single column output instead of required 2 columns for IEEE",
+        "severity": "high",
+        "fix_applied": "Added set_two_columns() helper using section properties XML",
+        "root_cause": "python-docx has no built-in 2-column support"
+      },
+      {
+        "type": "script-bug",
+        "description": "WD_ALIGN_PARAGRAPH.JUSTIFIED should be WD_ALIGN_PARAGRAPH.JUSTIFY",
+        "severity": "high",
+        "fix_applied": "Replaced all JUSTIFIED with JUSTIFY throughout script",
+        "root_cause": "Wrong enum name from python-docx API"
+      },
+      {
+        "type": "xml-structure",
+        "description": "Internal hyperlinks used r:id (relationship) instead of w:anchor",
+        "severity": "high",
+        "fix_applied": "Changed to hyperlink.set(qn('w:anchor'), bookmark_name)",
+        "root_cause": "Confused external hyperlink pattern with internal bookmark pattern"
+      },
+      {
+        "type": "xml-structure",
+        "description": "bookmarkEnd element inserted before content runs in paragraph",
+        "severity": "high",
+        "fix_applied": "Moved add_bookmark() call to AFTER all runs are added",
+        "root_cause": "Incorrect insertion order in DOM manipulation"
+      },
+      {
+        "type": "i18n-support",
+        "description": "References section in Spanish ('## Referencias') not detected",
+        "severity": "medium",
+        "fix_applied": "Added regex pattern for both English and Spanish headings",
+        "root_cause": "Hardcoded English-only pattern '^## References'"
+      },
+      {
+        "type": "i18n-support",
+        "description": "Section headings (English) should appear in Spanish document context",
+        "severity": "low",
+        "fix_applied": "Set English IEEE headings in DOCX per standard requirement",
+        "root_cause": "IEEE standard requires English headings even in non-English papers"
+      },
+      {
+        "type": "format-compliance",
+        "description": "No page numbers in footer (IEEE requires bottom center)",
+        "severity": "medium",
+        "fix_applied": "Added PAGE field to footer with CENTER alignment",
+        "root_cause": "Footer configuration not implemented initially"
+      }
+    ],
+    "suggestions": [
+      "Always create a FORMAT_SPEC dict at script start with ALL values from the standard",
+      "Test with non-English content in the FIRST iteration, not after user complains",
+      "python-docx has no 2-column support: use raw XML for section properties",
+      "Internal hyperlinks use w:anchor, external use r:id — never confuse them",
+      "bookmarkEnd must come AFTER all runs in the paragraph",
+      "Check section headings against both English AND target language patterns"
+    ],
+    "tokens_used": 50000,
+    "duration_seconds": 1200,
+    "retry_count": 5,
+    "tool_calls": 25,
+    "files_modified": [
+      "generate_docx.py"
+    ],
+    "files_created": [
+      "Investigacion_Preliminar_Ciberseguridad_IA.docx"
+    ],
+    "strengths": [
+      "Markdown parsing worked correctly on first attempt",
+      "Bibliography detection with regex was robust",
+      "python-docx integration for basic structure was solid"
+    ]
+  },
+  {
+    "id": "session-002",
+    "timestamp": "2026-08-25T19:48:31.006012+00:00",
+    "agent": "paper-researcher",
+    "task": "Improve agent-self-improver skill and regenerate IEEE DOCX",
+    "category": "document-generation",
+    "rating": 5,
+    "issues": [],
+    "suggestions": [],
+    "tokens_used": 30000,
+    "duration_seconds": 600,
+    "retry_count": 0,
+    "tool_calls": 12,
+    "files_modified": [
+      "SKILL.md",
+      "tests/test_self_improver.py"
+    ],
+    "files_created": [
+      "scripts/collect_feedback.py",
+      "scripts/analyze_feedback.py",
+      "generate_docx.py"
+    ]
+  }
+]

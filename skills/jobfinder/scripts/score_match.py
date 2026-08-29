@@ -1,5 +1,17 @@
 #!/usr/bin/env python3
-"""Score match between user profile and job listings."""
+"""Score match between user profile and job listings using 5-Dimension Framework.
+
+Dimensions:
+  1. Technical Skills Match (30%)
+  2. Experience Match (25%)
+  3. Behavioral/Culture Fit (15%)
+  4. Location & Logistics (Pass/Fail gate)
+  5. Career Alignment & Motivation (30%)
+
+Pre-scoring gates:
+  - Eligibility Gate (citizenship/visa)
+  - Language Gate (required vs declared languages)
+"""
 
 from __future__ import annotations
 
@@ -14,26 +26,12 @@ def normalize_skill(skill: str) -> str:
     s = skill.lower().strip()
     s = re.sub(r"[\s\-_]+", " ", s)
     aliases = {
-        "js": "javascript",
-        "ts": "typescript",
-        "py": "python",
-        "k8s": "kubernetes",
-        "tf": "terraform",
-        "gcp": "google cloud",
-        "react.js": "react",
-        "reactjs": "react",
-        "vue.js": "vue",
-        "vuejs": "vue",
-        "next.js": "nextjs",
-        "node.js": "node",
-        "nodejs": "node",
-        "c plus plus": "c++",
-        "c sharp": "c#",
-        "postgres": "postgresql",
-        "mongo": "mongodb",
-        "ci cd": "ci/cd",
-        "machine-learning": "machine learning",
-        "deep-learning": "deep learning",
+        "js": "javascript", "ts": "typescript", "py": "python",
+        "k8s": "kubernetes", "tf": "terraform", "gcp": "google cloud",
+        "react.js": "react", "reactjs": "react", "vue.js": "vue",
+        "vuejs": "vue", "next.js": "nextjs", "node.js": "node",
+        "nodejs": "node", "c plus plus": "c++", "c sharp": "c#",
+        "postgres": "postgresql", "mongo": "mongodb", "ci cd": "ci/cd",
     }
     return aliases.get(s, s)
 
@@ -49,14 +47,11 @@ def extract_skills_from_description(description: str) -> list[str]:
         "node", "express", "fastapi", "django", "flask", "spring", "rails",
         "postgresql", "mysql", "mongodb", "redis", "elasticsearch", "sqlite",
         "aws", "gcp", "azure", "docker", "kubernetes", "terraform", "ansible",
-        "git", "github", "gitlab",
-        "linux", "bash",
+        "git", "github", "gitlab", "linux", "bash",
         "machine learning", "deep learning", "tensorflow", "pytorch", "scikit",
         "pandas", "numpy", "data science",
-        "rest api", "graphql", "grpc",
-        "ci/cd", "jenkins", "github actions",
-        "agile", "scrum", "jira",
-        "figma",
+        "rest api", "graphql", "grpc", "ci/cd", "jenkins", "github actions",
+        "agile", "scrum", "jira", "figma",
         "sql", "nosql", "etl", "airflow", "spark",
         "blockchain", "solidity", "web3",
         "cybersecurity", "penetration testing",
@@ -64,31 +59,75 @@ def extract_skills_from_description(description: str) -> list[str]:
         "project management", "time management",
         "spanish", "english", "portuguese", "french", "german",
     ]
-
-    found = []
-    for skill in skill_keywords:
-        if re.search(rf"\b{re.escape(skill)}\b", description_lower):
-            found.append(skill)
-    return found
+    return [s for s in skill_keywords if re.search(rf"\b{re.escape(s)}\b", description_lower)]
 
 
-def score_job_match(profile: dict, job: dict) -> dict:
-    """Calculate match score between profile and job."""
+def check_eligibility_gate(profile: dict, job: dict) -> dict:
+    """Pre-scoring gate: citizenship/visa requirements."""
+    job_text = (job.get("title", "") + " " + job.get("description", "")).lower()
+    user_nationality = profile.get("nationality", "").lower()
+
+    citizenship_kw = ["citizen", "permanent resident", "pr required", "full working rights",
+                       "security clearance", "clearance required"]
+    for kw in citizenship_kw:
+        if kw in job_text:
+            if user_nationality and user_nationality not in job_text:
+                return {"pass": False, "reason": f"Requires {kw}"}
+
+    international_kw = ["international applicants", "visa holders", "we sponsor"]
+    for kw in international_kw:
+        if kw in job_text:
+            return {"pass": True, "reason": "Accepts international applicants"}
+
+    return {"pass": True, "reason": "No explicit citizenship requirement"}
+
+
+def check_language_gate(profile: dict, job: dict) -> dict:
+    """Pre-scoring gate: required vs declared languages."""
+    job_text = (job.get("title", "") + " " + job.get("description", "")).lower()
+    user_languages = {lang.lower(): level.lower()
+                      for lang, level in profile.get("languages", {}).items()}
+
+    required_langs = []
+    lang_pattern = re.compile(r"((?:fluent|native|bilingual|proficient|conversational)?)\s*"
+                              r"(spanish|english|portuguese|french|german|chinese|japanese|"
+                              r"korean|arabic|russian|hindi|italian|dutch)", re.IGNORECASE)
+    for match in lang_pattern.finditer(job.get("description", "")):
+        lang = match.group(2).lower()
+        qualifier = (match.group(1) or "").strip().lower()
+        required_langs.append({"language": lang, "qualifier": qualifier})
+
+    for req in required_langs:
+        lang = req["language"]
+        if lang not in user_languages:
+            return {"pass": False, "flag": False,
+                    "reason": f"Requires {lang} (not declared)"}
+        user_level = user_languages[lang]
+        qualifier = req["qualifier"]
+        if qualifier in ("fluent", "native", "bilingual") and user_level in ("beginner", "basic"):
+            return {"pass": True, "flag": True,
+                    "reason": f"Requires {qualifier} {lang}, you declared {user_level}"}
+
+    return {"pass": True, "flag": False, "reason": "Language requirements met"}
+
+
+def score_technical_skills(profile: dict, job: dict) -> tuple[float, list, list]:
+    """Dimension 1: Technical Skills Match (0-100)."""
     profile_skills = set(normalize_skill(s) for s in profile.get("skills", []))
-    job_skills_raw = extract_skills_from_description(job.get("description", ""))
-    job_skills = set(normalize_skill(s) for s in job_skills_raw)
+    job_skills = set(normalize_skill(s) for s in extract_skills_from_description(
+        job.get("description", "")))
 
-    # Skills match (35%)
-    if job_skills:
-        matched = profile_skills & job_skills
-        missing = job_skills - profile_skills
-        skills_score = len(matched) / len(job_skills) * 100
-    else:
-        matched = set()
-        missing = set()
-        skills_score = 50  # No skills listed, assume partial match
+    if not job_skills:
+        return 50.0, [], []
 
-    # Experience match (20%)
+    matched = sorted(profile_skills & job_skills)
+    missing = sorted(job_skills - profile_skills)
+    score = len(matched) / len(job_skills) * 100
+    return round(score, 1), matched, missing
+
+
+def score_experience(profile: dict, job: dict) -> float:
+    """Dimension 2: Experience Match (0-100)."""
     user_years = profile.get("experience", {}).get("years")
     desc_text = job.get("description", "").lower()
     exp_match = re.search(r"(\d+)\+?\s*years?", desc_text)
@@ -96,159 +135,176 @@ def score_job_match(profile: dict, job: dict) -> dict:
 
     if user_years and job_years:
         if user_years >= job_years:
-            exp_score = 100
+            return 100.0
         elif user_years >= job_years * 0.7:
-            exp_score = 70
+            return 70.0
         else:
-            exp_score = max(0, 100 - (job_years - user_years) * 20)
-    else:
-        exp_score = 50
+            return max(0.0, 100 - (job_years - user_years) * 20)
+    return 50.0
 
-    # Salary match (15%)
-    user_salary = profile.get("salary_expected")
-    if isinstance(user_salary, str):
-        # Parse salary range string like "2000000-4000000 COP"
-        nums = re.findall(r"\d+", user_salary)
-        if nums:
-            user_salary = int(nums[0])  # Use lower bound
-        else:
-            user_salary = None
-    job_min = job.get("salary_min")
-    job_max = job.get("salary_max")
 
-    if user_salary and job_min:
-        if job_max and job_min <= user_salary <= job_max:
-            salary_score = 100
-        elif user_salary <= job_min:
-            salary_score = 80  # Under budget, good
-        else:
-            over_pct = (user_salary - job_min) / job_min * 100 if job_min else 0
-            salary_score = max(0, 100 - over_pct)
-    else:
-        salary_score = 50
+def score_behavioral_fit(profile: dict, job: dict) -> float:
+    """Dimension 3: Behavioral/Culture Fit (0-100)."""
+    job_text = (job.get("title", "") + " " + job.get("description", "")).lower()
+    user_industries = set(i.lower().strip() for i in profile.get("industries", [])
+                          if isinstance(i, str))
 
-    # Location match (15%)
+    culture_keywords = {
+        "fast-paced": 0, "startup": 0, "agile": 0, "collaborative": 0,
+        "independent": 0, "remote": 0, "innovative": 0,
+    }
+    culture_matches = sum(1 for kw in culture_keywords if kw in job_text)
+
+    if user_industries:
+        industry_overlap = sum(1 for ind in user_industries if ind in job_text)
+        return min(100.0, 50 + culture_matches * 8 + industry_overlap * 10)
+
+    return min(100.0, 50 + culture_matches * 10)
+
+
+def score_location(profile: dict, job: dict) -> tuple[str, str]:
+    """Dimension 4: Location & Logistics (Pass/Fail)."""
     user_remote = profile.get("remote_preference", "no-preference")
     job_remote = job.get("is_remote", False)
-    job_location = job.get("location", "").lower()
 
     if user_remote == "remote-only":
-        location_score = 100 if job_remote else 10
+        return ("PASS", "Remote position") if job_remote else ("FAIL", "Not remote")
     elif user_remote == "no-preference":
-        location_score = 100
+        return "PASS", "No location preference"
     elif user_remote in ("hybrid", "on-site"):
-        location_score = 90 if not job_remote else 60
-    else:
-        location_score = 50
+        if job_remote:
+            return "FLAG", "Remote but you prefer on-site"
+        return "PASS", "On-site position"
+    return "PASS", "Location unspecified"
 
-    # Education match (10%)
-    user_edu = profile.get("education", "Not specified")
-    if isinstance(user_edu, list):
-        # Extract highest degree from list of education entries
-        edu_degrees = [e.get("degree", "") for e in user_edu if isinstance(e, dict)]
-        user_edu = " ".join(edu_degrees) if edu_degrees else "Not specified"
-    edu_levels = {
-        "PhD/Doctorate": 5, "Master's Degree": 4, "Bachelor's Degree": 3,
-        "Bootcamp/Certification": 2, "Technical Degree": 2, "Not specified": 1,
-    }
-    user_edu_level = edu_levels.get(user_edu, 1)
 
-    edu_keywords = ["phd", "master", "bachelor", "degree", "university", "bootcamp"]
-    edu_mentioned = any(k in desc_text for k in edu_keywords)
-    edu_score = 100 if (not edu_mentioned or user_edu_level >= 3) else 60
-
-    # Industry match (5%)
-    user_industries = set(
-        i.lower().strip() for i in profile.get("industries", []) if isinstance(i, str)
-    )
-    industry_keywords = {
-        "fintech", "healthcare", "education", "ecommerce", "e-commerce",
-        "gaming", "saas", "ai", "machine learning", "blockchain",
-        "cybersecurity", "logistics", "manufacturing", "real estate",
-        "media", "telecommunications", "energy", "agriculture",
-        "automotive", "aerospace", "retail", "travel", "insurance",
-        "banking", "consulting", "nonprofit", "government",
-    }
-    # Extract industry hints from job title + description
+def score_career_alignment(profile: dict, job: dict) -> float:
+    """Dimension 5: Career Alignment & Motivation (0-100)."""
     job_text = (job.get("title", "") + " " + job.get("description", "")).lower()
-    job_industries = set()
-    for kw in industry_keywords:
+    user_goals = profile.get("career_goals", [])
+    goal_keywords = {"growth", "leadership", "senior", "architect", "lead",
+                     "management", "principal", "staff", "director"}
+
+    alignment = 0
+    for goal in user_goals:
+        if goal.lower() in job_text:
+            alignment += 20
+
+    for kw in goal_keywords:
         if kw in job_text:
-            job_industries.add(kw)
+            alignment += 5
 
-    if user_industries and job_industries:
-        overlap = user_industries & job_industries
-        industry_score = min(100, 50 + len(overlap) * 25) if overlap else 40
+    return min(100.0, 50 + alignment)
+
+
+def score_job_match(profile: dict, job: dict) -> dict:
+    """Calculate 5-dimension match score with pre-scoring gates."""
+    eligibility = check_eligibility_gate(profile, job)
+    if not eligibility["pass"]:
+        return _gate_fail("eligibility", eligibility["reason"], job)
+
+    language = check_language_gate(profile, job)
+    if not language["pass"]:
+        return _gate_fail("language", language["reason"], job)
+
+    tech_score, matched, missing = score_technical_skills(profile, job)
+    exp_score = score_experience(profile, job)
+    behav_score = score_behavioral_fit(profile, job)
+    location_result, location_note = score_location(profile, job)
+    career_score = score_career_alignment(profile, job)
+
+    if location_result == "FAIL":
+        total = 0
+        analysis = f"Location gate failed: {location_note}"
     else:
-        industry_score = 60  # Unknown, assume moderate
-
-    # Weighted total
-    total = (
-        skills_score * 0.35 +
-        exp_score * 0.20 +
-        salary_score * 0.15 +
-        location_score * 0.15 +
-        edu_score * 0.10 +
-        industry_score * 0.05
-    )
+        total = (
+            tech_score * 0.30 +
+            exp_score * 0.25 +
+            behav_score * 0.15 +
+            career_score * 0.30
+        )
+        analysis = _generate_analysis_5d(
+            total, tech_score, exp_score, behav_score, career_score,
+            matched, missing, location_result, location_note,
+            language.get("flag", False), language.get("reason", "")
+        )
 
     return {
         "total_score": round(total, 1),
-        "skills_score": round(skills_score, 1),
-        "matched_skills": sorted(matched),
-        "missing_skills": sorted(missing),
-        "nice_to_have": sorted(profile_skills - job_skills),
-        "experience_score": round(exp_score, 1),
-        "salary_score": round(salary_score, 1),
-        "location_score": round(location_score, 1),
-        "education_score": round(edu_score, 1),
-        "industry_score": round(industry_score, 1),
-        "analysis": _generate_analysis(total, matched, missing, exp_score, salary_score),
+        "technical_score": tech_score,
+        "experience_score": exp_score,
+        "behavioral_score": behav_score,
+        "career_score": career_score,
+        "location_result": location_result,
+        "location_note": location_note,
+        "eligibility_gate": eligibility["reason"],
+        "language_gate": language["reason"],
+        "language_flag": language.get("flag", False),
+        "matched_skills": matched,
+        "missing_skills": missing,
+        "nice_to_have": sorted(set(normalize_skill(s) for s in profile.get("skills", []))
+                               - set(extract_skills_from_description(job.get("description", "")))),
+        "analysis": analysis,
     }
 
 
-def _generate_analysis(total, matched, missing, exp_score, salary_score):
-    """Generate a human-readable analysis."""
-    if total >= 85:
-        strength = "excellent"
-    elif total >= 70:
-        strength = "strong"
-    elif total >= 50:
-        strength = "moderate"
-    else:
-        strength = "low"
+def _gate_fail(gate: str, reason: str, job: dict) -> dict:
+    return {
+        "total_score": 0,
+        "technical_score": 0, "experience_score": 0,
+        "behavioral_score": 0, "career_score": 0,
+        "location_result": "N/A", "location_note": "",
+        "eligibility_gate": reason if gate == "eligibility" else "PASS",
+        "language_gate": reason if gate == "language" else "PASS",
+        "language_flag": False,
+        "matched_skills": [], "missing_skills": [], "nice_to_have": [],
+        "analysis": f"GATE FAILED ({gate}): {reason}",
+    }
 
-    parts = [f"This is a {strength} match ({total:.0f}%)."]
+
+def _generate_analysis_5d(total, tech, exp, behav, career, matched, missing,
+                          loc_result, loc_note, lang_flag, lang_note):
+    if total >= 75:
+        verdict = "Strong Fit"
+    elif total >= 60:
+        verdict = "Good Fit"
+    elif total >= 45:
+        verdict = "Moderate Fit"
+    elif total >= 30:
+        verdict = "Weak Fit"
+    else:
+        verdict = "Poor Fit"
+
+    parts = [f"{verdict} ({total:.0f}/100)."]
 
     if matched:
-        parts.append(f"Your skills in {', '.join(sorted(matched)[:3])} align well with this role.")
+        parts.append(f"Strong skills: {', '.join(matched[:3])}.")
     if missing:
-        top_missing = sorted(missing)[:3]
-        parts.append(f"Key gaps: {', '.join(top_missing)} — consider developing these.")
-    if exp_score < 50:
-        parts.append("You may need more experience for this position.")
-    if salary_score < 50:
-        parts.append("Salary expectations may be higher than the listed range.")
+        parts.append(f"Gaps: {', '.join(missing[:3])}.")
+    if loc_result == "FLAG":
+        parts.append(f"Location note: {loc_note}.")
+    if lang_flag:
+        parts.append(f"Language note: {lang_note}.")
+    if exp < 50:
+        parts.append("Experience may be insufficient.")
+    if career < 50:
+        parts.append("Limited career alignment.")
 
     return " ".join(parts)
 
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="Score job matches against a user profile")
+    parser = argparse.ArgumentParser(description="Score job matches (5D framework)")
     parser.add_argument("--profile", "-p", required=True, help="Path to profile.json")
     parser.add_argument("--jobs", "-j", required=True, help="Path to results.json")
-    parser.add_argument("--output", "-o", default="scored.json", help="Output path (default: scored.json)")
+    parser.add_argument("--output", "-o", default="scored.json", help="Output path")
     args = parser.parse_args()
 
     profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
     jobs = json.loads(Path(args.jobs).read_text(encoding="utf-8"))
 
-    scored = []
-    for job in jobs:
-        result = score_job_match(profile, job)
-        scored.append({**job, **result})
-
+    scored = [dict(job, **score_job_match(profile, job)) for job in jobs]
     scored.sort(key=lambda x: x["total_score"], reverse=True)
 
     output_path = Path(args.output)
@@ -256,8 +312,10 @@ def main():
 
     print(f"  Scored {len(scored)} jobs. Top 5:")
     for i, job in enumerate(scored[:5], 1):
-        print(f"  {i}. [{job['total_score']:.0f}%] {job['title']} @ {job['company']}")
-        if job['missing_skills']:
+        loc = job.get("location_result", "")
+        flag = " [LANG FLAG]" if job.get("language_flag") else ""
+        print(f"  {i}. [{job['total_score']:.0f}%] {job['title']} @ {job['company']} ({loc}){flag}")
+        if job.get("missing_skills"):
             print(f"     Missing: {', '.join(job['missing_skills'][:3])}")
 
     print(f"\n  Saved to: {output_path}")

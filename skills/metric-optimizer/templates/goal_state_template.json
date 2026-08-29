@@ -1,10 +1,18 @@
 {
-  "goal": "Describe the target — e.g., 'Reach 92% accuracy on validation set'",
+  "goal": "Describe the target - e.g., 'Reach 92% accuracy on validation set'",
+  "mode": "maximize",
   "target": 92.0,
   "current_metric": null,
   "best_metric": null,
   "iterations": 0,
   "achieved": false,
+  "budget": {
+    "max_iterations": 20,
+    "max_cost": null,
+    "deadline": null,
+    "budget_exhausted": false
+  },
+  "measure_cmd": "command that returns the metric",
   "history": [],
   "blockers": [],
   "last_action": null,

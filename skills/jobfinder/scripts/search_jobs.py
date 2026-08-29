@@ -14,15 +14,18 @@ from pathlib import Path
 
 
 def ensure_deps():
-    """Install dependencies if not available."""
-    deps = ["requests", "beautifulsoup4"]
-    for dep in deps:
+    """Verify dependencies are available."""
+    deps = {"requests": "requests", "bs4": "beautifulsoup4"}
+    missing = []
+    for module, package in deps.items():
         try:
-            __import__(dep.replace("-", "_").split("[")[0])
+            __import__(module)
         except ImportError:
-            print(f"  Installing {dep}...")
-            import subprocess
-            subprocess.check_call([sys.executable, "-m", "pip", "install", dep, "-q"])
+            missing.append(package)
+    if missing:
+        print(f"  Missing dependencies: {', '.join(missing)}")
+        print(f"  Install with: pip install {' '.join(missing)}")
+        sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +134,7 @@ def fetch_job_description(url: str, timeout: int = 10) -> str:
 # ---------------------------------------------------------------------------
 
 def _cache_key(url: str) -> str:
-    return hashlib.md5(url.encode()).hexdigest()
+    return hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()
 
 
 def _load_cache(cache_dir: Path) -> dict:
@@ -610,6 +613,98 @@ def parse_websearch_results(websearch_json: str | list[dict]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# ATS APIs (direct, higher quality than scraping)
+# ---------------------------------------------------------------------------
+
+def _fetch_greenhouse_company(company: str, max_results: int = 50) -> list[dict]:
+    """Fetch jobs from a Greenhouse Board API."""
+    url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    jobs = []
+    for j in data.get("jobs", []):
+        loc = j.get("location", {}) or {}
+        jobs.append({
+            "title": j.get("title", ""),
+            "company": company.title(),
+            "location": loc.get("name", ""),
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "job_type": (j.get("metadata") or [None]) and "full-time",
+            "description": (j.get("content") or "")[:3000],
+            "url": j.get("absolute_url", ""),
+            "posted": "",
+            "site": "greenhouse",
+            "is_remote": "remote" in (loc.get("name", "") or "").lower(),
+        })
+    return jobs[:max_results]
+
+
+def _fetch_lever_company(company: str, max_results: int = 50) -> list[dict]:
+    """Fetch jobs from a Lever postings API."""
+    url = f"https://api.lever.co/v0/postings/{company}"
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    jobs = []
+    for j in data if isinstance(data, list) else []:
+        jobs.append({
+            "title": j.get("text", ""),
+            "company": company.title(),
+            "location": (j.get("categories") or {}).get("location", ""),
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "job_type": (j.get("categories") or {}).get("commitment", ""),
+            "description": (j.get("descriptionPlain") or "")[:3000],
+            "url": j.get("hostedUrl", ""),
+            "posted": j.get("createdAt", ""),
+            "site": "lever",
+            "is_remote": "remote" in (j.get("categories") or {}).get("location", "").lower(),
+        })
+    return jobs[:max_results]
+
+
+def _fetch_ashby_company(company: str, max_results: int = 50) -> list[dict]:
+    """Fetch jobs from an Ashby posting API."""
+    url = f"https://api.ashbyhq.com/posting-api/job-board/{company}"
+    resp = requests.get(url, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    jobs = []
+    for j in data.get("jobs", []):
+        loc = (j.get("location") or {}) or {}
+        jobs.append({
+            "title": j.get("title", ""),
+            "company": company.title(),
+            "location": loc.get("name", ""),
+            "salary_min": None,
+            "salary_max": None,
+            "salary_currency": None,
+            "job_type": j.get("employmentType", ""),
+            "description": (j.get("descriptionHtml") or "")[:3000],
+            "url": j.get("jobUrl", ""),
+            "posted": "",
+            "site": "ashby",
+            "is_remote": "remote" in (loc.get("name", "") or "").lower(),
+        })
+    return jobs[:max_results]
+
+
+def scrape_ats(company: str, ats: str, max_results: int = 50) -> list[dict]:
+    """Public entry point for ATS company boards."""
+    if ats == "greenhouse":
+        return _fetch_greenhouse_company(company, max_results)
+    if ats == "lever":
+        return _fetch_lever_company(company, max_results)
+    if ats == "ashby":
+        return _fetch_ashby_company(company, max_results)
+    raise ValueError(f"Unsupported ATS: {ats}")
+
+
+# ---------------------------------------------------------------------------
 # Main orchestrator
 # ---------------------------------------------------------------------------
 
@@ -623,8 +718,9 @@ def search_jobs(
     fetch_descriptions: bool = True,
     websearch_results: list[dict] | None = None,
     use_cache: bool = True,
+    ats_targets: list[str] | None = None,
 ) -> list[dict]:
-    """Search multiple job boards via scraping + web search."""
+    """Search multiple job boards via scraping + ATS APIs + web search."""
     ensure_deps()
 
     if sites is None:
@@ -654,6 +750,22 @@ def search_jobs(
                 time.sleep(1)
             except Exception as e:
                 print(f"    Error: {e}")
+
+    # ATS company boards (e.g. "greenhouse:stripe", "lever:acme")
+    for target in ats_targets or []:
+        if ":" not in target:
+            continue
+        ats, company = target.split(":", 1)
+        company = company.strip()
+        if not company:
+            continue
+        print(f"  Searching ATS {ats} ({company})...")
+        try:
+            results = scrape_ats(company, ats, max_results)
+            all_jobs.extend(results)
+            print(f"    Found: {len(results)} jobs")
+        except Exception as e:
+            print(f"    Error on {ats} {company}: {e}")
 
     # Add websearch results if provided
     if websearch_results:
@@ -709,7 +821,10 @@ def main():
     parser.add_argument("--remote-only", action="store_true", help="Remote jobs only")
     parser.add_argument("--sites", "-s", nargs="+",
                         default=["indeed", "linkedin", "computrabajo", "glassdoor", "remoteok"],
-                        help="Sites to search")
+                        help="Sites to search (indeed, linkedin, computrabajo, glassdoor, remoteok)")
+    parser.add_argument("--ats", "-a", nargs="+",
+                        default=[],
+                        help="ATS company boards as ats:company, e.g. greenhouse:stripe lever:acme ashby:co")
     parser.add_argument("--experience", "-e", type=int, default=None,
                         help="User years of experience (for filtering)")
     parser.add_argument("--output", "-o", default=None, help="Output file path")
@@ -742,6 +857,7 @@ def main():
         years_experience=args.experience,
         fetch_descriptions=not args.no_descriptions,
         websearch_results=websearch_results,
+        ats_targets=args.ats,
     )
 
     # Sort by experience viability

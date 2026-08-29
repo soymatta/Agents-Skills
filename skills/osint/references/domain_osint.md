@@ -39,9 +39,14 @@ curl "https://web.archive.org/cdx/search/cdx?url={domain}&output=json"
 ```
 
 ### 7. Port Scanning
+**ACTIVE scan — requires explicit authorization from the host owner.**
+Do not run `nmap` directly against a third-party domain without permission;
+a non-invasive alternative is passive subdomain/service discovery via certificate
+transparency (`crt.sh`) or `shodan`. Only run against targets you own or have
+written authorization to test.
 ```bash
 nmap -sV -sC {domain}
-nmap -sV -sC -p- {domain}  # Full scan
+nmap -sV -sC -p- {domain}  # Full scan (most invasive — highest authorization bar)
 ```
 
 ### 8. IP Information

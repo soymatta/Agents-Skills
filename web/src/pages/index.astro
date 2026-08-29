@@ -4,7 +4,7 @@ import Layout from '../layouts/Layout.astro';
 const agents = [
 	{
 		name: "vault",
-		description: "Unified Obsidian vault manager. Index, search, organize, verify, create notes, run health checks, and detect broken links — all in one agent with bilingual support (EN/ES).",
+		description: "Unified notes manager for Obsidian, OneNote, Notion, and any markdown-based app. Index, search, organize, verify, create notes, run health checks, and detect broken links — all in one agent with bilingual support (EN/ES).",
 		permissions: "read, glob, grep, task, edit",
 		type: "agent" as const,
 	},
@@ -26,6 +26,7 @@ const skills = [
 	{
 		name: "telegram-notify",
 		description: "Full Telegram Bot API client with auto-retry and zero-dep fallback. Sends notifications, alerts, and file uploads.",
+		usage: "Notify me on Telegram when this completes",
 		dependencies: [],
 		category: "notification",
 		type: "first-party" as const,
@@ -33,6 +34,7 @@ const skills = [
 	{
 		name: "research-pipeline",
 		description: "Structured quantitative research process for prediction markets and data-driven questions.",
+		usage: "Research this prediction market question",
 		dependencies: ["telegram-notify"],
 		category: "research",
 		type: "first-party" as const,
@@ -40,6 +42,7 @@ const skills = [
 	{
 		name: "backtest-run",
 		description: "Runs backtests for trading strategies with slippage/fill modeling and robustness checks.",
+		usage: "Backtest this trading strategy",
 		dependencies: ["telegram-notify"],
 		category: "finance",
 		type: "first-party" as const,
@@ -47,6 +50,7 @@ const skills = [
 	{
 		name: "backtest-validate",
 		description: "5-dimension scoring framework for backtest quality: Sample Size, Expectancy, Risk Management, Robustness, Execution Realism.",
+		usage: "Validate this backtest quality",
 		dependencies: ["backtest-run"],
 		category: "finance",
 		type: "first-party" as const,
@@ -54,6 +58,7 @@ const skills = [
 	{
 		name: "academic-source-search",
 		description: "Searches verified scientific sources across 14 academic databases with quality tier filtering.",
+		usage: "Find papers about machine learning",
 		dependencies: [],
 		category: "research",
 		type: "first-party" as const,
@@ -61,6 +66,7 @@ const skills = [
 	{
 		name: "citation-formatter",
 		description: "Complete citation and reference formatting for APA 7th, IEEE, and Vancouver styles.",
+		usage: "Format my citations in APA 7th",
 		dependencies: [],
 		category: "research",
 		type: "first-party" as const,
@@ -68,6 +74,7 @@ const skills = [
 	{
 		name: "math-notation",
 		description: "Math notation rules for inline formulas: italic variables, superscripts, subscripts.",
+		usage: "Auto-applied when writing math in academic docs",
 		dependencies: ["citation-formatter"],
 		category: "research",
 		type: "first-party" as const,
@@ -75,6 +82,7 @@ const skills = [
 	{
 		name: "content-humanizer",
 		description: "Final document revision to reduce AI-detectable patterns. Includes local detection verification script.",
+		usage: "Make this text undetectable by AI",
 		dependencies: [],
 		category: "writing",
 		type: "first-party" as const,
@@ -82,6 +90,7 @@ const skills = [
 	{
 		name: "osint",
 		description: "OSINT investigation framework with 7 reference guides and 5 scripts for person/company/domain research.",
+		usage: "Run an OSINT investigation on this target",
 		dependencies: [],
 		category: "investigation",
 		type: "first-party" as const,
@@ -89,6 +98,7 @@ const skills = [
 	{
 		name: "metric-optimizer",
 		description: "Optimizes numerical metrics via autonomous iterative improvement loop. Never asks for input.",
+		usage: "Optimize this metric to 95% accuracy",
 		dependencies: [],
 		category: "automation",
 		type: "first-party" as const,
@@ -96,6 +106,7 @@ const skills = [
 	{
 		name: "roadmaps",
 		description: "Creates, updates, and follows adaptive roadmaps for any project. Validates structure and detects cycles.",
+		usage: "Create a plan for this project",
 		dependencies: [],
 		category: "automation",
 		type: "first-party" as const,
@@ -103,6 +114,7 @@ const skills = [
 	{
 		name: "project-analyzer",
 		description: "Read-only project analysis: structure, code quality, bugs, security, performance, and dependency health with severity levels.",
+		usage: "Analyze this codebase for issues",
 		dependencies: [],
 		category: "automation",
 		type: "first-party" as const,
@@ -110,6 +122,7 @@ const skills = [
 	{
 		name: "agent-self-improver",
 		description: "Self-improvement framework for agents: collects feedback, detects patterns, suggests improvements with human supervision.",
+		usage: "Improve this agent's performance",
 		dependencies: [],
 		category: "meta",
 		type: "first-party" as const,
@@ -117,6 +130,7 @@ const skills = [
 	{
 		name: "skill-creator",
 		description: "Meta-skill: create, evaluate, compare, and optimize other skills with benchmarking.",
+		usage: "Create a new skill from scratch",
 		dependencies: [],
 		category: "meta",
 		type: "third-party" as const,
@@ -127,6 +141,7 @@ const skills = [
 	{
 		name: "impeccable",
 		description: "Frontend design audit, polish, and redesign skill with 23 commands for UI excellence.",
+		usage: "/init, /shape, /critique, /polish, /audit",
 		dependencies: [],
 		category: "design",
 		type: "third-party" as const,
@@ -137,6 +152,7 @@ const skills = [
 	{
 		name: "ai-job-search",
 		description: "AI job application framework: 5D fit evaluation, CV tailoring, cover letters, interview prep, and application tracking.",
+		usage: "/setup, /apply, /scrape, /rank, /interview",
 		dependencies: [],
 		category: "career",
 		type: "third-party" as const,
@@ -146,208 +162,32 @@ const skills = [
 	},
 ];
 
-const commands = [
+const aiCommands = [
 	{
-		skill: "osint",
-		scripts: [
-			{ cmd: "python skills/osint/scripts/generate_plan.py", desc: "Generate OSINT investigation plan", args: "--target-type person --target-value \"John Doe\" --depth standard" },
-			{ cmd: "python skills/osint/scripts/run_investigation.py", desc: "Execute OSINT pipeline from plan", args: "--plan investigation_plan.json --interactive" },
-			{ cmd: "python skills/osint/scripts/phone_parser.py", desc: "Parse and normalize phone numbers", args: "+1234567890 --json" },
-			{ cmd: "python skills/osint/scripts/scrape_directories.py", desc: "Scrape free public phone directories", args: "+1234567890 --json" },
-			{ cmd: "python skills/osint/scripts/gen_report.py", desc: "Generate OSINT investigation report", args: "--target \"John Doe\" --target-type person --format both" },
+		skill: "impeccable",
+		commands: [
+			{ cmd: "/init", desc: "Capture product context in PRODUCT.md" },
+			{ cmd: "/shape [feature]", desc: "Plan UX/UI before writing code" },
+			{ cmd: "/critique [target]", desc: "UX design review with heuristic scoring" },
+			{ cmd: "/audit [target]", desc: "Technical quality checks (a11y, perf, responsive)" },
+			{ cmd: "/polish [target]", desc: "Final quality pass before shipping" },
+			{ cmd: "/bolder [target]", desc: "Amplify safe or bland designs" },
+			{ cmd: "/harden [target]", desc: "Production-ready: errors, i18n, edge cases" },
+			{ cmd: "/animate [target]", desc: "Add purposeful animations and motion" },
+			{ cmd: "/layout [target]", desc: "Fix spacing, rhythm, and visual hierarchy" },
+			{ cmd: "/document", desc: "Generate DESIGN.md from existing code" },
+			{ cmd: "/live", desc: "Visual variant mode in the browser" },
 		],
 	},
 	{
-		skill: "jobfinder",
-		scripts: [
-			{ cmd: "python skills/jobfinder/scripts/search_jobs.py", desc: "Search jobs across multiple boards", args: "--keywords \"python developer\" --location \"Remote\" --remote-only" },
-			{ cmd: "python skills/jobfinder/scripts/score_match.py", desc: "Score jobs against your profile (5D)", args: "--profile profile.json --jobs results.json" },
-			{ cmd: "python skills/jobfinder/scripts/gap_analysis.py", desc: "Analyze skill gaps for target roles", args: "--profile profile.json --scored scored.json" },
-			{ cmd: "python skills/jobfinder/scripts/generate_cv_pdf.py", desc: "Generate professional CV PDF", args: "--profile profile.json --lang en" },
-			{ cmd: "python skills/jobfinder/scripts/generate_cover_letter.py", desc: "Generate tailored cover letter", args: "--profile profile.json --job job.json" },
-			{ cmd: "python skills/jobfinder/scripts/suggest_projects.py", desc: "Suggest GitHub projects for skill gaps", args: "--missing-skills \"kubernetes,docker\" --job-title \"SRE\"" },
-			{ cmd: "python skills/jobfinder/scripts/track_application.py", desc: "Track job applications", args: "add --company \"Acme\" --role \"Dev\"" },
-		],
-	},
-	{
-		skill: "backtest-validate",
-		scripts: [
-			{ cmd: "python skills/backtest-validate/scripts/evaluate_backtest.py", desc: "Score backtest quality (5D framework)", args: "--total-trades 200 --win-rate 0.58 --avg-win-pct 2.1 --avg-loss-pct 1.5 --max-drawdown-pct 12 --years-tested 3 --num-parameters 8 --slippage-tested" },
-		],
-	},
-	{
-		skill: "citation-formatter",
-		scripts: [
-			{ cmd: "python skills/citation-formatter/scripts/generate_outputs.py", desc: "Generate formatted academic document", args: "--file paper.md --norm apa --html" },
-		],
-	},
-	{
-		skill: "content-humanizer",
-		scripts: [
-			{ cmd: "python skills/content-humanizer/scripts/detect_ai.py", desc: "Detect AI-generated text patterns", args: "--file essay.md --verbose" },
-		],
-	},
-	{
-		skill: "roadmaps",
-		scripts: [
-			{ cmd: "python skills/roadmaps/scripts/validate_roadmap.py", desc: "Validate roadmap structure and detect cycles", args: "--file roadmap.md" },
-		],
-	},
-];
-
-const usageGuides = [
-	{
-		name: "vault",
-		type: "agent" as const,
-		triggers: [
-			"Find notes about Python",
-			"Organize my vault by topic",
-			"Create a daily note",
-		],
-	},
-	{
-		name: "paper-researcher",
-		type: "agent" as const,
-		triggers: [
-			"Write a research paper on X in APA",
-			"Find academic sources for my thesis",
-			"Review my paper's citations",
-		],
-	},
-	{
-		name: "jobfinder",
-		type: "agent" as const,
-		triggers: [
-			"Find remote Python developer jobs",
-			"Score my CV against this posting",
-			"Generate a cover letter for this role",
-		],
-	},
-	{
-		name: "telegram-notify",
-		type: "skill" as const,
-		triggers: [
-			"Notify me on Telegram when this completes",
-			"Send alert to my Telegram chat",
-		],
-	},
-	{
-		name: "academic-source-search",
-		type: "skill" as const,
-		triggers: [
-			"Find papers about machine learning",
-			"Search arXiv for recent studies",
-		],
-	},
-	{
-		name: "citation-formatter",
-		type: "skill" as const,
-		triggers: [
-			"Format my citations in APA 7th",
-			"Generate a references section in IEEE",
-		],
-	},
-	{
-		name: "content-humanizer",
-		type: "skill" as const,
-		triggers: [
-			"Make this text undetectable by AI",
-			"Run AI detection on this essay",
-		],
-	},
-	{
-		name: "osint",
-		type: "skill" as const,
-		triggers: [
-			"Run an OSINT investigation on this target",
-			"Look up this phone number",
-		],
-	},
-	{
-		name: "metric-optimizer",
-		type: "skill" as const,
-		triggers: [
-			"Optimize this metric to 95% accuracy",
-			"Maximize model performance",
-		],
-	},
-	{
-		name: "roadmaps",
-		type: "skill" as const,
-		triggers: [
-			"Create a plan for this project",
-			"Break this feature into steps",
-		],
-	},
-	{
-		name: "project-analyzer",
-		type: "skill" as const,
-		triggers: [
-			"Analyze this codebase for issues",
-			"Audit this project's security",
-		],
-	},
-	{
-		name: "research-pipeline",
-		type: "skill" as const,
-		triggers: [
-			"Research this prediction market question",
-			"Test this hypothesis with data",
-		],
-	},
-	{
-		name: "backtest-run",
-		type: "skill" as const,
-		triggers: [
-			"Backtest this trading strategy",
-			"Run a backtest with slippage",
-		],
-	},
-	{
-		name: "backtest-validate",
-		type: "skill" as const,
-		triggers: [
-			"Validate this backtest quality",
-			"Score this strategy before deploying",
-		],
-	},
-	{
-		name: "math-notation",
-		type: "skill" as const,
-		triggers: [
-			"Auto-applied when writing math in academic docs",
-		],
-	},
-	{
-		name: "agent-self-improver",
-		type: "skill" as const,
-		triggers: [
-			"Improve this agent's performance",
-			"Review agent patterns and issues",
-		],
-	},
-	{
-		name: "skill-creator",
-		type: "skill" as const,
-		triggers: [
-			"Create a new skill from scratch",
-			"Optimize this skill's triggers",
-		],
-	},
-	{
-		name: "impeccable",
-		type: "skill" as const,
-		triggers: [
-			"Polish this landing page UI",
-			"Audit this design for accessibility",
-		],
-	},
-	{
-		name: "ai-job-search",
-		type: "skill" as const,
-		triggers: [
-			"Evaluate this job posting fit",
-			"Tailor my CV for this role",
+		skill: "ai-job-search",
+		commands: [
+			{ cmd: "/setup", desc: "Onboarding: fill in candidate profile" },
+			{ cmd: "/apply <url>", desc: "Full workflow: evaluate fit, draft CV + cover letter" },
+			{ cmd: "/scrape", desc: "Search multiple job portals with fit ratings" },
+			{ cmd: "/rank", desc: "Batch-score scraped jobs into ranked shortlist" },
+			{ cmd: "/interview", desc: "Stage-specific interview prep + mock interview" },
+			{ cmd: "/upskill", desc: "Skill gap analysis with learning plans" },
 		],
 	},
 ];
@@ -374,7 +214,6 @@ const categoryColors: Record<string, string> = {
 			</a>
 			<div class="nav-links">
 				<a href="#install">Install</a>
-				<a href="#usage">Usage</a>
 				<a href="#skills">Skills</a>
 				<a href="#agents">Agents</a>
 				<a href="#commands">Commands</a>
@@ -407,7 +246,7 @@ const categoryColors: Record<string, string> = {
 				<span class="stat-label">Agents</span>
 			</div>
 			<div class="stat">
-				<span class="stat-num">{commands.reduce((acc, c) => acc + c.scripts.length, 0)}</span>
+				<span class="stat-num">{aiCommands.reduce((acc, c) => acc + c.commands.length, 0)}</span>
 				<span class="stat-label">Commands</span>
 			</div>
 			<div class="stat">
@@ -458,33 +297,6 @@ python setup.py --all --platform opencode --local</code></pre>
 		</div>
 	</section>
 
-	<section id="usage" class="section section-alt">
-		<div class="container">
-			<h2>Quick Usage</h2>
-			<p class="section-desc">Talk to agents and skills in natural language. The AI detects your intent and executes the right workflow automatically.</p>
-
-			<div class="usage-grid">
-				{usageGuides.map(item => (
-					<div class="usage-card">
-						<div class="usage-header">
-							<h3 class="usage-name">{item.name}</h3>
-							<span class={`usage-badge usage-badge-${item.type}`}>{item.type}</span>
-						</div>
-						<ul class="usage-triggers">
-							{item.triggers.map(t => (
-								<li><code>{t}</code></li>
-							))}
-						</ul>
-					</div>
-				))}
-			</div>
-
-			<div class="usage-note">
-				<strong>Tip:</strong> Agents and skills activate from natural conversation — no special syntax needed. Just describe what you want.
-			</div>
-		</div>
-	</section>
-
 	<section id="skills" class="section section-alt">
 		<div class="container">
 			<h2>Skills</h2>
@@ -508,6 +320,10 @@ python setup.py --all --platform opencode --local</code></pre>
 								))}
 							</div>
 						)}
+						<div class="skill-usage">
+							<span class="usage-label">Usage:</span>
+							<code class="usage-example">{skill.usage}</code>
+						</div>
 					</div>
 				))}
 			</div>
@@ -544,23 +360,20 @@ python setup.py --all --platform opencode --local</code></pre>
 	<section id="commands" class="section section-alt">
 		<div class="container">
 			<h2>Commands</h2>
-			<p class="section-desc">Runnable CLI scripts you can execute directly from the terminal. Each skill may include scripts that work standalone without the AI agent.</p>
+			<p class="section-desc">Slash commands you can type directly in your AI assistant. Some skills expose explicit commands for common workflows.</p>
 
 			<div class="commands-grid">
-				{commands.map(group => (
+				{aiCommands.map(group => (
 					<div class="command-group">
 						<div class="command-group-header">
 							<h3 class="command-skill-name">{group.skill}</h3>
-							<span class="command-count">{group.scripts.length} script{group.scripts.length > 1 ? 's' : ''}</span>
+							<span class="command-count">{group.commands.length} command{group.commands.length > 1 ? 's' : ''}</span>
 						</div>
 						<div class="command-list">
-							{group.scripts.map(script => (
+							{group.commands.map(cmd => (
 								<div class="command-item">
-									<div class="command-top">
-										<span class="command-desc">{script.desc}</span>
-									</div>
-									<pre class="command-code"><code>{script.cmd} \</code>
-<code>  {script.args}</code></pre>
+									<code class="command-cmd">{cmd.cmd}</code>
+									<span class="command-desc">{cmd.desc}</span>
 								</div>
 							))}
 						</div>
@@ -569,7 +382,7 @@ python setup.py --all --platform opencode --local</code></pre>
 			</div>
 
 			<div class="commands-note">
-				<strong>Tip:</strong> All scripts accept <code>--help</code> for full usage info. Run from the repo root directory.
+				<strong>Note:</strong> Most skills activate from natural language — no commands needed. Only skills with explicit slash commands are listed here.
 			</div>
 		</div>
 	</section>
@@ -604,28 +417,6 @@ python setup.py --all --platform opencode --local</code></pre>
 					<li><code>impeccable</code> — authored by <strong>pbakaus</strong> (Apache 2.0). Do not modify. To update, run <code>npx impeccable install --providers=opencode --scope=project --force</code>.</li>
 					<li><code>ai-job-search</code> — authored by <strong>MadsLorentzen</strong> (MIT). Do not modify. To update, pull from the upstream source.</li>
 				</ul>
-			</div>
-		</div>
-	</section>
-
-	<section id="testing" class="section">
-		<div class="container">
-			<h2>Testing</h2>
-			<p class="section-desc">Run the full test suite or target a specific skill's tests.</p>
-
-			<div class="test-commands">
-				<pre><code># All tests
-python -m pytest skills/ -v
-
-# By skill
-python -m pytest skills/backtest-validate/tests/ -v
-python -m pytest skills/osint/tests/ -v
-python -m pytest skills/content-humanizer/tests/ -v
-python -m pytest skills/skill-creator/tests/ -v
-python -m pytest skills/roadmaps/tests/ -v
-python -m pytest skills/jobfinder/tests/ -v
-python -m pytest skills/ai-job-search/tests/ -v
-python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 			</div>
 		</div>
 	</section>
@@ -1112,11 +903,6 @@ python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 		margin-right: 8px;
 	}
 
-	/* Testing */
-	.test-commands {
-		max-width: 600px;
-	}
-
 	/* Commands */
 	.commands-grid {
 		display: flex;
@@ -1164,32 +950,31 @@ python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 	.command-item {
 		padding: 14px 20px;
 		border-bottom: 1px solid var(--border-subtle);
+		display: flex;
+		align-items: center;
+		gap: 12px;
 	}
 
 	.command-item:last-child {
 		border-bottom: none;
 	}
 
-	.command-top {
-		margin-bottom: 8px;
+	.command-cmd {
+		font-family: var(--mono);
+		font-size: 0.82rem;
+		font-weight: 500;
+		color: var(--accent-light);
+		background: var(--accent-glow);
+		border: 1px solid rgba(99, 102, 241, 0.2);
+		border-radius: 4px;
+		padding: 3px 8px;
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
 
 	.command-desc {
 		font-size: 0.85rem;
 		color: var(--text-muted);
-	}
-
-	.command-code {
-		font-family: var(--mono);
-		font-size: 0.78rem;
-		color: var(--text-dim);
-		background: var(--bg-card);
-		border: 1px solid var(--border-subtle);
-		border-radius: 6px;
-		padding: 10px 14px;
-		overflow-x: auto;
-		line-height: 1.6;
-		margin: 0;
 	}
 
 	.commands-note {
@@ -1214,93 +999,30 @@ python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 		border: 1px solid var(--border);
 	}
 
-	/* Usage */
-	.usage-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-		gap: 16px;
-		margin-bottom: 32px;
-	}
-
-	.usage-card {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 20px;
-		transition: border-color 0.2s;
-	}
-
-	.usage-card:hover {
-		border-color: var(--accent);
-	}
-
-	.usage-header {
+	/* Usage in skill cards */
+	.skill-usage {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 12px;
-	}
-
-	.usage-name {
-		font-size: 0.95rem;
-		font-weight: 600;
-		font-family: var(--mono);
-	}
-
-	.usage-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
-		padding: 3px 8px;
-		border-radius: 999px;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-
-	.usage-badge-agent {
-		background: var(--cyan-dim);
-		color: var(--cyan);
-	}
-
-	.usage-badge-skill {
-		background: var(--accent-glow);
-		color: var(--accent-light);
-	}
-
-	.usage-triggers {
-		list-style: none;
-		display: flex;
-		flex-direction: column;
 		gap: 6px;
+		margin-top: 12px;
+		padding-top: 12px;
+		border-top: 1px solid var(--border-subtle);
 	}
 
-	.usage-triggers li {
-		font-size: 0.82rem;
-		color: var(--text-muted);
-		line-height: 1.5;
+	.usage-label {
+		font-size: 0.75rem;
+		color: var(--text-dim);
+		flex-shrink: 0;
 	}
 
-	.usage-triggers code {
+	.usage-example {
 		font-family: var(--mono);
 		font-size: 0.78rem;
+		color: var(--accent-light);
 		background: var(--bg-card);
 		border: 1px solid var(--border-subtle);
 		border-radius: 4px;
 		padding: 3px 8px;
-		color: var(--text-dim);
-		display: inline-block;
-	}
-
-	.usage-note {
-		padding: 16px 20px;
-		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.2);
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
-		color: var(--text-muted);
-	}
-
-	.usage-note strong {
-		color: var(--text);
 	}
 
 	/* Footer */
@@ -1342,8 +1064,7 @@ python -m pytest skills/agent-self-improver/tests/ -v</code></pre>
 		}
 
 		.skill-grid,
-		.agent-grid,
-		.usage-grid {
+		.agent-grid {
 			grid-template-columns: 1fr;
 		}
 

@@ -40,10 +40,33 @@ def load_config() -> dict:
 def cmd_backtest(args: list[str]) -> None:
     cfg = load_config()
     if not cfg.get("host"):
-        print("No cloud host configured. Set CLOUD_HOST env or create .opencode/cloud.json.")
-        sys.exit(1)
+        print(
+            "No cloud host configured. Set CLOUD_HOST env or create "
+            ".opencode/cloud.json. Falling back to local execution."
+        )
+        # Graceful fallback: run the backtest locally instead of hard-failing.
+        local_cmd = ["python", "-m", "skills.backtest-run.scripts.backtest_runner", *args]
+        print(f"running locally: {' '.join(local_cmd)}")
+        result = subprocess.run(local_cmd)
+        sys.exit(result.returncode)
+
+    if not cfg.get("python"):
+        cfg["python"] = "python3"
 
     safe_args = [shlex.quote(a) for a in args]
+    # `backtest_runner` must exist on the remote (installed or on PYTHONPATH).
+    # The skill's local runner is `scripts/backtest_runner.py`; copy it over if
+    # the remote does not already provide the module.
+    runner_remote = "backtest_runner.py"
+    if Path(__file__).with_name("backtest_runner.py").exists():
+        remote = f"{cfg['user']}@{cfg['host']}"
+        copy = subprocess.run(["scp", "-i", cfg["key"]] if cfg.get("key") else ["scp"],
+                              [str(Path(__file__).with_name("backtest_runner.py")),
+                               f"{remote}:{shlex.quote(cfg['workdir'])}/{runner_remote}"])
+        if copy.returncode != 0:
+            print("warning: could not copy backtest_runner.py to remote; "
+                  "assuming it is already installed there")
+
     script = [
         "cd", shlex.quote(cfg["workdir"]), "&&",
         shlex.quote(cfg["python"]), "-m", "backtest_runner", *safe_args,

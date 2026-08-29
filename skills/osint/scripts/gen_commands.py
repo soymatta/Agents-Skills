@@ -4,14 +4,60 @@
 from __future__ import annotations
 
 import json
+import shlex
 import sys
 from pathlib import Path
 
 
-def generate_commands(plan: dict) -> str:
-    """Generate a shell script from an investigation plan."""
-    lines = ["#!/bin/bash", f"# OSINT Investigation: {plan.get('target_value', 'unknown')}", f"# Type: {plan.get('target_type', 'unknown')}", f"# Depth: {plan.get('depth', 'standard')}", "", "set -e", ""]
+SHELL_TOOLS = {
+    "whois", "dig", "nslookup", "host", "curl", "wget",
+    "holehe", "sherlock", "maigret", "theHarvester", "nmap",
+    "subfinder", "whatweb", "amass", "dnsrecon", "recon-ng", "python",
+    "trufflehog", "gitleaks", "exiftool", "openssl",
+}
 
+# Pseudo-tools/commands that represent a web search the agent should run with
+# its `websearch` tool, NOT something executable in a shell. They are emitted
+# as comments so `bash commands.sh` never fails on them.
+SEARCH_TOOLS = {"google", "bing", "yandex", "google_scholar", "google_news",
+                "linkedin", "github", "gitlab", "stackoverflow", "medium",
+                "facebook", "twitter", "reddit", "crunchbase", "glassdoor",
+                "indeed", "news", "sec", "archive", "namechk", "lookup"}
+
+
+def is_shell_step(step: dict) -> bool:
+    """Whether a plan step maps to a runnable shell command (vs. a websearch)."""
+    tool = (step.get("tool") or "").strip().lower()
+    command = (step.get("command") or "").strip()
+    if tool in SHELL_TOOLS:
+        return True
+    if tool in SEARCH_TOOLS:
+        return False
+    if command.startswith("search ") or command.startswith("curl ") is False and command.split():
+        first = command.split()[0]
+        return first in SHELL_TOOLS
+    return True
+
+
+def generate_commands(plan: dict) -> str:
+    """Generate a shell script from an investigation plan.
+
+    Shell steps (whois, dig, curl, nmap, ...) are written as executable lines.
+    Web-search steps (google, linkedin, namechk, 'search "..."' pseudo-
+    commands, ...) are written as comments prefixed with `[WEBSEARCH]` so the
+    script stays runnable; the agent runs those with its `websearch` tool.
+    """
+    target = plan.get("target_value", "unknown")
+    lines = ["#!/bin/bash",
+             f"# OSINT Investigation: {shlex.quote(target)}",
+             f"# Type: {plan.get('target_type', 'unknown')}",
+             f"# Depth: {plan.get('depth', 'standard')}",
+             "",
+             "# NOTE: lines prefixed with [WEBSEARCH] are run by the agent's",
+             "# `websearch` tool, not by this shell script. Only run the rest.",
+             "set -e", ""]
+
+    search_count = 0
     for i, phase in enumerate(plan.get("phases", []), 1):
         lines.append(f"# {'='*60}")
         lines.append(f"# PHASE {i}: {phase.get('name', 'Unknown')}")
@@ -29,13 +75,19 @@ def generate_commands(plan: dict) -> str:
             if condition:
                 lines.append(f"# Condition: {condition}")
             lines.append(f"# Tool: {tool}")
-            lines.append(command)
+
+            if is_shell_step(step):
+                lines.append(command)
+            else:
+                lines.append(f"# [WEBSEARCH] {command}")
+                search_count += 1
             lines.append("")
 
         lines.append("")
 
     lines.append(f"# Investigation complete.")
     lines.append(f"# Total phases: {plan.get('total_phases', 0)}")
+    lines.append(f"# Web search steps (run via websearch tool): {search_count}")
     lines.append("echo 'Investigation complete.'")
     return "\n".join(lines)
 
@@ -56,9 +108,20 @@ def main():
     commands = generate_commands(plan)
 
     output_path.write_text(commands, encoding="utf-8")
+    search_count = sum(
+        1 for phase in plan.get("phases", []) for step in phase.get("steps", [])
+        if not is_shell_step(step)
+    )
     print(f"  Generated {len(plan.get('phases', []))} phases")
+    print(f"  Shell commands: {sum(1 for p in plan.get('phases', []) for s in p.get('steps', []) if is_shell_step(s))}")
+    print(f"  Websearch steps (comments, run via agent websearch tool): {search_count}")
     print(f"  Saved to: {output_path}")
-    print(f"\n  To execute: bash {output_path}")
+    if search_count:
+        print(f"\n  NOTE: {search_count} step(s) are web searches (marked [WEBSEARCH]).")
+        print(f"  Run the executable commands with: bash {output_path}")
+        print(f"  Execute the [WEBSEARCH] steps with your `websearch` tool instead.")
+    else:
+        print(f"\n  To execute: bash {output_path}")
 
 
 if __name__ == "__main__":

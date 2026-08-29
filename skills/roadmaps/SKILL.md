@@ -1,20 +1,33 @@
 ---
 name: roadmaps
-description: "Create, update, and follow adaptive roadmaps for any project. USE THIS SKILL whenever the user mentions roadmap, plan, step-by-step, milestones, workflow, task breakdown, 'break this down', 'what should I do next', 'how do I achieve X', implementation path. Also use when roadmap.md exists in project root — always check before starting work. Essential for any multi-step goal; use proactively, not just when asked."
+description: >-
+  Creates, updates, and follows adaptive roadmaps for any project. Manages step-by-step execution plans
+  with linear, decision, loop, parallel, and milestone step types; tracks state in .roadmap-state; handles
+  failure strategies (retry/rollback/scope change/blocked deps). USE PROACTIVELY — check for roadmap.md
+  before any significant work. Use when the user mentions a roadmap, plan, step-by-step, milestones,
+  task breakdown, "break this down", "what should I do next", or multi-step tasks. Run this whenever
+  roadmap.md exists in the project root. Triggers: "roadmap", "plan", "que hago primero", "fases del
+  proyecto", "multi-step", "big project".
 ---
 
 # Roadmaps
 
 ## Agent assignment
-- `explore` for roadmap check/read (fast, read-only)
-- `general` for roadmap create/update (needs write)
-- `build` for execution steps requiring code changes
+Agent-agnostic by capability; opencode subagent roles are shown as hints only.
+- **Read-only** (check/read roadmap) — e.g. opencode `explore`: fast, read-only
+- **Read-write** (create/update roadmap, write `.roadmap-state`) — e.g. opencode `general`
+- **Executes code changes** for steps requiring edits — e.g. opencode `build`
+
+The skill itself works in any AI that can read/write files; it does not depend on
+any specific subagent or AI. Use whichever agent/role owns the current task.
 
 ## Protocol
 
 1. Check `roadmap.md` exists in project root before ANY significant work
 2. If exists → read immediately, identify in-progress step
-3. If not exists → ask: "Create a roadmap?" If yes, build one
+3. If not exists → **only for genuinely multi-step tasks**, ask: "Create a roadmap?"
+   If yes, build one. For simple/single-step tasks, do NOT ask — just do the task
+   (asking for a roadmap on a one-step task adds unproductive overhead).
 4. After each step → update `roadmap.md` status + timestamp
 5. On new task → re-read roadmap, assess fit
 
@@ -39,6 +52,11 @@ updated: <ISO date>
 - Write after each step status change
 - If `.roadmap-state` missing or stale (updated older than roadmap.md), fall back to reading roadmap.md
 - `.roadmap-state` is cache only — always trust roadmap.md as source of truth
+
+> Staleness reference: this "cache is stale if out-of-date vs the source of truth"
+> rule is the shared convention to reuse for any `state` file in this repo
+> (e.g. `.opencode/state/<skill>.json`), so all persistent state ages out
+> consistently instead of lingering forever.
 
 ## Roadmap format (`roadmap.md`)
 
@@ -102,9 +120,11 @@ Quick-start skeletons for common project types. Copy + fill values.
 | Step irrelevant | Mark skipped, update previous step's Next |
 
 ## Creation process
+Only for genuinely multi-step tasks (2+ real steps, or a decision/branch worth
+tracking). For single-step tasks, skip — see "When NOT to use".
 
 1. Ask: goal (1 sentence), major phases, decision points, completion criteria, loop needs, parallel steps. Use template if applicable.
-2. Draft `roadmap.md`, show user for approval
+2. Draft `roadmap.md`, show user for approval. Validate with `scripts/validate_roadmap.py` before presenting.
 3. Once approved, set Step 1 to `in_progress`, write `.roadmap-state`, execute
 
 ## Completion
@@ -114,7 +134,7 @@ Quick-start skeletons for common project types. Copy + fill values.
 
 ## When to use
 - Any multi-step project or task
-- Keywords: "roadmap", "plan", "step-by-step", "milestones", "workflow", "task breakdown"
+- Keywords: "roadmap", "plan", "step-by-step", "milestones", "workflow", "task breakdown", "break this down", "what should I do next", "how do I achieve X", "que hago primero", "como logro X", "paso a paso", "que sigue", "proyecto", "fases del proyecto", "plan de trabajo", "sprint", "backlog", "to-do", "tasks", "phases", "road map", "ruta de implementacion", "execution plan", "project plan", "task list", "orden de tareas", "prioridades", "multi-step", "complex task", "big project", "feature plan", "release plan"
 - "break this down", "what should I do next", "how do I achieve X"
 - When `roadmap.md` exists in project root
 

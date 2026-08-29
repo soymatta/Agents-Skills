@@ -55,16 +55,18 @@ import json
 import sys
 from pathlib import Path
 
-if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
-
 try:
     from fpdf import FPDF
 except ImportError:
-    import subprocess
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "fpdf2", "-q"])
-    from fpdf import FPDF
+    print("  Error: fpdf2 not installed. Run: pip install fpdf2")
+    sys.exit(1)
+
+
+def _setup_encoding():
+    """Configure stdout/stderr for UTF-8 on Windows (call when needed, not at import)."""
+    if sys.platform == "win32" and hasattr(sys.stdout, "buffer"):
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
 # === COLOR SCHEME ===
@@ -276,6 +278,7 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
 
 
 def main():
+    _setup_encoding()
     import argparse
     parser = argparse.ArgumentParser(description="Generate professional CV PDFs (ES + EN)")
     parser.add_argument("--input", "-i", required=True, help="Path to CV JSON file")
