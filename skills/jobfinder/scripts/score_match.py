@@ -82,11 +82,33 @@ def check_eligibility_gate(profile: dict, job: dict) -> dict:
     return {"pass": True, "reason": "No explicit citizenship requirement"}
 
 
+def _languages_dict(languages) -> dict:
+    """Normalize the profile ``languages`` field to {name: level}.
+
+    Accepts a dict ({"English": "Advanced"}), a list of strings
+    (["Spanish", "English"]), or a list of objects
+    ([{"language": "English", "level": "Native"}, ...]).
+    """
+    out: dict[str, str] = {}
+    if isinstance(languages, dict):
+        for lang, level in languages.items():
+            out[str(lang).strip().lower()] = str(level or "").strip().lower()
+    elif isinstance(languages, list):
+        for item in languages:
+            if isinstance(item, dict):
+                lang = item.get("language") or item.get("name") or item.get("lang")
+                level = item.get("level") or item.get("proficiency") or ""
+            else:
+                lang, level = item, ""
+            if lang:
+                out[str(lang).strip().lower()] = str(level or "").strip().lower()
+    return out
+
+
 def check_language_gate(profile: dict, job: dict) -> dict:
     """Pre-scoring gate: required vs declared languages."""
     job_text = (job.get("title", "") + " " + job.get("description", "")).lower()
-    user_languages = {lang.lower(): level.lower()
-                      for lang, level in profile.get("languages", {}).items()}
+    user_languages = _languages_dict(profile.get("languages", []))
 
     required_langs = []
     lang_pattern = re.compile(r"((?:fluent|native|bilingual|proficient|conversational)?)\s*"

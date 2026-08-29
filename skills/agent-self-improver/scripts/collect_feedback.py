@@ -9,7 +9,9 @@ Usage:
 
     python collect_feedback.py --interactive  # prompts for each field
 
-Appends to: templates/agent-feedback.json
+    python collect_feedback.py --output custom-feedback.json  # custom path
+
+Appends to: templates/agent-feedback.json (or the --output path)
 """
 
 import argparse
@@ -24,19 +26,44 @@ SCRIPT_DIR = Path(__file__).parent
 FEEDBACK_FILE = SCRIPT_DIR.parent / "templates" / "agent-feedback.json"
 
 
-def load_feedback() -> list:
-    """Load existing feedback entries."""
-    if FEEDBACK_FILE.exists():
-        with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, list) else []
+def load_feedback(path: Path | None = None) -> list:
+    """Load existing feedback entries.
+
+    Accepts either a JSON array file, a JSON object with an ``entries`` list, or
+    a JSON-lines (ndjson) file where each line is one feedback record.
+    """
+    path = path or FEEDBACK_FILE
+    if not path.exists():
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        raw = f.read().strip()
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        entries = []
+        for line in raw.splitlines():
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return entries
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict):
+        entries = data.get("entries")
+        return entries if isinstance(entries, list) else []
     return []
 
 
-def save_feedback(entries: list):
+def save_feedback(entries: list, path: Path | None = None) -> None:
     """Save feedback entries to JSON."""
-    FEEDBACK_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(FEEDBACK_FILE, "w", encoding="utf-8") as f:
+    path = path or FEEDBACK_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
         json.dump(entries, f, indent=2, ensure_ascii=False)
 
 
@@ -67,9 +94,10 @@ def create_feedback_entry(
     files_modified: list[str] = None,
     files_created: list[str] = None,
     agent: str = "unknown",
+    output: Path | None = None,
 ) -> dict:
     """Create a structured feedback entry."""
-    entries = load_feedback()
+    entries = load_feedback(output)
     session_id = generate_session_id(entries)
 
     entry = {
@@ -90,7 +118,7 @@ def create_feedback_entry(
     }
 
     entries.append(entry)
-    save_feedback(entries)
+    save_feedback(entries, output)
     return entry
 
 
@@ -188,7 +216,10 @@ def main():
     parser.add_argument("--tool-calls", type=int, default=0, help="Tool calls count")
     parser.add_argument("--files-modified", help="Comma-separated files modified")
     parser.add_argument("--files-created", help="Comma-separated files created")
+    parser.add_argument("--output", "-o", default=str(FEEDBACK_FILE), help="Output feedback JSON path")
     args = parser.parse_args()
+
+    output = Path(args.output)
 
     if args.interactive:
         interactive_collect()
@@ -231,6 +262,7 @@ def main():
         files_modified=[f.strip() for f in (args.files_modified or "").split(",") if f.strip()],
         files_created=[f.strip() for f in (args.files_created or "").split(",") if f.strip()],
         agent=args.agent,
+        output=output,
     )
 
     print(f"Feedback saved: {entry['id']}")

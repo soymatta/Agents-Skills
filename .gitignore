@@ -44,6 +44,7 @@ skills/*/scored.json
 skills/*/results.json
 skills/*/profile.json
 skills/*/projects.json
+skills/*/reports/
 osint_output/
 
 # Certificates and keys

@@ -125,13 +125,8 @@ Structure the body like this:
 - DO use: peer-reviewed articles, conferences, academic books, theses, official reports, patents, arXiv preprints
 
 ### Source quality (tiers)
-| Tier | Type | Priority |
-|------|------|-----------|
-| 1 | Peer-reviewed journal (Q1-Q2) | Highest |
-| 2 | Conference proceedings, academic books | High |
-| 3 | Preprints (arXiv, SSRN), doctoral theses | Medium |
-| 4 | Governmental reports, patents | Low |
-| 5 | Popular science, blogs, Wikipedia (references only) | Do not use directly |
+Tier classification lives in the **`academic-source-search`** skill (Tier 1-5).
+Do not re-specify it here to avoid a second source of truth.
 
 ### Cross-verification
 - Core concept: minimum 2 Tier 1-2 sources
@@ -157,4 +152,4 @@ Structure the body like this:
 ## Integration
 - `academic-source-search` — search for scientific sources; **persists `sources.yaml`** (machine-readable source list with metadata/DOIs)
 - `citation-formatter` — formats citations and references from `sources.yaml` according to the selected standard, and owns the frontmatter/document layout schema
-- **Handoff contract:** `paper-researcher` → write `sources.yaml` (via academic-source-search) → `citation-formatter` reads it to produce the References section. Keep this file in sync with the in-text citations you actually use; drop unused sources.
+- **Handoff contract:** `paper-researcher` → write `sources.yaml` (via `academic-source-search`) → `citation-formatter` renders it: `scripts/references.py` builds the References list and in-text pairs; `scripts/generate_outputs.py` embeds them in the full PDF/DOCX document. Keep `sources.yaml` in sync with the in-text citations you actually use; drop unused sources in the final review.

@@ -23,10 +23,29 @@ DEFAULT_OUTPUT = SKILL_DIR / "templates" / "improvement-log.json"
 
 
 def load_feedback(path: Path) -> list:
-    if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, list) else []
+    """Load feedback entries from a JSON array or JSON-lines (ndjson) file."""
+    if not path.exists():
+        return []
+    with open(path, "r", encoding="utf-8") as f:
+        raw = f.read().strip()
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        entries = []
+        for line in raw.splitlines():
+            line = line.strip()
+            if line:
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+        return entries
+    if isinstance(data, list):
+        return data
+    if isinstance(data, dict) and isinstance(data.get("entries"), list):
+        return data["entries"]
     return []
 
 

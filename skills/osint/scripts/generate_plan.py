@@ -264,7 +264,7 @@ PLANS = {
                     "steps": [
                         {"tool": "whois", "command": 'whois {target}', "purpose": "Registration details"},
                         {"tool": "dig", "command": 'dig {target} ANY', "purpose": "All DNS records"},
-                        {"tool": "nmap", "command": 'nmap -sV -sC {target}', "purpose": "Port scan and services"},
+                        {"tool": "nmap", "command": 'nmap -sV -sC {target}', "purpose": "Port scan and services", "condition": "active scan - run only against owned/authorized hosts, requires nmap installed"},
                         {"tool": "curl", "command": 'curl -sI https://{target}', "purpose": "HTTP headers"},
                         {"tool": "subfinder", "command": 'subfinder -d {target}', "purpose": "Subdomain enumeration"},
                         {"tool": "whatweb", "command": 'whatweb {target}', "purpose": "Technology detection"},
@@ -281,7 +281,7 @@ PLANS = {
                     "steps": [
                         {"tool": "whois", "command": 'whois {target}', "purpose": "Full registration"},
                         {"tool": "dig", "command": 'dig {target} ANY', "purpose": "All DNS records"},
-                        {"tool": "nmap", "command": 'nmap -sV -sC -p- {target}', "purpose": "Full port scan"},
+                        {"tool": "nmap", "command": 'nmap -sV -sC -p- {target}', "purpose": "Full port scan", "condition": "active scan - run only against owned/authorized hosts, requires nmap installed"},
                         {"tool": "subfinder", "command": 'subfinder -d {target} -all', "purpose": "All subdomains"},
                         {"tool": "whatweb", "command": 'whatweb -a 3 {target}', "purpose": "Deep technology detection"},
                         {"tool": "shodan", "command": 'curl "https://api.shodan.io/dns/domain/{target}?key=KEY"', "purpose": "Shodan DNS info"},

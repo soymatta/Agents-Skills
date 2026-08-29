@@ -79,6 +79,46 @@ class TestGenerateCommands:
         assert "Condition: if domain resolves" in result
         assert "nmap -sV test.com" in result
 
+    def test_optional_tool_is_guarded(self, gen_commands_module):
+        plan = {
+            "target_value": "test.com",
+            "target_type": "domain",
+            "phases": [
+                {
+                    "name": "Recon",
+                    "estimated_time": "5m",
+                    "steps": [
+                        {"tool": "nmap", "command": "nmap -sV -sC test.com", "purpose": "Port scan"},
+                        {"tool": "whois", "command": "whois test.com", "purpose": "Registrant"},
+                    ],
+                }
+            ],
+            "total_phases": 1,
+        }
+        result = gen_commands_module.generate_commands(plan)
+        assert "if command -v nmap >/dev/null 2>&1; then" in result
+        assert "nmap -sV -sC test.com" in result
+        assert "nmap not installed" in result
+        assert "whois test.com" in result
+        assert "command -v whois" not in result
+
+    def test_guard_skips_search_commands(self, gen_commands_module):
+        plan = {
+            "target_value": "x",
+            "target_type": "person",
+            "phases": [
+                {
+                    "name": "Lookup",
+                    "estimated_time": "1m",
+                    "steps": [{"tool": "google", "command": 'search "x"', "purpose": "Indexed pages"}],
+                }
+            ],
+            "total_phases": 1,
+        }
+        result = gen_commands_module.generate_commands(plan)
+        assert "command -v" not in result
+        assert "[WEBSEARCH]" in result
+
     def test_step_without_condition(self, gen_commands_module):
         plan = {
             "target_value": "test",

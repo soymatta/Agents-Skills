@@ -47,7 +47,10 @@ the wrong framing and keeps the quota (below) focused on real claims.
 | 4 | Government reports, patents | Low |
 | 5 | Popular media, blogs, Wikipedia (references only) | Do not use directly |
 
-**Integration:** Once metadata is extracted, use `citation-formatter` to format citations according to the selected style.
+**Integration:** Once metadata is extracted, persist it to `sources.yaml` (see
+[Output format](#output-format)) and run `citation-formatter` — either its
+`scripts/references.py` (renders the references list and in-text pairs) or the
+document generator in `scripts/generate_outputs.py`.
 
 ---
 
@@ -125,7 +128,12 @@ type: "journal" | "conference" | "book" | "thesis" | "preprint"
 abstract: "Abstract text"
 keywords: ["word1", "word2"]
 citations_count: 150
+tier: 1
 ```
+
+> **Schema contract:** `citation-formatter/scripts/references.py` validates this
+> schema (required: `title`; rejects any entry that cannot be rendered). Keep
+> the field names and formats exactly as shown above.
 
 ---
 

@@ -616,6 +616,17 @@ def parse_websearch_results(websearch_json: str | list[dict]) -> list[dict]:
 # ATS APIs (direct, higher quality than scraping)
 # ---------------------------------------------------------------------------
 
+def _greenhouse_job_type(job: dict) -> str:
+    """Extract a job_type string from Greenhouse metadata/categories."""
+    for item in job.get("metadata") or []:
+        key = str(item.get("id") or item.get("name") or "").lower()
+        if "type" in key or "commitment" in key or "employment" in key:
+            val = str(item.get("value") or "").strip()
+            if val:
+                return val
+    return (job.get("categories") or {}).get("commitment", "")
+
+
 def _fetch_greenhouse_company(company: str, max_results: int = 50) -> list[dict]:
     """Fetch jobs from a Greenhouse Board API."""
     url = f"https://boards-api.greenhouse.io/v1/boards/{company}/jobs"
@@ -632,7 +643,7 @@ def _fetch_greenhouse_company(company: str, max_results: int = 50) -> list[dict]
             "salary_min": None,
             "salary_max": None,
             "salary_currency": None,
-            "job_type": (j.get("metadata") or [None]) and "full-time",
+            "job_type": _greenhouse_job_type(j),
             "description": (j.get("content") or "")[:3000],
             "url": j.get("absolute_url", ""),
             "posted": "",

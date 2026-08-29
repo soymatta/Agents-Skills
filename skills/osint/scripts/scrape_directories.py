@@ -189,25 +189,25 @@ def scrape_whoCalledMe(phone: str) -> dict:
     return results
 
 
-def run_scraping(phone: str, scrapers: Optional[list[str]] = None) -> dict:
+DEFAULT_COUNTRY_CODE = "57"  # fallback for numbers with no detectable calling code
+
+
+def run_scraping(
+    phone: str,
+    scrapers: Optional[list[str]] = None,
+    country_code: Optional[str] = None,
+) -> dict:
     """Run all scrapers on a phone number."""
     try:
-        from phone_parser import detect_country, clean_phone
+        from phone_parser import detect_country, detect_country_code, clean_phone
     except ImportError:
         import sys, os
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from phone_parser import detect_country, clean_phone
+        from phone_parser import detect_country, detect_country_code, clean_phone
 
     cleaned = clean_phone(phone)
     country = detect_country(cleaned)
-    country_code = "57"  # Default to Colombia
-
-    if country:
-        code = cleaned.lstrip("+")
-        for ccode in ["57", "52", "54", "56", "51", "593", "591", "58", "34", "55"]:
-            if code.startswith(ccode):
-                country_code = ccode
-                break
+    country_code = country_code or detect_country_code(cleaned) or DEFAULT_COUNTRY_CODE
 
     all_scrapers = {
         "google": lambda: scrape_google_search([phone, cleaned]),
@@ -249,6 +249,7 @@ def main():
     parser = argparse.ArgumentParser(description="Scrape free phone directories")
     parser.add_argument("phone", nargs="?", help="Phone number to investigate")
     parser.add_argument("--scrapers", nargs="+", help="Specific scrapers to run")
+    parser.add_argument("--country", help="Override country calling code (e.g. 57, 52, 1)")
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--list", action="store_true", help="List available scrapers")
 
@@ -272,7 +273,7 @@ def main():
     print(f"\n  Running scrapers for: {phone}")
     print(f"{'='*50}")
 
-    result = run_scraping(phone, args.scrapers)
+    result = run_scraping(phone, args.scrapers, country_code=args.country)
 
     if args.json:
         # Convert for JSON serialization

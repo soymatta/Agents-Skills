@@ -157,6 +157,25 @@ class TestLanguageGate:
         assert result["pass"] is True
         assert result["flag"] is True
 
+    def test_empty_list_languages_does_not_crash(self, score_match_module):
+        # Regression: template profile.json ships languages: [], which broke .items().
+        profile = {"languages": []}
+        job = {"title": "Dev", "description": "Fluent English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is False
+
+    def test_list_of_strings_languages(self, score_match_module):
+        profile = {"languages": ["spanish", "english"]}
+        job = {"title": "Dev", "description": "English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is True
+
+    def test_list_of_objects_languages(self, score_match_module):
+        profile = {"languages": [{"language": "English", "level": "Fluent"}]}
+        job = {"title": "Dev", "description": "Fluent English required"}
+        result = score_match_module.check_language_gate(profile, job)
+        assert result["pass"] is True
+
 
 # ---------------------------------------------------------------------------
 # 5D Scoring dimensions

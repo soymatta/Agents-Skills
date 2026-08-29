@@ -270,7 +270,17 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
     if data.get("languages"):
         lang_label = "Idiomas" if lang == "es" else "Languages"
         pdf.section(lang_label)
-        for language, level in data["languages"].items():
+        languages = data["languages"]
+        if isinstance(languages, dict):
+            pairs = languages.items()
+        else:
+            pairs = []
+            for item in languages:
+                if isinstance(item, dict):
+                    pairs.append((item.get("language") or item.get("name") or "", item.get("level") or ""))
+                else:
+                    pairs.append((item, ""))
+        for language, level in pairs:
             pdf.skill_row(language, level)
 
     pdf.output(output_path)

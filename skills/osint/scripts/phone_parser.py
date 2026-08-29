@@ -164,13 +164,23 @@ def clean_phone(phone: str) -> str:
 
 def detect_country(phone: str) -> Optional[dict]:
     """Detect country from phone number."""
+    code = detect_country_code(phone)
+    return COUNTRY_CODES.get(code) if code else None
+
+
+def detect_country_code(phone: str) -> Optional[str]:
+    """Detect the country calling code string ('57', '52', '1', ...).
+
+    Returns the matched key from ``COUNTRY_CODES`` or ``None`` if no known
+    calling code is found.
+    """
     cleaned = phone.lstrip("+")
 
     # Try 3-digit codes first, then 2-digit, then 1-digit
     for length in [3, 2, 1]:
         code = cleaned[:length]
         if code in COUNTRY_CODES:
-            return COUNTRY_CODES[code]
+            return code
     return None
 
 

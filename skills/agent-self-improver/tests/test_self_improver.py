@@ -1,6 +1,10 @@
+import importlib.util
 import json
 import os
+import sys
 from pathlib import Path
+
+import pytest
 
 
 def _load_json(path):
@@ -11,6 +15,26 @@ def _load_json(path):
 def _save_json(path, data):
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+@pytest.fixture(scope="module")
+def collect_module():
+    script = Path(__file__).parent.parent / "scripts" / "collect_feedback.py"
+    spec = importlib.util.spec_from_file_location("collect_feedback", script)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture(scope="module")
+def analyze_module():
+    script = Path(__file__).parent.parent / "scripts" / "analyze_feedback.py"
+    spec = importlib.util.spec_from_file_location("analyze_feedback", script)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_feedback_json_valid():
@@ -64,3 +88,37 @@ def test_skill_md_has_frontmatter():
     content = path.read_text(encoding="utf-8")
     assert content.startswith("---")
     assert "name: agent-self-improver" in content
+
+
+def test_load_feedback_json_array(collect_module, tmp_path):
+    p = tmp_path / "fb.json"
+    p.write_text('[{"id": "session-001", "rating": 4}]', encoding="utf-8")
+    assert collect_module.load_feedback(p)[0]["id"] == "session-001"
+
+
+def test_load_feedback_jsonl(collect_module, analyze_module, tmp_path):
+    p = tmp_path / "fb.jsonl"
+    p.write_text(
+        '{"id": "session-001", "rating": 4}\n{"id": "session-002", "rating": 3}\n',
+        encoding="utf-8",
+    )
+    assert len(collect_module.load_feedback(p)) == 2
+    assert len(analyze_module.load_feedback(p)) == 2
+
+
+def test_load_feedback_dict_entries(collect_module, tmp_path):
+    p = tmp_path / "fb.json"
+    p.write_text('{"entries": [{"id": "session-001"}]}', encoding="utf-8")
+    assert collect_module.load_feedback(p)[0]["id"] == "session-001"
+
+
+def test_collect_output_flag(collect_module, tmp_path):
+    out = tmp_path / "custom.json"
+    entry = collect_module.create_feedback_entry(
+        task="t", rating=3, agent="me", output=out
+    )
+    assert out.exists()
+    assert entry["id"].startswith("session-")
+    raw = json.loads(out.read_text(encoding="utf-8"))
+    assert raw[0]["task"] == "t"
+    assert raw[0]["id"] == entry["id"]

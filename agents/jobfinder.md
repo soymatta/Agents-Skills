@@ -33,7 +33,7 @@ tables, thresholds, or portal lists — those live in the skill (and in
 1. Load and follow the `jobfinder` skill's step-by-step workflow.
 2. Manage the interactive part that the skill cannot do alone: ask/collect the
    user's profile progressively and hold the handles to the profile artifacts
-   (`profile.json`, CV JSON, `track_application.csv`).
+   (`profile.json`, CV JSON, `job_search_tracker.csv`).
 3. Run the skill's scripts in order and confirm outputs exist (including the
    **PDF verification loop** for generated CVs).
 

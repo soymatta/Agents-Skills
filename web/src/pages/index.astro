@@ -20,14 +20,26 @@ const agents = [
 		permissions: "bash, read, glob, grep, webfetch, task, edit",
 		type: "agent" as const,
 	},
+	{
+		name: "constructor",
+		description: "Default full-access build agent. Reads, writes, edits files, runs commands, and executes all available tools. Combines the build role with self-improvement, skill creation, goal optimization, and roadmap tracking.",
+		permissions: "* allow (question, plan_enter; doom_loop ask)",
+		type: "agent" as const,
+	},
+	{
+		name: "planner",
+		description: "Read-only plan agent for analysis and code exploration. Cannot modify files — ideal for planning changes, analyzing unfamiliar codebases, and proposing approaches before any code is written.",
+		permissions: "read, glob, grep, bash (edit denied — plans only)",
+		type: "agent" as const,
+	},
 ];
 
 const skills = [
 	{
 		name: "telegram-notify",
-		description: "Full Telegram Bot API client with auto-retry and zero-dep fallback. Sends notifications, alerts, and file uploads.",
+		description: "Full Telegram Bot API client (sends text, photos, documents, media groups; webhooks, polling) with auto-retry and exponential backoff. Never blocks execution on failures.",
 		usage: "Notify me on Telegram when this completes",
-		dependencies: [],
+		dependencies: ["requests"],
 		category: "notification",
 		type: "first-party" as const,
 	},
@@ -117,6 +129,14 @@ const skills = [
 		usage: "Analyze this codebase for issues",
 		dependencies: [],
 		category: "automation",
+		type: "first-party" as const,
+	},
+	{
+		name: "jobfinder",
+		description: "Multi-board job search with 5-dimension fit scoring, personalized recommendations, CV PDF generation, application tracking, and interview prep.",
+		usage: "Find jobs matching my profile",
+		dependencies: [],
+		category: "career",
 		type: "first-party" as const,
 	},
 	{

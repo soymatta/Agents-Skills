@@ -7,7 +7,7 @@ description: >-
   apply APA/IEEE/Vancouver, format a title page, or produce a formatted PDF/DOCX. Consumes metadata from
   academic-source-search. Triggers: "APA", "APA 7th", "IEEE", "Vancouver", "citation", "references",
   "bibliography", "referencias APA", "normas IEEE", "generate DOCX".
-compatibility: Consumes metadata from academic-source-search. Uses math-notation rules for mathematical variables in references. Includes generate_outputs.py script for HTML and DOCX generation.
+compatibility: Consumes metadata from academic-source-search. Uses math-notation rules for mathematical variables in references. Includes references.py (sources.yaml → references) and generate_outputs.py scripts for HTML, DOCX and real PDF (reportlab) generation.
 ---
 
 # Citation Formatter
@@ -349,13 +349,20 @@ Reference:
 
 | Script | Args | Description |
 |--------|------|-------------|
-| `scripts/generate_outputs.py` | `--file F --html/--docx [--out O]` | Full document generator: APA title page, optional TOC (frontmatter `TOC: "true"`), and body with inline math. `--html` → styled HTML (print to PDF via WeasyPrint/browser); `--docx` → DOCX (requires python-docx). No args → inline-parser self-test. |
+| `scripts/references.py` | `--file F --norm N [--sort S] [--out O] [--pairs]` | Formats a `sources.yaml` file (from `academic-source-search`) into a reference list (APA 7th / IEEE / Vancouver) using math-notation italics (`_text_`). `--pairs` prints in-text citation snippets; `--sort alpha` (default for APA) or `--order` (default for IEEE/Vancouver). Exits 1 on schema errors (missing `title`). |
+| `scripts/generate_outputs.py` | `--file F --html/--docx/--pdf [--out O]` | Full document generator: APA title page, optional TOC (frontmatter `TOC: "true"`), and body with inline math (italics/bold/sub/sup). `--html` → styled HTML; `--docx` → DOCX (python-docx, inline runs + Word TOC field); `--pdf` → real PDF via reportlab (title page, dot-leader TOC with page numbers, 1- or 2-column layout by norm). No args → inline-parser self-test. |
 
 CLI examples:
 ```bash
-# Full HTML document (APA 7th title page + TOC + body), prints to screen via PDF
+# Reference list from academic-source-search sources.yaml (APA 7th, alphabetical)
+python scripts/references.py --file sources.yaml --norm "APA 7th" --out references.md
+# IEEE numbered references + in-text pairs
+python scripts/references.py --file sources.yaml --norm IEEE --pairs
+# Full HTML document (APA 7th title page + TOC + body)
 python scripts/generate_outputs.py --file paper.md --html --out paper.html
-# DOCX (requires python-docx)
+# Real PDF
+python scripts/generate_outputs.py --file paper.md --pdf --out paper.pdf
+# DOCX (inline math runs + TOC field)
 python scripts/generate_outputs.py --file paper.md --docx --out paper.docx
 ```
 
@@ -365,12 +372,12 @@ TOC is written when the frontmatter key `TOC: "true"` is present.
 
 ## Output format
 - In-text citations formatted according to the selected style
-- Reference list with correct formatting
-- Optional: APA 7th title page (APA docs only), TOC, full PDF (from HTML) or DOCX via generate_outputs.py
+- Reference list with correct formatting (via `references.py` or embedded in the generated document)
+- Optional: APA 7th title page (APA docs only), TOC with dot leaders/page numbers, and a real PDF (`--pdf`) or DOCX (`--docx`) via generate_outputs.py
 
 ## Dependencies
 ```bash
-pip install python-docx weasyprint markdown pyyaml
+pip install python-docx reportlab pyyaml
 ```
 
 ## Error handling
@@ -379,14 +386,19 @@ pip install python-docx weasyprint markdown pyyaml
 - **DOI does not resolve:** Search in CrossRef or Google Scholar
 - **generate_outputs.py not found:** Look in citation-formatter/scripts/
 - **Frontmatter value contains `:`:** The bundled parser splits on the first `:` per line, so a value like `TITLE: "Exam: Math"` works; avoid quoting or multi-`:` forms needing full YAML — if you need richer YAML, `import yaml; yaml.safe_load(...)`
-- **DOCX requested but python-docx missing:** the script errors with install instructions; fall back to `--html` → PDF instead
+- **DOCX requested but python-docx missing:** the script errors with install instructions; fall back to `--pdf` instead
+- **PDF requested but reportlab missing:** the script errors with install instructions; fall back to `--html` → print instead
 - **Mixed styles detected:** Alert and correct to the selected style
 
 ## File structure
 ```
 citation-formatter/
 ├── SKILL.md
+├── tests/
+│   ├── conftest.py
+│   └── test_references.py
 └── scripts/
+    ├── references.py
     └── generate_outputs.py
 ```
 

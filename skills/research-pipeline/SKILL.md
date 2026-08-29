@@ -73,7 +73,7 @@ No additional pip packages required. Uses built-in tools and standard Python lib
 ## File structure
 ```
 research-pipeline/
-��� SKILL.md
+└── SKILL.md
 ```
 
 ## Restrictions

@@ -16,6 +16,19 @@ SHELL_TOOLS = {
     "trufflehog", "gitleaks", "exiftool", "openssl",
 }
 
+# Tools that may not be installed on every machine. Their shell lines are
+# emitted behind a `command -v` guard so the generated script keeps running
+# (no hard failure under `set -e`) when the binary is absent.
+OPTIONAL_TOOLS = {
+    "nmap", "subfinder", "whatweb", "amass", "dnsrecon", "holehe",
+    "sherlock", "maigret", "theHarvester", "trufflehog", "gitleaks",
+    "exiftool", "recon-ng", "shodan",
+}
+
+# Tools that perform ACTIVE scanning/probing against the target. They run only
+# against owned/authorized hosts; the generated script keeps them guarded.
+ACTIVE_TOOLS = {"nmap", "amass", "dnsrecon", "recon-ng"}
+
 # Pseudo-tools/commands that represent a web search the agent should run with
 # its `websearch` tool, NOT something executable in a shell. They are emitted
 # as comments so `bash commands.sh` never fails on them.
@@ -37,6 +50,27 @@ def is_shell_step(step: dict) -> bool:
         first = command.split()[0]
         return first in SHELL_TOOLS
     return True
+
+
+def _guard_command(step: dict) -> str:
+    """Wrap a shell command in a `command -v` guard when the tool is optional.
+
+    Optional/active-scan tools (nmap, subfinder, ...) that may not be installed
+    are emitted guarded, so the generated script degrades gracefully (logs a
+    skip line) instead of hard-failing under `set -e`.
+    """
+    command = step.get("command", "echo 'No command'")
+    tool = (step.get("tool") or "").strip().lower()
+    if tool not in OPTIONAL_TOOLS:
+        return command
+    if command.startswith("search "):
+        return command
+    binary = shlex.split(command)[0] if command.split() else "tool"
+    return (f"if command -v {binary} >/dev/null 2>&1; then\n"
+            f"    {command}\n"
+            f"else\n"
+            f"    echo \"[SKIP] {binary} not installed - command skipped: {command}\" >&2\n"
+            f"fi")
 
 
 def generate_commands(plan: dict) -> str:
@@ -77,7 +111,7 @@ def generate_commands(plan: dict) -> str:
             lines.append(f"# Tool: {tool}")
 
             if is_shell_step(step):
-                lines.append(command)
+                lines.append(_guard_command(step))
             else:
                 lines.append(f"# [WEBSEARCH] {command}")
                 search_count += 1

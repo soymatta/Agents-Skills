@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -19,6 +20,11 @@ try:
     from .gen_commands import is_shell_step
 except Exception:  # pragma: no cover - fallback for direct script invocation
     from gen_commands import is_shell_step
+
+
+# Tools that perform ACTIVE probing/scans and must only run against
+# owned/authorized hosts, always behind explicit approval.
+ACTIVE_TOOLS = {"nmap", "amass", "dnsrecon", "recon-ng"}
 
 
 def run_command(cmd: str, timeout: int = 30) -> dict:
@@ -110,6 +116,25 @@ def execute_plan(plan: dict, interactive: bool = False) -> dict:
 
             print(f"  [{j}] {tool}: {purpose}")
             print(f"      Command: {command[:80]}...")
+
+            # Availability check: skip cleanly when the binary is not installed
+            # instead of failing (especially relevant for optional tools like
+            # nmap, subfinder, whatweb, ...).
+            binary = shlex.split(command)[0] if command.split() else None
+            if binary and not shutil.which(binary):
+                print(f"      [SKIPPED] Tool '{binary}' not installed - skipping step")
+                continue
+
+            # Active-scan steps always require explicit approval, even inside
+            # --interactive mode, confirmed right before execution.
+            if interactive and tool in ACTIVE_TOOLS:
+                response = input(
+                    f"      ACTIVE SCAN against '{plan.get('target_value', 'target')}' "
+                    f"- authorize (only owned/authorized hosts)? [y/N]: "
+                ).strip().lower()
+                if response != "y":
+                    print(f"      [SKIPPED by user]")
+                    continue
 
             if interactive:
                 response = input("      Execute? [y/N]: ").strip().lower()

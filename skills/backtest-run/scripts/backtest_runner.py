@@ -37,6 +37,19 @@ def _as_float(value) -> float:
     return float(value)
 
 
+def _years_between(start: str, end: str) -> float:
+    """Approximate calendar years between two ISO-ish dates; fallback to 0."""
+    try:
+        from datetime import datetime
+        fmt = "%Y-%m-%d"
+        fmt = "%Y-%m-%d %H:%M:%S" if " " in start or "T" in start else fmt
+        s = datetime.fromisoformat(str(start).replace("Z", "+00:00"))
+        e = datetime.fromisoformat(str(end).replace("Z", "+00:00"))
+        return (e - s).days / 365.25
+    except ValueError:
+        return 0.0
+
+
 def load_series(path: str) -> list[dict]:
     """Load OHLCV rows from CSV with columns: date,open,high,low,close[,volume]."""
     rows: list[dict] = []
@@ -242,6 +255,9 @@ def main() -> None:
                    "slippage": args.slippage, "fill_at_mid": args.fill_at_mid},
         "metrics": result["metrics"],
         "num_trades": result["metrics"]["num_trades"],
+        "num_parameters": 2,
+        "slippage_tested": True,
+        "years_tested": round(_years_between(rows[0]["date"], rows[-1]["date"]), 2),
     }
 
     if args.output:

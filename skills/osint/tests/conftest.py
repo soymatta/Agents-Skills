@@ -20,3 +20,16 @@ def gen_commands_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+@pytest.fixture(scope="module")
+def phone_parser_module():
+    """Load phone_parser.py as a module for unit tests."""
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "phone_parser.py"
+    spec = importlib.util.spec_from_file_location("phone_parser", script_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Failed to load phone_parser.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
