@@ -129,18 +129,12 @@ selected style instead.
 **Equal spacing implementation on the title page:**
 
 Vertical spacing is automatically implemented via `generate_outputs.py`
-but requires CSS and DOCX to use the correct configuration:
+for DOCX and PDF (reportlab):
 
-**CSS (PDF via WeasyPrint):**
-```css
-.title-page {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-evenly;
-  align-items: center;
-  height: 9in;  /* 11in - 2x1in margins */
-}
-```
+**PDF (reportlab):**
+Each title page element is separated by a `Spacer(1, 0.55 * inch)` gap.
+The title uses `Times-Bold` at 1.2x font size; the remaining elements use
+`Times-Roman`. This distributes the available space evenly across the page.
 
 **DOCX (python-docx):**
 Each title page element should have `space_before=72` and `space_after=0`,
