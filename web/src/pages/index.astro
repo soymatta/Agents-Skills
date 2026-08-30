@@ -22,14 +22,8 @@ const agents = [
 	},
 	{
 		name: "constructor",
-		description: "Default full-access build agent. Reads, writes, edits files, runs commands, and executes all available tools. Combines the build role with self-improvement, skill creation, goal optimization, and roadmap tracking.",
+		description: "Default full-access build agent. Reads, writes, edits files, runs commands, and executes all available tools. Combines the build role with self-improvement, skill creation, skill improvement, goal optimization, and roadmap tracking.",
 		permissions: "* allow (question, plan_enter; doom_loop ask)",
-		type: "agent" as const,
-	},
-	{
-		name: "planner",
-		description: "Read-only plan agent for analysis and code exploration. Cannot modify files — ideal for planning changes, analyzing unfamiliar codebases, and proposing approaches before any code is written.",
-		permissions: "read, glob, grep, bash (edit denied — plans only)",
 		type: "agent" as const,
 	},
 ];
@@ -108,9 +102,9 @@ const skills = [
 		type: "first-party" as const,
 	},
 	{
-		name: "metric-optimizer",
-		description: "Optimizes numerical metrics via autonomous iterative improvement loop. Never asks for input.",
-		usage: "Optimize this metric to 95% accuracy",
+		name: "goal",
+		description: "Iterative autonomous loop that drives a flow until a measurable objective is reached. Handles maximize/minimize/exact targets, persists progress, reverts on degradation, stops on budget.",
+		usage: "Alcanza este objetivo / Optimize this metric to 95% accuracy",
 		dependencies: [],
 		category: "automation",
 		type: "first-party" as const,

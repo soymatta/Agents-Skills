@@ -163,6 +163,8 @@ This skill has **no scripts of its own** — the verification snippet below runs
 | Script (in citation-formatter) | Purpose |
 |--------|------|
 | `skills/citation-formatter/scripts/generate_outputs.py` | Inline parser used to verify notation |
+| `skills/citation-formatter/scripts/generate_docx.py` | IEEE DOCX generator that consumes this notation in documents (`_text_`, `^{...}`, `_{...}`) |
+| `skills/citation-formatter/scripts/md_to_tex.py` | MD→LaTeX converter that maps the same tokens to `\emph`, `\textbf`, `$^{...}`, `$_{...}` |
 
 ## Output format
 - Correctly formatted Markdown using `_text_` for italics, `^{...}` for superscripts, `_{...}` for subscripts

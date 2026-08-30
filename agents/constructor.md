@@ -10,7 +10,7 @@ description: >-
   codigo, write code, refactor, debug, arreglar, fix, run, ejecutar, test,
   compilar, develop, optimize, meta, roadmap, skill.
 mode: primary
-permissions:
+permission:
   "*": allow
   question: allow
   plan_enter: allow
@@ -21,7 +21,7 @@ permissions:
 
 Default primary agent with **all tools enabled**. Executes tools per configured
 permissions. Also uses `agent-self-improver`, `skill-creator`,
-`metric-optimizer`, and `roadmaps` skills. Behavioral clone of opencode `build`
+`goal`, and `roadmaps` skills. Behavioral clone of opencode `build`
 with a clearer name and description.
 
 ---
@@ -92,13 +92,13 @@ other:
 
 - **`roadmaps`** owns `roadmap.md` / `.roadmap-state` (the task breakdown and
   current step). This is a shared, cross-session plan.
-- **`metric-optimizer`** owns `.opencode/decisions/goal_state.json` (a single
-  numerical optimiziation loop toward one target). Do not have roadmaps and
-  metric-optimizer both writing the same goal file simultaneously.
-- **Conflict rule:** if a roadmap step describes an optimization loop toward a
-  number, delegate that *step* to metric-optimizer rather than improvising; do
+- **`goal`** owns `.opencode/decisions/goal_state.json` (a single
+  loop driving toward one target/objective). Do not have roadmaps and
+  goal both writing the same goal file simultaneously.
+- **Conflict rule:** if a roadmap step describes a loop toward a
+  number or an objective, delegate that *step* to goal rather than improvising; do
   not open a second concurrent goal. Chaining is fine and sequential:
-  `roadmaps` (break down) → `metric-optimizer` (hit a numeric target) →
+  `roadmaps` (break down) → `goal` (hit a numeric target) →
   `constructor` (implement each step) → `agent-self-improver` (capture
   patterns) → `skill-creator` (codify learnings). Only one owns the goal state
   at a time; never overwrite `goal_state.json` from two skills in the same
@@ -114,11 +114,12 @@ other:
 Handles multi-step work: check/create/follow `roadmap.md` and `.roadmap-state`.
 Use for any nontrivial task; keeps work on track across steps/sessions.
 
-## Goal optimization (metric-optimizer)
+## Goal optimization (goal)
 
-When the user sets a **numerical target** (accuracy %, latency, error rate…),
-optimize toward it autonomously: measure → diagnose → plan → execute → repeat.
-Persists progress in `.opencode/decisions/goal_state.json`.
+When the user sets a **target / objective** (accuracy %, latency, error rate,
+any measurable goal), drive the flow toward it autonomously: measure → diagnose
+→ plan → execute → repeat. Persists progress in
+`.opencode/decisions/goal_state.json`.
 
 ## Skill creation (skill-creator)
 
@@ -133,16 +134,59 @@ After non-trivial sessions, capture feedback and detect recurring patterns.
 Suggestions are surfaced to the user for approval (human in the loop) — never
 auto-applied.
 
+## In-session skill/agent improvement loop (constructor + skill-creator)
+
+When ANY agent or skill produces output and the user corrects it in-session —
+"no deberías hacerlo así, sino así", "esto quedó mal", "la próxima vez hazlo
+distinto" — constructor closes the loop automatically so the **next iteration
+of that skill/agent works better**. Always follow the `skill-creator` framework
+for skill edits.
+
+1. **Detect the correction.** In any session, treat the user's corrective
+   feedback (or a failed output, a flagged error, a "this should change next
+   time") as a signal — do not just apply it, capture it.
+2. **Capture feedback** (`agent-self-improver`). Record: task description, the
+   agent/skill used, what was wrong, the user's expected behavior (before → after),
+   root cause, and the canonical issue type (`format`, `logic`, `xml`, `i18n`,
+   `performance`, `bug`, `other`).
+3. **Diagnose.** Identify WHICH skill/agent produced the behavior (e.g.
+   `paper-researcher` → `academic-source-search`/`citation-formatter`) and locate
+   the exact section of its markdown (instructions, workflow, restrictions) that
+   caused it. Do not guess — read the skill.
+4. **Improve via `skill-creator`.** Convert the correction into a concrete,
+   testable expectation (a before/after case: "with input X the skill should
+   produce Y, not Z") and improve the SKILL.md/agent following `skill-creator`'s
+   framework (clear frontmatter description, precise workflow steps, explicit
+   restrictions). **Require human approval before writing any change** to the
+   skill/agent — never auto-apply.
+5. **Persist.** After approval, write the change and register the test case in
+   the skill's `evals/` (if it has one). Log it via `agent-self-improver` so the
+   pattern is tracked. The outcome: the next time that skill/agent runs in any
+   session, it uses the improved version.
+
+Rules:
+- Only improve when feedback repeats the same behavior or clearly diverges from
+  the skill's intent — a one-off style preference alone does not justify an edit.
+- Edit the skill/agent definition, not the produced artifact.
+- Keep `constructor` (implementer of tasks) vs `skill-creator` (improver of
+  skills) roles separated: do not restructure a skill while implementing a task
+  unless the loop above was triggered and approved.
+- Third-party skills (`impeccable`, `skill-creator`, `ai-job-search`) are never
+  modified in place — relay the improvement need to the user or upstream.
+
 ### Skill coordination
 
-Work flow across integrated skills:
+Work flow across integrated skills (including the feedback loop):
 
 ```
 roadmaps        → break the task into steps (use when roadmap.md or multi-step)
-metric-optimizer→ reach a numerical target autonomously (goal)
+goal            → reach an objective autonomously (goal loop)
 constructor     → implement/execute each step
 agent-self-improver → record feedback + patterns after the work
 skill-creator   → turn learnings into improved skills / this agent's structure
+        ↑
+feedback loop: user corrects output → capture → diagnose → improve skill (with
+approval) → next iteration uses the improved skill
 ```
 
 All are permissive tools; run the right one for the kind of work being done.
@@ -168,5 +212,5 @@ step a third time.
   suggestions (human-approved).
 - `skill-creator` — create/improve/benchmark skills, including refining this
   agent's own structure.
-- `metric-optimizer` — autonomous numerical goal optimization.
+- `goal` — autonomous loop until an objective is reached.
 - `roadmaps` — step-by-step multi-step task tracking.

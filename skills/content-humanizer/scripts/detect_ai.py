@@ -88,26 +88,35 @@ def split_sections(text: str, max_chars: int = 3000) -> list[tuple[str, str]]:
 
 
 def classify_section(detector, text: str) -> dict:
-    """Clasificar un fragmento de texto."""
+    """Clasificar un fragmento de texto (troceado en ~512 tokens)."""
     if not text.strip():
         return {"label": "SKIP", "score": 0.0, "ai_prob": 0.0, "human_prob": 0.0}
 
-    result = detector(text)
+    # RoBERTa accepts up to 512 tokens. Chunk conservatively (900 chars is
+    # comfortably below the limit even for multi-token-per-word languages
+    # like Spanish) and average the probabilities across all windows so
+    # long academic documents are fully analyzed.
+    CHUNK = 900
+    chunks = [text[i : i + CHUNK] for i in range(0, len(text), CHUNK)]
+    n = len(chunks)
 
-    ai_prob = 0.0
-    human_prob = 0.0
-    label = "UNKNOWN"
-    for entry in result[0]:
-        if entry["label"].upper() in ("FAKE", "AI", "AI-GENERATED", "LABEL_1"):
-            ai_prob = entry["score"]
-        elif entry["label"].upper() in ("REAL", "HUMAN", "LABEL_0"):
-            human_prob = entry["score"]
+    sum_ai = 0.0
+    sum_human = 0.0
+    for chunk in chunks:
+        result = detector(chunk)
+        ai = 0.0
+        human = 0.0
+        for entry in result[0]:
+            if entry["label"].upper() in ("FAKE", "AI", "AI-GENERATED", "LABEL_1"):
+                ai = entry["score"]
+            elif entry["label"].upper() in ("REAL", "HUMAN", "LABEL_0"):
+                human = entry["score"]
+        sum_ai += ai
+        sum_human += human
 
-    if ai_prob > human_prob:
-        label = "AI"
-    else:
-        label = "HUMAN"
-
+    ai_prob = sum_ai / n
+    human_prob = sum_human / n
+    label = "AI" if ai_prob > human_prob else "HUMAN"
     return {"label": label, "ai_prob": round(ai_prob, 4), "human_prob": round(human_prob, 4)}
 
 
@@ -136,13 +145,13 @@ def print_result(global_result: dict, section_results: list[dict], verbose: bool
         print(f"  >> El texto pasa como escrito por humano.")
 
     if verbose and section_results:
-        print(f"\n{'─' * 50}")
+        print(f"\n{'-' * 50}")
         print(f"  ANALISIS POR SECCION")
-        print(f"{'─' * 50}")
+        print(f"{'-' * 50}")
         for sec in section_results:
             icon = "PASA" if sec["label"] == "HUMAN" else "!! "
             print(f"  [{icon}] {sec['header']}: AI={sec['ai_prob']:.1%}")
-        print(f"{'─' * 50}")
+        print(f"{'-' * 50}")
 
     if verbose and global_result["label"] == "AI":
         worst = max(section_results, key=lambda s: s["ai_prob"])
@@ -154,6 +163,13 @@ def print_result(global_result: dict, section_results: list[dict], verbose: bool
 
 
 def main() -> int:
+    # Windows consoles often default to cp1252; never crash on Unicode output.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     parser = argparse.ArgumentParser(description="Detectar texto generado por IA")
     parser.add_argument("--file", "-f", help="Archivo a analizar")
     parser.add_argument("--verbose", "-v", action="store_true", help="Analisis por seccion")

@@ -251,21 +251,18 @@ ITEMS: list[dict] = [
         "label": "Job Finder",
         "type": "agent",
         "dependencies": [],
-        "bundles": ["skills/jobfinder/scripts", "skills/jobfinder/templates"],
+        "bundles": [
+            "skills/jobfinder/SKILL.md",
+            "skills/jobfinder/scripts",
+            "skills/jobfinder/templates",
+        ],
     },
     {
         "id": "constructor",
         "dir": "agents/constructor.md",
         "label": "Constructor (Build Mod)",
         "type": "agent",
-        "dependencies": ["agent-self-improver", "skill-creator", "metric-optimizer", "roadmaps"],
-    },
-    {
-        "id": "planner",
-        "dir": "agents/planner.md",
-        "label": "Planner (Plan Mod)",
-        "type": "agent",
-        "dependencies": [],
+        "dependencies": ["agent-self-improver", "skill-creator", "goal", "roadmaps"],
     },
     # ── skills ────────────────────────────────────────────────────────────────
     {
@@ -333,9 +330,9 @@ ITEMS: list[dict] = [
         "dependencies": [],
     },
     {
-        "id": "metric-optimizer",
-        "dir": "skills/metric-optimizer",
-        "label": "Metric Optimizer",
+        "id": "goal",
+        "dir": "skills/goal",
+        "label": "Goal",
         "type": "skill",
         "dependencies": [],
     },
@@ -352,6 +349,7 @@ ITEMS: list[dict] = [
         "label": "Project Analyzer",
         "type": "skill",
         "dependencies": [],
+        "commands": ["init_review.md"],
     },
     {
         "id": "agent-self-improver",

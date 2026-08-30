@@ -13,7 +13,7 @@ description: >-
   links, enlaces rotos, tags, etiquetas, template, plantilla, zettelkasten,
   "mis notas", second brain, wiki personal.
 mode: primary
-permissions:
+permission:
   edit: allow
   bash: deny
   read: allow

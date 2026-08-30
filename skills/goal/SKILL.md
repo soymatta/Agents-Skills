@@ -1,33 +1,38 @@
 ---
-name: metric-optimizer
+name: goal
 description: >-
-  Optimizes a numerical metric or reaches a quantitative target via an iterative autonomous loop (measure →
-  diagnose → plan → execute → repeat). Handles maximize/minimize/exact-value targets, prioritizes lower-cost
-  approaches first (deterministic > rules > ML > LLM), persists progress in goal_state.json, reverts on
-  degradation, and stops on an exhausted budget. Asks one scoping question then runs autonomously. Use when
-  the user wants to reach a numeric target, improve accuracy, or tune hyperparameters. Triggers: "optimizar",
-  "optimize", "target", "improve metric", "reach X%", "tune", "accuracy".
+  Reaches an objective via an iterative autonomous loop (measure → diagnose → plan → execute → repeat), driving a
+  flow until the goal is achieved. Handles maximize/minimize/exact-value targets (metrics, hyperparameters,
+  quality gates, completion criteria), prioritizes lower-cost approaches first (deterministic > rules > ML > LLM),
+  persists progress in goal_state.json, reverts on degradation, and stops on an exhausted budget. Asks one scoping
+  question then runs autonomously. Use when the user wants to set a goal or objective and reach it: improve a
+  metric to X%, tune parameters, hit a quantitative target, or iterate toward a measurable outcome. Triggers:
+  "goal", "objetivo", "alcanzar", "reach X%", "optimizar", "optimize", "target", "improve metric", "tune",
+  "accuracy".
 ---
 
-# Metric Optimizer
+# Goal
 
-Iterative autonomous loop to drive a measurable metric toward a target. Asks
-**one** scoping question up front (direction, budget, measurement command), then
-runs autonomously without further interruption until the target is reached or
-the budget is exhausted.
+Iterative autonomous loop that drives a flow toward a measurable objective. Framing-inspired: define what
+"done" means as a number you can check, then loop until the goal is reached or the budget is exhausted. Asks
+**one** scoping question up front (objective, budget, measurement command), then runs autonomously without
+further interruption.
 
 ## When to use
-- User wants to optimize a numerical metric to reach a specific target
+- User sets a goal or objective with a measurable success criterion (not only metrics: coverage %, error rate,
+  latency, iteration milestones, any "reach this target" ask)
 - Hyperparameter tuning, accuracy improvement, performance optimization
 - Any iterative numerical goal with a clear, measurable success criterion
 - Targets to maximize, minimize, or hit an exact value
-- **Keywords:** "optimizar", "optimize", "target", "goal", "meta numerica", "improve metric", "reach X%", "maximize", "minimize", "hyperparameter", "accuracy", "performance", "tune", "auto-tune", "reduce error rate", "latency reduction", "ceiling", "plateau", "get to 95%"
+- **Keywords:** "goal", "objetivo", "meta", "alcanzar", "llegar a", "reach X%", "optimizar", "optimize", "target",
+  "improve metric", "maximize", "minimize", "hyperparameter", "accuracy", "performance", "tune", "auto-tune",
+  "reduce error rate", "latency reduction", "ceiling", "plateau", "get to 95%"
 
 ## When NOT to use
-- No clear numerical target defined (only qualitative improvement)
+- No measurable objective defined (only qualitative improvement)
 - User wants a single experiment, not iteration
 - Problem requires human judgment at each step
-- Metric cannot be measured programmatically
+- Goal cannot be evaluated programmatically
 
 ## Upfront scoping (ask ONCE, then stop asking)
 
@@ -36,15 +41,16 @@ safe runtime). Ask them together as a single question, then never ask again:
 
 1. **Direction** — is the target to `maximize`, `minimize`, or hit `exact`?
    (If unspoken, infer from the phrasing: "maximize/improve up" → maximize;
-   "reduce/lower/down" → minimize; "get to exactly X" → exact.)
+   "reduce/lower/down" → minimize; "get to exactly X" → exact; milestones →
+   exact with tolerance.)
 2. **Measurement command** — the exact command/script that returns the metric
    (needed so iterations can reproduce and compare fairly).
 3. **Budget** — `max_iterations` (e.g. 30), `max_cost` (e.g. "no paid APIs"),
    and/or a `deadline`. If the user has no preference, default to
    `max_iterations: 20` and "no paid APIs unless already provisioned".
 
-If the metric is unambiguous and these are inferable, you may proceed — but if
-measurement or direction are genuinely unknown, default to `maximize` and a
+If the objective is unambiguous and these are inferable, you may proceed — but
+if measurement or direction are genuinely unknown, default to `maximize` and a
 predictable baseline rather than guessing an arbitrary heuristic.
 
 ## State file

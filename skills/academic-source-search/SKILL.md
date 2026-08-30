@@ -189,11 +189,41 @@ No additional pip packages required. Uses built-in `webfetch` and `websearch` to
 ## Error handling
 
 - **DOI does not resolve:** search by full title in the CrossRef API, then verify
+- **CrossRef `select=` param returns 400:** the CrossRef REST API may reject the
+  `select` parameter on the `/works/{doi}` endpoint. Fall back to the full
+  `/works/{doi}` response (the JSON is larger; it can be parsed programmatically)
+  rather than retrying the same request
+- **Large Crossref JSON truncated in a tool call:** the response can exceed the
+  output budget. If the tool truncates it, save it to a temp file and parse with a
+  script (e.g. PowerShell `Invoke-RestMethod` + `ConvertFrom-Json`); do not grep a
+  single-line JSON blob
 - **Database inaccessible:** try the next one in the priority list
 - **Paywall:** read abstract, search for preprint on arXiv, ResearchGate, or author version
 - **No results:** reformulate query with synonyms, reduce filters, expand year range
 - **Broken link in existing reference:** search for alternative DOI or URL on archive.org
 - **Google Scholar CAPTCHA:** treat Scholar as manual verification only; use CrossRef/arXiv/PubMed APIs for the actual search
+
+## Verifying existing references (references audit)
+
+When auditing a reference list that already exists (not a new search), apply the
+same rigor as a fresh search:
+
+1. **Resolve every DOI/URL** via `https://api.crossref.org/works/{doi}` (or arXiv
+   `export.arxiv.org/api/query?id_list=...`). Confirm title, authors, journal,
+   volume, issue, pages/article number, and year against the paper's entry —
+   fix any fields that differ, never assume the paper entry is correct.
+2. **Deduplicate by DOI** (and by normalized title when DOI is missing). If the
+   same source appears twice (e.g. one entry with DOI and a second entry that is
+   the web-URL version of the same article), merge them into a single reference
+   and update every in-text citation.
+3. **Check for fabricated metadata:** authors who are not in the Crossref/arXiv
+   record, placeholder group names ("Research Team"), or journal names that are
+   actually the publisher or a dead DOI page are red flags — correct them from
+   the authoritative record.
+4. **Ensure every reference is cited in the text and every in-text citation has
+   an entry** (order of appearance for IEEE/Vancouver, alphabetical for APA).
+   Either add a supporting sentence or drop the orphan entry.
+5. **Confirm active links** before delivery — a reference without a verifiable active link must not be shipped (matches the skill's Restrictions).
 
 ## File structure
 ```

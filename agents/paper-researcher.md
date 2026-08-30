@@ -12,7 +12,7 @@ description: >-
   literatura, APA, IEEE, Vancouver, citation, referencias, references,
   bibliografia, bibliography, academic writing, monografia, estado del arte.
 mode: primary
-permissions:
+permission:
   edit: allow
   bash: allow
   read: allow
@@ -38,6 +38,13 @@ etc.) — do not re-specify that schema here to avoid a second source of truth.
 Structure the body like this:
 
 ```
+# ([Document title] — Title of the research)
+(centered, single column; fill the real title here)
+
+(**Autor1Nombre Autor1Apellidos**; **Autor2Nombre Autor2Apellidos**)
+(centered, single column — placeholder template, up to 2 authors; the end user
+replaces these by hand, do NOT invent real names)
+
 ## Abstract / Resumen
 (Method, objective, main results – max 250 words)
 
@@ -108,12 +115,22 @@ Structure the body like this:
 - Exact format according to the selected standard (see `citation-formatter`)
 - Each reference must include an active and verifiable link (DOI, URL, handle)
 - References must appear in the order dictated by the standard (alphabetical in APA, order of appearance in IEEE/Vancouver)
+- **Before finalizing, audit the reference list** (see `academic-source-search` → "Verifying existing references"): resolve every DOI via `https://api.crossref.org/works/{doi}` (or arXiv `id_list`), confirm authors/title/journal/vol/issue/pages, fix wrong fields, merge duplicates found through DOI-dedup, and renumber so citations run 1..N in order of first appearance with no gaps, no orphans and no un-cited entries.
 
 ### 6. REVIEW
 - Verify that every reference in the text exists in the final section
 - Verify that every claim without explicit reference is removed or referenced
 - Verify in-text citation format according to the standard
 - Verify that links are active (accessible)
+- **Charset check:** confirm the body has no foreign-script artifacts (e.g. CJK glyphs), no Unicode super/subscripts (use `^{...}` / `_{...}` per math-notation), and no lone `*text*` italics (use `_text_`)
+
+### 7. GENERATE (DOCX/PDF/LaTeX) — ON DEMAND ONLY
+- The `.md` is the canonical source; do NOT auto-produce Word/PDF. Convert only when the user names a target.
+- **Word (IEEE):** `citation-formatter/scripts/generate_docx.py input.md [output.docx]` — 2-column IEEE DOCX with title+author centered single-column, clickable in-text citations (internal links), real external hyperlinks for DOIs/URLs, math-notation-aware parsing
+- **Word (APA/Vancouver):** `citation-formatter/scripts/generate_outputs.py --docx`
+- **PDF (quick, no TeX):** `citation-formatter/scripts/generate_outputs.py --pdf` (reportlab)
+- **LaTeX:** `citation-formatter/scripts/md_to_tex.py input.md` → `.tex`; `--pdf` compiles with xelatex/pdflatex if installed
+- Prefer direct md→DOCX writers; the `MD → LaTeX → Word` leg is lossy and not recommended.
 
 ---
 
@@ -146,10 +163,15 @@ Do not re-specify it here to avoid a second source of truth.
 - **DO NOT** use non-scientific sources
 - **DO NOT** modify the format defined in the initial configuration
 - **DO NOT** deliver the paper without a References section with active links
+- **DO NOT** invent author names: always leave the placeholder line
+  `**Autor1Nombre Autor1Apellidos**; **Autor2Nombre Autor2Apellidos**` under the
+  title for the end user to fill in
+- **DO NOT** put the title or authors in the 2-column body — they go centered in
+  a single-column section; the 2-column layout starts after the author block
 
 ---
 
 ## Integration
 - `academic-source-search` — search for scientific sources; **persists `sources.yaml`** (machine-readable source list with metadata/DOIs)
 - `citation-formatter` — formats citations and references from `sources.yaml` according to the selected standard, and owns the frontmatter/document layout schema
-- **Handoff contract:** `paper-researcher` → write `sources.yaml` (via `academic-source-search`) → `citation-formatter` renders it: `scripts/references.py` builds the References list and in-text pairs; `scripts/generate_outputs.py` embeds them in the full PDF/DOCX document. Keep `sources.yaml` in sync with the in-text citations you actually use; drop unused sources in the final review.
+- **Handoff contract:** `paper-researcher` → write `sources.yaml` (via `academic-source-search`) → `citation-formatter` renders it: `scripts/references.py` builds the References list and in-text pairs; `scripts/generate_outputs.py` embeds them in the full PDF/DOCX document; `scripts/generate_docx.py` produces an IEEE DOCX with clickable citation hyperlinks. Keep `sources.yaml` in sync with the in-text citations you actually use; drop unused sources in the final review.

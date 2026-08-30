@@ -4,8 +4,9 @@ description: >-
   Formats in-text citations and reference lists in APA 7th, IEEE, and Vancouver. Includes document
   configuration, an APA-7th student title page, TOC, rules by source type, and generate_outputs.py for full
   HTML/DOCX generation. Use when the user needs to format citations, create a reference list or bibliography,
-  apply APA/IEEE/Vancouver, format a title page, or produce a formatted PDF/DOCX. Consumes metadata from
-  academic-source-search. Triggers: "APA", "APA 7th", "IEEE", "Vancouver", "citation", "references",
+  apply APA/IEEE/Vancouver, format a title page, or produce a formatted PDF/DOCX/LaTeX. Consumes metadata from
+  academic-source-search. Also bundles generate_docx.py for IEEE DOCX with clickable citation hyperlinks.
+  Triggers: "APA", "APA 7th", "IEEE", "Vancouver", "citation", "references",
   "bibliography", "referencias APA", "normas IEEE", "generate DOCX".
 compatibility: Consumes metadata from academic-source-search. Uses math-notation rules for mathematical variables in references. Includes references.py (sources.yaml → references) and generate_outputs.py scripts for HTML, DOCX and real PDF (reportlab) generation.
 ---
@@ -218,11 +219,22 @@ Reference:
 | Font | Times New Roman 10pt |
 | Line spacing | Single (1.0), double between sections |
 | Margins | 2.54 cm (1 in) on all sides |
-| Columns | 2 for main text |
-| Title | Centered, 24pt, bold |
+| Columns | 1 for title/authors, then **continuous break to 2 columns** for body |
+| Title | Centered, 24pt, bold, single column |
+| Authors | Centered, 12pt, single column, right under the title |
 | Section headings | 10pt, uppercase |
 | Page numbering | Bottom centered |
 | References | Numbered [1], [2]... in order of appearance |
+
+**Template rule (mandatory):** every final document starts with the `#` title and,
+immediately below it, the author placeholder line using up to two slots:
+```
+**Autor1Nombre Autor1Apellidos**; **Autor2Nombre Autor2Apellidos**
+```
+The end user replaces the placeholders by hand. Do NOT invent real names or people,
+do NOT expand, and do NOT inline names into the title. `generate_docx.py` parses this
+line (up to 2 authors, `;` or ` y ` separator) and renders title + authors centered
+in a single-column section before the 2-column body starts.
 
 ### In-text citations
 ```
@@ -345,6 +357,9 @@ Reference:
 |--------|------|-------------|
 | `scripts/references.py` | `--file F --norm N [--sort S] [--out O] [--pairs]` | Formats a `sources.yaml` file (from `academic-source-search`) into a reference list (APA 7th / IEEE / Vancouver) using math-notation italics (`_text_`). `--pairs` prints in-text citation snippets; `--sort alpha` (default for APA) or `--order` (default for IEEE/Vancouver). Exits 1 on schema errors (missing `title`). |
 | `scripts/generate_outputs.py` | `--file F --html/--docx/--pdf [--out O]` | Full document generator: APA title page, optional TOC (frontmatter `TOC: "true"`), and body with inline math (italics/bold/sub/sup). `--html` → styled HTML; `--docx` → DOCX (python-docx, inline runs + Word TOC field); `--pdf` → real PDF via reportlab (title page, dot-leader TOC with page numbers, 1- or 2-column layout by norm). No args → inline-parser self-test. |
+| `scripts/generate_docx.py` | `input.md [output.docx]` | IEEE-grade DOCX generator with **clickable citations**: every in-text `[N]` becomes an internal hyperlink to its reference entry; each reference entry gets a real external hyperlink (DOI/URL). IEEE spec: 10pt, single spacing, **title and authors centered in a single full-width column**, then a **continuous section break before the 2-column body**. Title taken from first `#` heading. Authors read from the first non-heading line under it (template: `**Autor1Nombre Autor1Apellidos**; **Autor2Nombre Autor2Apellidos**`, up to 2, split on `;` or ` y `). Skips `---` frontmatter. Understands math-notation syntax (`_text_` italics, `^{...}` superscript, `_{...}` subscript; `**text**` bold) — do NOT use `*text*` in content processed by this script. References section detected in English and Spanish. |
+
+| `scripts/md_to_tex.py` | `input.md [--pdf]` | Pure-Python MD→LaTeX converter (writes the `.tex` with no TeX installed). Title + authors in a single-column centered block (`\twocolumn[`), 2-column body, math-notation tokens → LaTeX, headings, tables → `tabular`, references as hanging enumerated items. `--pdf` compiles with xelatex/pdflatex when present, otherwise prints guidance. |
 
 CLI examples:
 ```bash
@@ -358,6 +373,12 @@ python scripts/generate_outputs.py --file paper.md --html --out paper.html
 python scripts/generate_outputs.py --file paper.md --pdf --out paper.pdf
 # DOCX (inline math runs + TOC field)
 python scripts/generate_outputs.py --file paper.md --docx --out paper.docx
+# IEEE DOCX with clickable citations and external links
+python scripts/generate_docx.py paper.md paper.docx
+# LaTeX source (ready to compile on Overleaf)
+python scripts/md_to_tex.py paper.md
+# PDF via LaTeX engine (if xelatex/pdflatex installed)
+python scripts/md_to_tex.py paper.md --pdf
 ```
 
 Note: `--norm` is accepted for compatibility but the title-page branch is
@@ -368,6 +389,19 @@ TOC is written when the frontmatter key `TOC: "true"` is present.
 - In-text citations formatted according to the selected style
 - Reference list with correct formatting (via `references.py` or embedded in the generated document)
 - Optional: APA 7th title page (APA docs only), TOC with dot leaders/page numbers, and a real PDF (`--pdf`) or DOCX (`--docx`) via generate_outputs.py
+- IEEE DOCX via generate_docx.py: in-text `[N]` citations are clickable internal links to the reference list; DOIs/URLs are real external hyperlinks (blue, underlined)
+
+## Pipeline rule (single source of truth)
+- The `.md` file is ALWAYS the canonical source. Do NOT generate DOCX/PDF by
+  default — produce them only when the user asks for a specific target.
+- On-demand conversion (all prepared, nothing runs implicitly):
+  - **Word** → `generate_docx.py` (IEEE clickable) or `generate_outputs.py --docx`
+  - **PDF** → `generate_outputs.py --pdf` (reportlab, no TeX) for quick output;
+    `md_to_tex.py --pdf` (xelatex/pdflatex) for LaTeX-grade typesetting
+  - **LaTeX** → `md_to_tex.py` produces the `.tex`
+- The chain `MD → LaTeX → Word` is NOT recommended: LaTeX→DOCX is lossy
+  (tex4ht/make4ht). Prefer a direct markdown→DOCX writer (python-docx here, or
+  `pandoc in.md -o out.docx` if pandoc is installed). LaTeX only pays off for PDF.
 
 ## Dependencies
 ```bash
@@ -383,6 +417,8 @@ pip install python-docx reportlab pyyaml
 - **DOCX requested but python-docx missing:** the script errors with install instructions; fall back to `--pdf` instead
 - **PDF requested but reportlab missing:** the script errors with install instructions; fall back to `--html` → print instead
 - **Mixed styles detected:** Alert and correct to the selected style
+- **generate_docx.py and superscripts:** content must use `10^{4}` (math-notation), never Unicode `¹⁰⁴` or `*text*` italics — otherwise the render is plain text without super/subscripts
+- **md_to_tex.py and ^/underscore:** the `\url`/`\href` commands and the `\twocolumn[` block can break on exotic characters — the converter escapes them; if LaTeX still errors, add the offending char to `escape_text`
 
 ## File structure
 ```
@@ -393,7 +429,9 @@ citation-formatter/
 │   └── test_references.py
 └── scripts/
     ├── references.py
-    └── generate_outputs.py
+    ├── generate_outputs.py
+    ├── generate_docx.py
+    └── md_to_tex.py
 ```
 
 ## Restrictions
@@ -402,5 +440,7 @@ citation-formatter/
 - Do not use "Retrieved from" in APA 7th (use URL/DOI directly)
 - Do not include references without a verifiable active link
 - Do not fabricate title page data — always ask the user
+- **Do not invent author names in final documents** — always emit the placeholder line (`**Autor1Nombre Autor1Apellidos**; **Autor2Nombre Autor2Apellidos**`) under the title; the end user fills it in manually
 - Do not use asterisks for italic in content processed by generate_outputs.py — use `_text_` per math-notation
 - Do not emit an APA title page for IEEE/Vancouver documents — the title page generator is APA-7th specific
+- Do not put the title or authors into the 2-column body — they must stay in the single-column centered section

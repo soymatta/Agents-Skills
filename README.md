@@ -24,8 +24,7 @@ Talk to these agents in natural language. They auto-detect intent and run the ap
 | `vault` | "Find notes about Python", "Organize my vault by topic", "Create a daily note" |
 | `paper-researcher` | "Write a research paper on X in APA", "Find academic sources for my thesis", "Review my paper's citations" |
 | `jobfinder` | "Find remote Python developer jobs", "Score my CV against this posting", "Generate a cover letter for this role" |
-| `constructor` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Optimize this metric to 95%", "Improve this skill" |
-| `planner` | "Analyze the codebase and propose an approach", "Design the architecture for X", "Plan this change without editing anything" |
+| `constructor` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Alcanza este objetivo", "Improve this skill" |
 
 ### Skills
 
@@ -38,7 +37,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `citation-formatter` | "Format my citations in APA 7th" |
 | `content-humanizer` | "Make this text undetectable by AI" |
 | `osint` | "Run an OSINT investigation on this target" |
-| `metric-optimizer` | "Optimize this metric to 95% accuracy" |
+| `goal` | "Alcanza este objetivo", "Optimize this metric to 95% accuracy" |
 | `roadmaps` | "Create a plan for this project" |
 | `project-analyzer` | "Analyze this codebase for issues" |
 | `research-pipeline` | "Research this prediction market question" |
@@ -85,7 +84,6 @@ Agents-Skills/
     paper-researcher.md  # Academic paper writer
     jobfinder.md         # Job application assistant
     constructor.md       # Build Mod — full-access dev agent (clone of opencode build)
-    planner.md           # Plan Mod — read-only analysis/planning agent (clone of opencode plan)
   skills/                # Skill definitions + scripts
     requirements.txt     # Python dependencies
     pyproject.toml       # Project config + pytest settings
@@ -98,7 +96,7 @@ Agents-Skills/
     impeccable/          # (Third-party — pbakaus, Apache 2.0)
     jobfinder/           # scripts/ + templates/
     math-notation/
-    metric-optimizer/
+    goal/
     osint/               # + tests/
     project-analyzer/
     research-pipeline/
@@ -116,7 +114,6 @@ Agents-Skills/
 | `paper-researcher` | Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES. | bash, read, glob, grep, webfetch, task, edit |
 | `jobfinder` | Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs/cover letters, and tracks applications. | bash, read, glob, grep, webfetch, task, edit |
 | `constructor` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). | all tools (allow), question, plan_enter |
-| `planner` | Clone del agente opencode `plan` (Plan Mod) con nombre mejorado: agente read-only para análisis y planificación; no edita archivos salvo planes. | read, glob, grep, list, bash, question; edit (deny salvo planes) |
 
 ## Skills
 
@@ -133,7 +130,7 @@ Agents-Skills/
 | `math-notation` | Math notation rules for the inline parser of the generator. | citation-formatter |
 | `content-humanizer` | Final anti-AI-detection pass with 9 techniques + local verification script. | — |
 | `osint` | OSINT investigation framework with 7 reference guides and 5 scripts. | — |
-| `metric-optimizer` | Optimizes numerical metrics via autonomous iterative improvement loop. | — |
+| `goal` | Iterative loop that drives a flow until a measurable objective is reached (metrics, quality gates, targets). | — |
 | `roadmaps` | Creates, updates, and follows adaptive roadmaps for any project. | — |
 | `project-analyzer` | Read-only project analysis: structure, code quality, bugs, security, performance. | — |
 | `agent-self-improver` | Self-improvement framework for agents with human supervision. | — |
@@ -201,7 +198,7 @@ jobfinder (agent)
 constructor (agent, Build Mod)
   +-- agent-self-improver (skill)  # feedback collection + pattern detection
   +-- skill-creator (skill)        # create/improve/benchmark skills
-  +-- metric-optimizer (skill)     # autonomous numerical goal optimization
+  +-- goal (skill)                # autonomous loop until an objective is reached
   +-- roadmaps (skill)             # multi-step task tracking (goal + steps)
 
 telegram-notify (skill)
@@ -251,7 +248,7 @@ ai-job-search (skill, third-party — MadsLorentzen)
    name: my-agent
    description: Agent description.
    mode: primary
-   permissions:
+   permission:
      read: allow
      glob: allow
      grep: allow

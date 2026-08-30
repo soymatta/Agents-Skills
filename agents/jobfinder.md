@@ -11,7 +11,7 @@ description: >-
   preparar entrevista, job application, postular, aplicar, remote, remoto, hybrid, hibrido,
   full-time, tiempo completo, freelance, buscar trabajo.
 mode: primary
-permissions:
+permission:
   edit: allow
   bash: allow
   read: allow

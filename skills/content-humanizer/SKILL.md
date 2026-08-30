@@ -232,6 +232,48 @@ Instead:
 
 ---
 
+## 2b. Free multi-layer pipeline — verify_ai.py
+
+`scripts/verify_ai.py` is the unified **free** detector: linguistic metrics +
+local HF detectors + (optional) external free services, with one gate exit code
+(0=PASA, 1=DETECTADO).
+
+Layers (all free):
+
+| Layer | What | Requires | Offline by default |
+|-------|------|----------|--------------------|
+| 1 | Lingüística: burstiness SD, TTR, conectores/frases AI, pasiva, puntuación | none | yes |
+| 2 | Local HF: roberta-base-openai-detector (+ extras con `--local-extra`) | torch + transformers, caché en HF_HOME | yes |
+| 3 | Hugging Face Inference API: detector por texto + juez LLM | `HF_TOKEN` (cuenta gratuita) | no |
+| 4 | GPTZero API (tier gratuito con créditos limitados, endpoint oficial) | `GPTZERO_API_KEY` | no |
+
+```bash
+# Mínimo (Capa 1 + 2, sin nada online)
+python scripts/verify_ai.py --file document.md --verbose
+
+# + más detectores locales (descarga ~horas/GB; si un id falla se salta)
+python scripts/verify_ai.py --file document.md --local-extra
+
+# + capas externas gratuitas (HF_TOKEN y/o GPTZERO_API_KEY en el entorno)
+python scripts/verify_ai.py --file document.md --hf-token "$env:HF_TOKEN"
+python scripts/verify_ai.py --file document.md --gptzero-key "$env:GPTZERO_API_KEY"
+```
+
+Fusion: `final = 0.6*local + 0.4*externa` (si no hay externa se usa solo la local).
+Verdict `PASA` solo si el global **y** cada sección están bajo el umbral
+(default `--threshold 0.5`). Las capas externas degradan con aviso si fallan
+(red/403/modelo no soportado) — nunca rompen el gate.
+
+Linguistic red flags it reports automatically: `Burstiness SD < 12`,
+connector density per sentence, AI-phrase hits, passive-per-sentence ratio.
+Higher is normally better; treat individual numbers as a relative signal.
+
+> **Token/keys:** HF_TOKEN (gratis) se obtiene en huggingface.co/settings/tokens;
+> GPTZERO_API_KEY en gptzero.me (plan free, créditos limitados). Ninguna parte
+> de este pipeline requiere pago; si no hay keys, se omiten Capas 3-4.
+
+---
+
 ## 3. ITERATE — Verification loop
 
 ```
@@ -260,7 +302,7 @@ manually review the most problematic sections.
 - [ ] Count repeated connectors and replace
 - [ ] No "as previously mentioned" or similar
 - [ ] Each section ends without forced closure
-- [ ] **Run detect_ai.py → Verdict: PASA (exit 0)**
+- [ ] **Run detect_ai.py → Verdict: PASA (exit 0)** (or `verify_ai.py` for the full free multi-layer pipeline)
 
 ---
 
@@ -269,7 +311,8 @@ manually review the most problematic sections.
 pip install transformers torch
 ```
 For online verification, ask the user to run the text through an online checker
-and paste the result (no tool dependency).
+and paste the result (no tool dependency). Optional (free, Layer 3-4 of
+`verify_ai.py`): `HF_TOKEN` and/or `GPTZERO_API_KEY` env vars.
 
 ## Restrictions
 
@@ -294,7 +337,9 @@ and paste the result (no tool dependency).
 content-humanizer/
 ├── SKILL.md
 ├── scripts/
-│   └── detect_ai.py       # AI detection script (local)
+│   ├── detect_ai.py       # AI detection script (local, single-model)
+│   └── verify_ai.py       # Unified free pipeline (L1 lingüística + L2 local
+│                          #   + L3 HF Inference + L4 GPTZero), gate exit code
 └── tests/
     └── test_detect.py     # Tests for detection script
 ```
