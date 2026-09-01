@@ -258,9 +258,9 @@ ITEMS: list[dict] = [
         ],
     },
     {
-        "id": "constructor",
-        "dir": "agents/constructor.md",
-        "label": "Constructor (Build Mod)",
+        "id": "builder",
+        "dir": "agents/builder.md",
+        "label": "Builder (Build Mod)",
         "type": "agent",
         "dependencies": ["agent-self-improver", "skill-creator", "goal", "roadmaps"],
     },
@@ -702,7 +702,7 @@ def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Pat
                     print(f"  {GRN}{TIK}{RST} {bundle_src}  {DIM}{ARR}{RST}  {_rel_path(bundle_dst)}")
             # command files (installed to <config>/commands/)
             for cmd_src in it.get("commands", []):
-                cmd_path = project_root / it["dir"] / cmd_src
+                cmd_path = project_root / it["dir"] / "commands" / cmd_src
                 cmd_dst = cmds_root / cmd_src
                 if cmd_path.exists():
                     cmd_dst.parent.mkdir(parents=True, exist_ok=True)

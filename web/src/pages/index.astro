@@ -21,9 +21,9 @@ const agents = [
 		type: "agent" as const,
 	},
 	{
-		name: "constructor",
+		name: "builder",
 		description: "Default full-access build agent. Reads, writes, edits files, runs commands, and executes all available tools. Combines the build role with self-improvement, skill creation, skill improvement, goal optimization, and roadmap tracking.",
-		permissions: "* allow (question, plan_enter; doom_loop ask)",
+		permissions: "* allow (question; doom_loop ask)",
 		type: "agent" as const,
 	},
 ];

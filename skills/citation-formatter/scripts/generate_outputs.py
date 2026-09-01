@@ -637,6 +637,8 @@ def main(argv: list[str] | None = None) -> int:
         parts.append(markdown_to_html(body))
         parts.append("</div>")
 
+        body_html = "\n".join(parts)
+
         doc = f"""<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -659,7 +661,7 @@ def main(argv: list[str] | None = None) -> int:
 </style>
 </head>
 <body>
-{"\n".join(parts)}
+{body_html}
 </body>
 </html>"""
         out = Path(args.out) if args.out else Path(args.file).with_suffix(".html")

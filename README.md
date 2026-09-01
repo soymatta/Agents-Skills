@@ -24,7 +24,7 @@ Talk to these agents in natural language. They auto-detect intent and run the ap
 | `vault` | "Find notes about Python", "Organize my vault by topic", "Create a daily note" |
 | `paper-researcher` | "Write a research paper on X in APA", "Find academic sources for my thesis", "Review my paper's citations" |
 | `jobfinder` | "Find remote Python developer jobs", "Score my CV against this posting", "Generate a cover letter for this role" |
-| `constructor` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Alcanza este objetivo", "Improve this skill" |
+| `builder` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Alcanza este objetivo", "Improve this skill" |
 
 ### Skills
 
@@ -83,7 +83,7 @@ Agents-Skills/
     vault.md             # Unified notes manager (Obsidian, OneNote, Notion)
     paper-researcher.md  # Academic paper writer
     jobfinder.md         # Job application assistant
-    constructor.md       # Build Mod — full-access dev agent (clone of opencode build)
+    builder.md            # Build Mod — full-access dev agent (clone of opencode build)
   skills/                # Skill definitions + scripts
     requirements.txt     # Python dependencies
     pyproject.toml       # Project config + pytest settings
@@ -113,7 +113,7 @@ Agents-Skills/
 | `vault` | Unified notes manager for Obsidian, OneNote, Notion, and any markdown-based app. Index, search, organize, verify, create notes, health checks, broken links, and link suggestions — 8 workflows, bilingual EN/ES. | read, glob, grep, task, edit |
 | `paper-researcher` | Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES. | bash, read, glob, grep, webfetch, task, edit |
 | `jobfinder` | Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs/cover letters, and tracks applications. | bash, read, glob, grep, webfetch, task, edit |
-| `constructor` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). | all tools (allow), question, plan_enter |
+| `builder` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). | all tools (allow), question, doom_loop (ask) |
 
 ## Skills
 
@@ -195,7 +195,7 @@ paper-researcher (agent)
 jobfinder (agent)
   +-- scripts/ (7 scripts: scoring, scraping, CV, reports, tracking)
 
-constructor (agent, Build Mod)
+builder (agent, Build Mod)
   +-- agent-self-improver (skill)  # feedback collection + pattern detection
   +-- skill-creator (skill)        # create/improve/benchmark skills
   +-- goal (skill)                # autonomous loop until an objective is reached

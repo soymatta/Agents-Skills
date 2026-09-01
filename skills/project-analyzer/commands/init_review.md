@@ -1,13 +1,13 @@
 ---
 description: First command when opening a project. Understands the whole project (purpose, relevant files, structure), finds blockers and pending work, flags useless/overlapping files and structure-optimization opportunities, and ends with a short, precise token-optimized handoff summary for another agent to fix.
-agent: constructor
+agent: builder
 ---
 
 # init_review — Project onboarding + health scan
 
 Run this FIRST when working on a project you don't fully know. Read-only over the
 audited code: diagnose and summarize, do not edit. Produce a concise, precise
-summary that lets another agent (e.g. constructor) fix things.
+summary that lets another agent (e.g. builder) fix things.
 
 Scope: default is the current directory; use `$ARGUMENTS` to focus on a subpath,
 module, or specific concern (e.g. `/init_review src/` or `/init_review auth`).
