@@ -69,6 +69,24 @@ def _setup_encoding():
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
+def _tl(value, lang: str):
+    """Resolve a (possibly localized) field for the requested language.
+
+    A translatable field may be either a plain string, or a dict keyed by
+    language code (e.g. {"en": "...", "es": "..."}). Lists are mapped
+    element-wise so bullets/items translate individually. This lets a single
+    JSON drive fully localized ES and EN PDFs (only section headers were local
+    before, leaving body content in English in both outputs).
+    """
+    if isinstance(value, dict):
+        if "en" in value or "es" in value:
+            return value.get(lang) or value.get("en") or next(iter(value.values()), "")
+        return value
+    if isinstance(value, list):
+        return [_tl(item, lang) for item in value]
+    return value
+
+
 # === COLOR SCHEME ===
 PRIMARY = (11, 43, 74)
 SECONDARY = (26, 58, 92)
@@ -203,7 +221,10 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
     """Generate CV PDF from data dict.
 
     Args:
-        data: CV data dictionary
+        data: CV data dictionary. Translatable fields (profile, skills values,
+            experience role/bullets, project bullets, education degree/details,
+            languages) may be plain strings or {"en": .., "es": ..} dicts so a
+            single JSON produces a fully-localized CV in each language.
         output_path: Output PDF file path
         lang: Language code ('es' or 'en')
     """
@@ -212,39 +233,51 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
 
     # === HEADER ===
     pdf.header_name(data.get("name", ""))
-    pdf.header_title(data.get("title", ""))
+    pdf.header_title(_tl(data.get("title", ""), lang))
 
     contact = data.get("contact", {})
     contact_parts = [
-        contact.get("email", ""),
-        contact.get("phone", ""),
-        contact.get("linkedin", ""),
-        contact.get("location", ""),
-        contact.get("website", ""),
+        _tl(contact.get("email", ""), lang),
+        _tl(contact.get("phone", ""), lang),
+        _tl(contact.get("linkedin", ""), lang),
+        _tl(contact.get("location", ""), lang),
+        _tl(contact.get("website", ""), lang),
     ]
     pdf.header_contact([p for p in contact_parts if p])
 
     # === PROFILE ===
-    if data.get("profile"):
+    profile = _tl(data.get("profile", ""), lang)
+    if profile:
         profile_label = "Perfil" if lang == "es" else "Profile"
         pdf.section(profile_label)
-        pdf.body(data["profile"])
+        pdf.body(profile)
 
     # === SKILLS ===
     if data.get("skills"):
         skills_label = "Habilidades" if lang == "es" else "Skills"
         pdf.section(skills_label)
-        for category, items in data["skills"].items():
-            pdf.skill_row(category, items)
+        skills_data = data["skills"]
+        if isinstance(skills_data, dict):
+            pairs = skills_data.items()
+        else:
+            pairs = []
+            for item in skills_data:
+                if isinstance(item, dict):
+                    pairs.append((_tl(item.get("category") or item.get("name") or "", lang),
+                                  _tl(item.get("value") or item.get("items") or "", lang)))
+                else:
+                    pairs.append((item, ""))
+        for category, items in pairs:
+            pdf.skill_row(_tl(category, lang), _tl(items, lang))
 
     # === EXPERIENCE ===
     if data.get("experience"):
         exp_label = "Experiencia" if lang == "es" else "Experience"
         pdf.section(exp_label)
         for job in data["experience"]:
-            subtitle = f"{job.get('role', '')} \u00b7 {job.get('period', '')}"
-            pdf.entry(job.get("company", ""), subtitle.strip(" \u00b7"))
-            for bullet in job.get("bullets", []):
+            subtitle = f"{_tl(job.get('role', ''), lang)} \u00b7 {_tl(job.get('period', ''), lang)}"
+            pdf.entry(_tl(job.get("company", ""), lang), subtitle.strip(" \u00b7"))
+            for bullet in _tl(job.get("bullets", []), lang):
                 pdf.bullet(bullet)
 
     # === PROJECTS ===
@@ -252,8 +285,8 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
         proj_label = "Proyectos" if lang == "es" else "Projects"
         pdf.section(proj_label)
         for project in data["projects"]:
-            pdf.entry(project.get("name", ""), project.get("role", ""))
-            for bullet in project.get("bullets", []):
+            pdf.entry(_tl(project.get("name", ""), lang), _tl(project.get("role", ""), lang))
+            for bullet in _tl(project.get("bullets", []), lang):
                 pdf.bullet(bullet)
 
     # === EDUCATION ===
@@ -261,10 +294,27 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
         edu_label = "Educaci\u00f3n" if lang == "es" else "Education"
         pdf.section(edu_label)
         for edu in data["education"]:
-            subtitle = f"{edu.get('degree', '')} \u00b7 {edu.get('period', '')}"
-            pdf.entry(edu.get("institution", ""), subtitle.strip(" \u00b7"))
+            subtitle = f"{_tl(edu.get('institution', ''), lang)} \u00b7 {_tl(edu.get('period', ''), lang)}"
+            pdf.entry(_tl(edu.get("degree", ""), lang), subtitle.strip(" \u00b7"))
             if edu.get("details"):
-                pdf.body(edu["details"])
+                pdf.body(_tl(edu["details"], lang))
+            pdf.ln(2)  # spacing between education entries
+
+    # === CERTIFICATIONS / LICENSES ===
+    if data.get("certifications"):
+        cert_label = "Certificaciones y Licencias" if lang == "es" else "Certifications & Licenses"
+        pdf.section(cert_label)
+        if isinstance(data["certifications"], list):
+            items = [{"name": it.get("name"), "issuer": it.get("issuer"), "id": it.get("id")}
+                     for it in data["certifications"] if isinstance(it, dict)]
+            for it in items:
+                subtitle = " \u00b7 ".join(
+                    p for p in [_tl(it.get("issuer", ""), lang), _tl(it.get("id", ""), lang)] if p
+                )
+                pdf.entry(_tl(it.get("name", ""), lang), subtitle)
+        else:
+            for name, issuer in data["certifications"].items():
+                pdf.entry(_tl(name, lang), _tl(issuer, lang))
 
     # === LANGUAGES ===
     if data.get("languages"):
@@ -281,7 +331,7 @@ def generate_cv(data: dict, output_path: str, lang: str = "es"):
                 else:
                     pairs.append((item, ""))
         for language, level in pairs:
-            pdf.skill_row(language, level)
+            pdf.skill_row(_tl(language, lang), _tl(level, lang))
 
     pdf.output(output_path)
     print(f"  CV ({lang.upper()}): {output_path}")

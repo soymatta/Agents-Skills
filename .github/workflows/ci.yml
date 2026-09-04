@@ -37,6 +37,10 @@ jobs:
         run: |
           for skill in skills/*/; do
             skill_name=$(basename "$skill")
+            if [[ "$skill_name" == .* ]]; then
+              # Skip caches and generated dirs (e.g. .pytest_cache)
+              continue
+            fi
             if [ -f "$skill/SKILL.md" ]; then
               echo "OK: $skill_name has SKILL.md"
             elif [ -d "$skill/scripts" ] || [ -d "$skill/templates" ]; then

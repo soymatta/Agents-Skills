@@ -21,7 +21,6 @@ env/
 .opencode/
 .claude/
 .cowork/
-AGENTS.md
 
 # OS
 .DS_Store
@@ -45,6 +44,7 @@ skills/*/results.json
 skills/*/profile.json
 skills/*/projects.json
 skills/*/reports/
+reports/
 osint_output/
 
 # Model caches (HF Hub downloads, duplicate of .venv/hf_cache)
@@ -68,3 +68,9 @@ coverage/
 
 # Unrelated local research notes
 Investigacion/
+
+# Personal job-related files (CVs)
+Job/
+
+# Candidate profile (PII: name, email, phone) — never commit
+/profile.json

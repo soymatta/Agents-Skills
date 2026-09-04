@@ -295,38 +295,42 @@ def parse_inline(text):
     """
     segments = []
     pos = 0
+    text = text.replace("\\.", ".")  # unescape \. → literal period (ordered lists)
 
     pattern = re.compile(
-        r"(\*\*(.+?)\*\*)"                 # 1,2 bold
-        r"|(\^\{([^}]+)\})"                # 3,4 superscript ^{...}
-        r"|(_\{([^}]+)\})"                 # 5,6 subscript _{...}
-        r"|(_[^_]+_)"                      # 7 italic _text_
-        r"|(\*(.+?)\*)"                    # 8,9 italic *text* (fallback)
-        r"|(https?://[^\s\]}\)]+)"          # 10 bare URL
-        r"|(\[(\d+(?:,\s*\d+)*)\])"        # 11,12 citation [1] or [1,2]
-        r"|(\[(.+?)\]\((.+?)\))"           # 13,14,15 link [text](url)
+        r"(\*\*\*(.+?)\*\*\*)"            # 1,2 bold + italic
+        r"|(\*\*(.+?)\*\*)"               # 3,4 bold
+        r"|(\^\{([^}]+)\})"               # 5,6 superscript ^{...}
+        r"|(_\{([^}]+)\})"                # 7,8 subscript _{...}
+        r"|(_[^_]+_)"                     # 9 italic _text_
+        r"|(\*(.+?)\*)"                   # 10,11 italic *text* (fallback)
+        r"|(https?://[^\s\]}\)]+)"        # 12 bare URL
+        r"|(\[(\d+(?:,\s*\d+)*)\])"       # 13,14 citation [1] or [1,2]
+        r"|(\[(.+?)\]\((.+?)\))"          # 15,16,17 link [text](url)
     )
 
     for m in pattern.finditer(text):
         if m.start() > pos:
             segments.append({"type": "text", "content": text[pos:m.start()]})
 
-        if m.group(2):       # bold
-            segments.append({"type": "bold", "content": m.group(2)})
-        elif m.group(4):     # superscript
-            segments.append({"type": "super", "content": m.group(4)})
-        elif m.group(6):     # subscript
-            segments.append({"type": "sub", "content": m.group(6)})
-        elif m.group(7):     # italic (underscore)
-            segments.append({"type": "italic", "content": m.group(7)[1:-1]})
-        elif m.group(9):     # italic (asterisk fallback)
-            segments.append({"type": "italic", "content": m.group(9)})
-        elif m.group(10):    # bare URL
-            segments.append({"type": "url", "content": m.group(10)})
-        elif m.group(12):    # citation
-            segments.append({"type": "citation", "content": m.group(12)})
-        elif m.group(15):    # markdown link
-            segments.append({"type": "link", "text": m.group(14), "url": m.group(15)})
+        if m.group(2):       # boldable (bold+italic)
+            segments.append({"type": "boldi", "content": m.group(2)})
+        elif m.group(4):     # bold
+            segments.append({"type": "bold", "content": m.group(4)})
+        elif m.group(6):     # superscript
+            segments.append({"type": "super", "content": m.group(6)})
+        elif m.group(8):     # subscript
+            segments.append({"type": "sub", "content": m.group(8)})
+        elif m.group(9):     # italic (underscore)
+            segments.append({"type": "italic", "content": m.group(9)[1:-1]})
+        elif m.group(11):    # italic (asterisk fallback)
+            segments.append({"type": "italic", "content": m.group(11)})
+        elif m.group(12):    # bare URL
+            segments.append({"type": "url", "content": m.group(12)})
+        elif m.group(14):    # citation
+            segments.append({"type": "citation", "content": m.group(14)})
+        elif m.group(17):    # markdown link
+            segments.append({"type": "link", "text": m.group(16), "url": m.group(17)})
 
         pos = m.end()
 
@@ -346,6 +350,9 @@ def add_segments(paragraph, segments, size=None):
         elif stype == "bold":
             run = paragraph.add_run(seg["content"])
             set_run_font(run, size=size or IEEE_SPEC["font_size_body"], bold=True)
+        elif stype == "boldi":
+            run = paragraph.add_run(seg["content"])
+            set_run_font(run, size=size or IEEE_SPEC["font_size_body"], bold=True, italic=True)
         elif stype == "italic":
             run = paragraph.add_run(seg["content"])
             set_run_font(run, size=size or IEEE_SPEC["font_size_body"], italic=True)

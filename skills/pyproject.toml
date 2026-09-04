@@ -9,11 +9,10 @@ description = "Personal AI agents and skills for coding assistants (OpenCode, Cl
 requires-python = ">=3.11"
 license = {text = "MIT"}
 
-[project.scripts]
-agents-skills-setup = "setup:main"
-
+# Config-only package: the installer runs as `python setup.py` from the repo
+# root, so no console entry point or module is shipped here.
 [tool.setuptools]
-py-modules = ["setup"]
+py-modules = []
 
 [tool.pytest.ini_options]
 testpaths = ["."]

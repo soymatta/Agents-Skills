@@ -28,6 +28,24 @@ audited code.** It may only write its own outputs under `reports/` (audit JSON f
 - `[MINOR]` — Minor concern. Nice to fix.
 - `[SUGGESTION]` — Optional improvement.
 
+## Pillars
+
+The audit can run either as a full pass or a single named pillar. A pillar is one focused
+lens. When the request is unscoped, ask once "all seven pillars, or one?" before running;
+never silently default to one pillar, never blind-run all without offering the choice.
+
+| #   | Pillar          | Lens                                                                 |
+| --- | --------------- | -------------------------------------------------------------------- |
+| 01  | `code-quality`  | Clean code (naming, SOLID, DRY, readability, smells), tech debt (dead code, complexity, file/function size, error handling) |
+| 02  | `architecture`  | Conformance to ADRs, coupling, boundaries, layering                   |
+| 03  | `security`      | OWASP risks, authz, input validation, secrets in code                 |
+| 04  | `dependencies`  | CVEs, licenses, outdated and unused deps, supply chain                |
+| 05  | `performance`   | N+1 queries, hot paths, bundle size, heavy operations                 |
+| 06  | `tests`         | Critical-path coverage, flakiness, test pyramid balance               |
+| 07  | `ui`            | Loading/error/empty states, responsive, a11y                          |
+
+An unscannable pillar is skipped and recorded under the report's coverage, never invented.
+
 ## Prioritization
 Order recommendations by `severity x probability x effort`: fix high-severity, likely, low-effort items
 first; flag high-severity-but-unlikely items for verification rather than ignoring them.
@@ -64,6 +82,31 @@ first; flag high-severity-but-unlikely items for verification rather than ignori
 ```
 
 Skip empty sections with "No significant issues found." Don't force every section if nothing notable.
+
+## Apply fixes mode
+
+When the caller asks to fix the findings (e.g. `init_review` hands off a scope), the skill
+moves from read-only diagnosis to guided repair. It receives the findings list from the
+scan and applies the chosen scope. The caller (command) decides which scope, but this
+mode defines how fixes are executed:
+
+- **Scope mapping** — the fix scope selects findings by severity/area:
+  - `Aplicar todo`: all findings (CRITICAL + MAJOR + MINOR + SUGGESTION).
+  - `Solo lo crítico`: only CRITICAL findings.
+  - `Solo estructura`: only F4 / structure / file-hygiene findings.
+  - `Solo código`: only F2 (blockers) + F3 (pending work) findings.
+  - `No hacer nada`: no changes.
+- **Surgical, one finding at a time** — apply each selected finding with its `file:line`,
+  severity, issue, and suggested fix. Never fix silently; each fix maps to a finding.
+- **Skip with reason** — a finding that proves to be a false positive, or whose fix would
+  introduce risk, is skipped and reported with the reason. Do not force a fix that would
+  harm the project.
+- **Confirm destructive behaviors** — a fix that deletes files, moves structure, changes
+  behavior, or touches production asks for confirmation first.
+- **Verify** — after applying the scope, run the project's tests/lint/build to confirm the
+  fixes don't break anything. Report fixed vs. skipped vs. blocked.
+- **Read-only concern** — this is the ONLY mode that edits target code, and only for the
+  findings explicitly in scope. Everything else in this skill stays read-only.
 
 ## Baseline / delta (re-runs)
 - Write a structured copy of the findings to `reports/audit-<iso>.json` (finding id, severity, file, status) alongside the human report.

@@ -32,7 +32,56 @@ permissions. Also uses `agent-self-improver`, `skill-creator`,
 `goal`, and `roadmaps` skills. Behavioral clone of opencode `build`
 with a clearer name and description.
 
+> **Sync note:** the shared rules below (task sizing, self-rating, confusion
+> protocol, communication) are mirrored in this repo's `AGENTS.md`, which is
+> injected for repo-root sessions. `AGENTS.md` is the source of truth for those
+> shared rules; when one of them changes, update both files together.
+
 ---
+
+## Task sizing — triage before spending tokens
+
+Every task starts with a printed triage block, before any work:
+
+```
+Size: small | medium | large — why
+Tests: local (which ones) | full suite — why
+Scope: <files/modules affected>
+```
+
+**The sizes:**
+
+- **small** — typo, copy change, config tweak, rename, any one-or-two-file mechanical edit with no behavior change. No fan-out, no critic sub-agent. Run only the checks covering what was touched.
+- **medium** — localized behavior change or bug fix inside one module. Solo by default; fan out only if the work splits into truly independent units. Run the touched module's tests, not the whole repo's. Bug fixes ship a regression test.
+- **large** — new feature, cross-module or contract change, architecture work, anything judgment-heavy. Full protocol: fan-out, harsh critic loop, full test + eval suites for every service touched, self-rating loop.
+
+**Deciding rules:** when torn between two sizes, pick the smaller one and say so.
+Escalate the moment the change turns out bigger than triaged, printing an updated block.
+"Test what you touch" is the default; the full suite is for large and contract changes.
+
+## Self-rating — proud or loop
+
+Before the final report, rate the work 1-10 from a fresh read of the deliverable (the diff,
+the output, the running thing), not from memory of building it. Answer one question
+honestly: am I proud and happy with this work? Yes or no.
+
+- If no, do not stop. Name exactly what falls short, fix it, re-rate. Loop until the honest
+  answer is yes. Each pass states what changed since the last rating.
+- The bar is "holy shit, that's done" — not "it passes". A 7 with a shrug is a no.
+- Anchor the score: every point below 10 names a specific gap. A score with no named gaps
+  is a guess, not a rating.
+
+## Confusion protocol
+
+When you hit high-stakes ambiguity:
+- Two plausible architectures for the same requirement
+- A request that contradicts an existing pattern
+- A destructive operation with unclear scope
+- Missing context that would materially change the approach
+
+STOP. Name the ambiguity in one sentence. Present 2-3 options with real trade-offs (not a
+fake spread). Ask the user. Do not guess on architectural decisions. Does not apply to
+routine coding or small obvious changes.
 
 ## Communication style (CRITICAL)
 

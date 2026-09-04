@@ -58,14 +58,17 @@ class Token(NamedTuple):
 
 
 _TOKEN_SPEC = [
-    ("ESC",     r"\\_"),                                   # \_
+    ("ESC",     r"\\(?P<esc_t>[\\.!_])"),                                # \. \_ \!  → literal char
     ("ISUP",    r"_(?P<isup_var>[^_{}]*?)_\^{(?P<isup_sup>[^}]*)}"),  # _X_^{y}
     ("ISUB",    r"_(?P<isub_var>[^_{}]*?)_{(?P<isub_sub>[^}]*)}"),    # _X_{y}
-    ("BOLD",    r"\*\*(?P<bold_t>[^*]+)\*\*"),                         # **text**
-    ("ITALIC",  r"_(?P<ital_t>[^\^_*{}\r\n]+?)_"),                     # _text_
-    ("SUP",     r"\^{(?P<sup_t>[^}]*)}"),                              # ^{text}
-    ("SUB",     r"_{(?P<sub_t>[^}]*)}"),                              # _{text}
-    ("TEXT",    r"[^\^_*{}\r\n\\]+"),                                    # plain text
+    ("BOLDI",   r"\*\*\*(?P<bi_t>[^*]+)\*\*\*"),                        # ***text*** → bold+italic
+    ("BOLD",    r"\*\*(?P<bold_t>[^*]+)\*\*"),                          # **text**
+    ("LINK",    r"\[(?P<link_t>[^\]]+)\]\((?P<link_u>[^)]+)\)"),       # [text](url)
+    ("STARIT",  r"\*(?P<starit_t>[^*]+)\*"),                            # *text* italic
+    ("ITALIC",  r"_(?P<ital_t>[^\^_*{}\r\n]+?)_"),                      # _text_
+    ("SUP",     r"\^{(?P<sup_t>[^}]*)}"),                               # ^{text}
+    ("SUB",     r"_{(?P<sub_t>[^}]*)}"),                                # _{text}
+    ("TEXT",    r"[^\^_*{}\r\n\\[\\]()]+"),                             # plain text
     ("CHAR",    r"."),                                                  # single other char
 ]
 
@@ -75,7 +78,9 @@ TOKEN_RE = re.compile("|".join(f"(?P<{name}>{pattern})" for name, pattern in _TO
 # Maps token kinds to their content group names (for simple 1-group patterns)
 _CONTENT_GROUP: dict[str, str] = {
     "BOLD": "bold_t",
+    "BOLDI": "bi_t",
     "ITALIC": "ital_t",
+    "STARIT": "starit_t",
     "SUP": "sup_t",
     "SUB": "sub_t",
 }
@@ -89,7 +94,7 @@ def split_inline(text: str) -> list[Token]:
         kind = match.lastgroup
 
         if kind == "ESC":
-            tokens.append(Token("text", "_"))
+            tokens.append(Token("text", match.group("esc_t")))
 
         elif kind == "ISUB":
             var = match.group("isub_var")
@@ -100,6 +105,9 @@ def split_inline(text: str) -> list[Token]:
             var = match.group("isup_var")
             sup = match.group("isup_sup")
             tokens.append(Token("italic_sup", f"{var}|{sup}"))
+
+        elif kind == "LINK":
+            tokens.append(Token("link", f"{match.group('link_t')}|{match.group('link_u')}"))
 
         elif kind in _CONTENT_GROUP:
             tokens.append(Token(kind.lower(), match.group(_CONTENT_GROUP[kind])))
@@ -120,6 +128,13 @@ def tokens_to_html(tokens: list[Token]) -> str:
             parts.append(f"<em>{t.value}</em>")
         elif t.kind == "bold":
             parts.append(f"<strong>{t.value}</strong>")
+        elif t.kind == "boldi":
+            parts.append(f"<strong><em>{t.value}</em></strong>")
+        elif t.kind == "link":
+            text, url = t.value.split("|", 1)
+            parts.append(f'<a href="{_html_escape(url)}">{_html_escape(text)}</a>')
+        elif t.kind == "starit":
+            parts.append(f"<em>{t.value}</em>")
         elif t.kind == "sup":
             parts.append(f"<sup>{t.value}</sup>")
         elif t.kind == "sub":
@@ -151,6 +166,13 @@ def tokens_to_reportlab(tokens: list[Token]) -> str:
             parts.append(f"<i>{t.value}</i>")
         elif t.kind == "bold":
             parts.append(f"<b>{t.value}</b>")
+        elif t.kind == "boldi":
+            parts.append(f"<b><i>{t.value}</i></b>")
+        elif t.kind == "link":
+            text, url = t.value.split("|", 1)
+            parts.append(f'<a href="{_rl_escape(url)}" color="#0000FF"><u>{_rl_escape(text)}</u></a>')
+        elif t.kind == "starit":
+            parts.append(f"<i>{t.value}</i>")
         elif t.kind == "sup":
             parts.append(f"<super>{t.value}</super>")
         elif t.kind == "sub":
@@ -167,6 +189,25 @@ def tokens_to_reportlab(tokens: list[Token]) -> str:
 def _rl_text(text: str) -> str:
     """Escape then apply inline math notation for reportlab."""
     return tokens_to_reportlab(split_inline(_rl_escape(text)))
+
+
+# Regex matching one citation token like [1] (also used inside [1][3][14]).
+RE_RLLINK_CITE = re.compile(r"\[(\d+)\]")
+
+
+def _rl_link_citations(text: str, enabled: bool) -> str:
+    """Convert numeric citations [N] into blue underlined internal hyperlinks.
+
+    Only applied to body text (enabled=True). Inside the references section we
+    keep the citation markers as plain text (they are the entry labels).
+    """
+    if not enabled:
+        return text
+    return RE_RLLINK_CITE.sub(
+        lambda m: f'<a href="#bib_ref_{m.group(1)}" '
+                  f'color="#0000FF"><u>[{m.group(1)}]</u></a>',
+        text,
+    )
 
 
 # ── Markdown helpers ──────────────────────────────────────────────────────────
@@ -274,6 +315,34 @@ def generate_toc_html(headings: list[tuple[int, str]]) -> str:
 def _add_docx_runs(paragraph, tokens: list[Token]) -> None:
     """Apply inline tokens to a python-docx paragraph/heading as runs."""
     from docx.shared import Pt
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+    from docx.opc.constants import RELATIONSHIP_TYPE as RT
+
+    def _ext_link(p, text, url):
+        """Insert a blue, underlined hyperlink into *p*."""
+        try:
+            r_id = p.part.relate_to(url, RT.HYPERLINK, is_external=True)
+        except Exception:
+            r_id = None
+        hl = OxmlElement("w:hyperlink")
+        if r_id is not None:
+            hl.set(qn("r:id"), r_id)
+        run = OxmlElement("w:r")
+        rPr = OxmlElement("w:rPr")
+        color = OxmlElement("w:color")
+        color.set(qn("w:val"), "0000FF")
+        rPr.append(color)
+        u = OxmlElement("w:u")
+        u.set(qn("w:val"), "single")
+        rPr.append(u)
+        run.append(rPr)
+        run_text = OxmlElement("w:t")
+        run_text.set(qn("xml:space"), "preserve")
+        run_text.text = text
+        run.append(run_text)
+        hl.append(run)
+        p._p.append(hl)
 
     for t in tokens:
         if t.kind == "text":
@@ -284,6 +353,16 @@ def _add_docx_runs(paragraph, tokens: list[Token]) -> None:
         elif t.kind == "bold":
             r = paragraph.add_run(t.value)
             r.bold = True
+        elif t.kind == "boldi":
+            r = paragraph.add_run(t.value)
+            r.bold = True
+            r.italic = True
+        elif t.kind == "link":
+            text, url = t.value.split("|", 1)
+            _ext_link(paragraph, text, url)
+        elif t.kind == "starit":
+            r = paragraph.add_run(t.value)
+            r.italic = True
         elif t.kind == "sup":
             r = paragraph.add_run(t.value)
             r.font.superscript = True
@@ -483,6 +562,11 @@ def generate_pdf(front: dict, body_md: str, out_path: Path) -> None:
                 level = int(flowable.style.name[7:] or 1)
                 self.notify("TOCEntry", (min(level, 3), flowable.getPlainText(), self.page))
 
+        # Internal citation destinations are created with inline `<a name="bib_ref_N">`
+        # anchors injected into each reference entry (see the render loop in
+        # generate_pdf), which makes PDF viewers jump to the exact reference line
+        # rather than to the top of the page.
+
     m = inch
     width, height = letter
     if is_ieee:
@@ -560,16 +644,36 @@ def generate_pdf(front: dict, body_md: str, out_path: Path) -> None:
             in_refs = htxt.rstrip(":").lower() == "references"
             story.append(Paragraph(_rl_text(htxt), _hstyle(min(len(h.group(1)), 6))))
             continue
+        # References section may be styled as `**REFERENCES**` (manual bold),
+        # not a markdown heading. Detect it by its bare text.
+        bare = re.sub(r"\*\*", "", line).strip().rstrip(":")
+        if bare.lower() == "references" or bare.lower() == "referencias":
+            in_refs = True
+            story.append(Paragraph(_rl_text(line), _hstyle(1)))
+            continue
         if re.match(r"^\s*---+\s*$", line):
             story.append(Spacer(1, 6))
             continue
         if re.match(r"^\s*[-*]\s+", line):
-            story.append(Paragraph(_rl_text(line[1:].strip()), body_style))
+            story.append(Paragraph(_rl_link_citations(_rl_text(line[1:].strip()), not in_refs), body_style))
             continue
         st = ref_style if in_refs else body_style
-        story.append(Paragraph(_rl_text(line), st))
+        markup = _rl_link_citations(_rl_text(line), not in_refs)
+        if in_refs:
+            mref = re.match(r"^\[(\d+)\]", line)
+            if mref:
+                # Anchor the destination at the exact reference line so in-body
+                # citation links jump straight to it.
+                markup = f'<a name="bib_ref_{mref.group(1)}"></a>' + markup
+        story.append(Paragraph(markup, st))
 
-    doc.multiBuild(story)
+    # Single build is deterministic and keeps the internal citation destinations.
+    # multiBuild (used only for the TOC) can discard pages and lose the named
+    # bookmarks that in-body citations link to.
+    if front.get("TOC", "").strip().lower() == "true":
+        doc.multiBuild(story)
+    else:
+        doc.build(story)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────

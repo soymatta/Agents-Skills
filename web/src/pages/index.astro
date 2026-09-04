@@ -142,6 +142,46 @@ const skills = [
 		type: "first-party" as const,
 	},
 	{
+		name: "code-review",
+		description: "Reviews a diff read-only on three axes (code quality, feature behavior vs. plan, relevancy) into one verdict report before shipping.",
+		usage: "Review this diff",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
+		name: "refactor",
+		description: "Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security.",
+		usage: "Refactor this module for performance",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
+		name: "debug",
+		description: "Reproduces and fixes known bugs, or finds unknown root causes by hypothesis validation, with a test-driven fix and regression test.",
+		usage: "Debug why this breaks",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
+		name: "git-workflow",
+		description: "Version-control workflows: atomic conventional commits, branches, pull/merge requests, and release tags.",
+		usage: "Commit these changes",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
+		name: "project-memory",
+		description: "Builds and maintains the project's durable memory of architecture, conventions, and decisions so every session starts grounded.",
+		usage: "Set up project memory",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
 		name: "skill-creator",
 		description: "Meta-skill: create, evaluate, compare, and optimize other skills with benchmarking.",
 		usage: "Create a new skill from scratch",
@@ -204,6 +244,12 @@ const aiCommands = [
 			{ cmd: "/upskill", desc: "Skill gap analysis with learning plans" },
 		],
 	},
+	{
+		skill: "project-analyzer",
+		commands: [
+			{ cmd: "/init_review [scope]", desc: "Project onboarding + health scan, shown on screen, then offers guided fixes (all / critical / structure / code / none) via the build agent" },
+		],
+	},
 ];
 
 const categoryColors: Record<string, string> = {
@@ -216,6 +262,7 @@ const categoryColors: Record<string, string> = {
 	meta: "var(--text-dim)",
 	design: "var(--purple)",
 	career: "var(--green)",
+	development: "var(--orange)",
 };
 ---
 

@@ -46,6 +46,11 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `math-notation` | Auto-applied when writing math in academic docs |
 | `agent-self-improver` | "Improve this agent's performance" |
 | `skill-creator` | "Create a new skill from scratch" |
+| `code-review` | "Review this diff" |
+| `refactor` | "Refactor this module for performance" |
+| `debug` | "Debug why this breaks" |
+| `git-workflow` | "Commit these changes" |
+| `project-memory` | "Set up project memory" |
 | `impeccable` | `/init`, `/shape`, `/critique`, `/polish`, `/audit` |
 | `ai-job-search` | `/setup`, `/apply`, `/scrape`, `/rank`, `/interview` |
 
@@ -99,6 +104,11 @@ Agents-Skills/
     goal/
     osint/               # + tests/
     project-analyzer/
+    code-review/
+    debug/
+    git-workflow/
+    project-memory/
+    refactor/
     research-pipeline/
     roadmaps/            # + tests/
     skill-creator/       # (Third-party — Anthropic, Apache 2.0) + tests/
@@ -134,6 +144,11 @@ Agents-Skills/
 | `roadmaps` | Creates, updates, and follows adaptive roadmaps for any project. | — |
 | `project-analyzer` | Read-only project analysis: structure, code quality, bugs, security, performance. | — |
 | `agent-self-improver` | Self-improvement framework for agents with human supervision. | — |
+| `code-review` | Reviews a diff read-only on three axes (code quality, feature behavior vs. plan, relevancy) into one verdict report. | — |
+| `refactor` | Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security. | — |
+| `debug` | Reproduces and fixes a known bug, or finds an unknown root cause by hypothesis validation, with a test-driven fix and regression test. | — |
+| `git-workflow` | Version-control workflows: atomic conventional commits, branches, pull/merge requests, release tags. | — |
+| `project-memory` | Builds and maintains the project's durable memory of architecture, conventions, and decisions so every session starts grounded. | — |
 | `skill-creator` | Meta-skill: create, evaluate, compare and optimize other skills. *(Third-party — Anthropic, Apache 2.0)* | — |
 | `impeccable` | Frontend design audit, polish, and redesign skill. *(Third-party — pbakaus, Apache 2.0)* | — |
 | `ai-job-search` | AI job application framework: 5D fit evaluation, CV tailoring, cover letters. *(Third-party — MadsLorentzen, MIT)* | — |
@@ -193,7 +208,7 @@ paper-researcher (agent)
         +-- scripts/generate_outputs.py
 
 jobfinder (agent)
-  +-- scripts/ (7 scripts: scoring, scraping, CV, reports, tracking)
+  +-- scripts/ (10 scripts: scoring, scraping, CV/cover-letter, reports, tracking)
 
 builder (agent, Build Mod)
   +-- agent-self-improver (skill)  # feedback collection + pattern detection
