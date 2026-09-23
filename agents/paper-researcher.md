@@ -85,6 +85,8 @@ replaces these by hand, do NOT invent real names)
 - **Confirm with the user before proceeding.** If the topic is vague, ask one
   clarifying question to pin it down (narrow the scope, choose the standard and
   length) rather than launching the full search chain on a guess.
+- When confirming, give a rough time estimate for the requested length (e.g. "~20 min
+  por 1.000 palabras") so the user can size the ask before the search chain starts.
 
 ### 2. SEARCH FOR SOURCES
 - Load `academic-source-search` skill

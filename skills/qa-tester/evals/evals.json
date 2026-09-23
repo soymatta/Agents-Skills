@@ -1,0 +1,45 @@
+{
+  "skill_name": "qa-tester",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Revisa que no haya errores en el proyecto antes de desplegar. Acabo de tocar un par de módulos. No sé qué herramientas usar, recomiéndame.",
+      "expected_output": "Detecta el tipo de proyecto, hace la pregunta-checklist de dimensiones con default recomendado y tooling portátil, corre los gates y al menos la parte E2E que toca lo modificado, y entrega el reporte QA con la plantilla del skill (target, resultados por gate, suite pasar/fallar, hallazgos, pendientes)."
+    },
+    {
+      "id": 2,
+      "prompt": "Quiero validar que una página pública del proyecto siga funcionando de punta a punta contra producción y que no haya errores de consola. Usa la suite.",
+      "expected_output": "Corre la suite QA contra la URL de producción configurada (sin código sin desplegar), verifica el guard de consola (console.error/pageerror fallan el test) y reporta con la plantilla."
+    },
+    {
+      "id": 3,
+      "prompt": "Solo código: verifica los gates del proyecto y dime si hay código muerto.",
+      "expected_output": "Confirma el checklist (usuario ya eligió Solo código), corre tsc/lint/build y la herramienta de código muerto disponible (knip/similar, portable), y entrega un reporte corto con la plantilla del skill."
+    },
+    {
+      "id": 4,
+      "prompt": "Explora TODAS las opciones posibles de la app local y trata de romperla. Si algo se rompe, documéntalo, repáralo y vuelve a intentarlo.",
+      "expected_output": "Aplica la dimensión Exploración + el bucle Romper→Documentar→Reparar→Reintentar: inventario de rutas/acciones, ataques (inputs extremos, doble click, cancelar a mitad), registro de defectos con archivo:línea, reparación real (con aprobación si cambia comportamiento), reintento y reporte con la plantilla ampliada."
+    },
+    {
+      "id": 5,
+      "prompt": "Haz pruebas multi-usuario: al menos dos roles. Verifica que un flujo de un rol llegue a otro y que cada rol no pueda ver ni ejecutar lo que no le corresponde.",
+      "expected_output": "Crea contextos por rol (storageState/token), prueba al menos un flujo cruzado (acción de un rol → estado visible en otro) y aislamiento/permisos (rol A no ve datos ni acciones de rol B), reportando con la plantilla en su sección Multi-usuario."
+    },
+    {
+      "id": 6,
+      "prompt": "Mide el rendimiento y la velocidad de carga y de red de la app; prueba también en viewports de PC, móvil y TV.",
+      "expected_output": "Corre la herramienta de rendimiento (Lighthouse/WebPerf) y emulación de red (4G) para carga, y re-ejecuta la suite en viewports móvil y TV (4K, teclado); reporta KPIs y diferencias por dispositivo con la plantilla ampliada."
+    },
+    {
+      "id": 7,
+      "prompt": "Evalúa la seguridad y la capa de base de datos: exposición de datos, headers, npm audit, y la integridad de los datos (huérfanas, estados, seed).",
+      "expected_output": "Revisa auth real y control de acceso, exposición de datos (RPC/RLS/grants según backend), headers y dependencias; corre un script read-only de integridad de BD (huérfanas, estados, duplicados) y reporta hallazgos con la plantilla."
+    },
+    {
+      "id": 8,
+      "prompt": "Aplica la suite completa de la skill a una app que NO es web: un contenedor Docker con una API pequeña y su BD. Que pruebe arranque, salud, datos e intentar romperla.",
+      "expected_output": "Usa la parte platform-agnostic: docker build/compose up saludable, healthcheck, smoke CRUD real, integridad BD y un mini-bucle romper→reparar→reintentar (inputs inválidos a la API), con reporte según plantilla y sin instalar nada fijo (todo portable en el workspace de la skill)."
+    }
+  ]
+}

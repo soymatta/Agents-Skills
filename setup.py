@@ -90,6 +90,7 @@ PLATFORMS: dict[str, dict] = {
         "config_dir": ".opencode",
         "skills_subdir": "skills",
         "agents_subdir": "agent",
+        "plugins_subdir": "plugins",
         "uses_agents_json": False,
         "detect_files": [".opencode"],
         "global_dir": Path.home() / ".config" / "opencode",
@@ -197,7 +198,8 @@ def _prompt_platform() -> str:
 def _get_install_paths(platform_id: str, mode: str) -> dict:
     """Return install paths for the platform and mode.
 
-    Returns dict with keys: skills_dir, agents_file, agents_dir, uses_agents_json.
+    Returns dict with keys: skills_dir, agents_file, agents_dir, plugins_dir,
+    uses_agents_json. plugins_dir is None for platforms without plugin support.
     """
     info = PLATFORMS[platform_id]
     if mode == "global":
@@ -207,10 +209,12 @@ def _get_install_paths(platform_id: str, mode: str) -> dict:
     skills_dir = base / info["skills_subdir"]
     agents_dir = base / info["agents_subdir"]
     agents_file = base / f"{info['agents_subdir']}.json"
+    plugins_dir = base / info["plugins_subdir"] if info.get("plugins_subdir") else None
     return {
         "skills_dir": skills_dir,
         "agents_file": agents_file,
         "agents_dir": agents_dir,
+        "plugins_dir": plugins_dir,
         "uses_agents_json": info["uses_agents_json"],
     }
 
@@ -408,16 +412,50 @@ ITEMS: list[dict] = [
         "dependencies": [],
     },
     {
+        "id": "qa-tester",
+        "dir": "skills/qa-tester",
+        "label": "QA Tester",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
         "id": "ai-job-search",
         "dir": "skills/ai-job-search",
         "label": "AI Job Search (third-party)",
         "type": "skill",
         "dependencies": [],
     },
+    {
+        "id": "jobfinder-skill",
+        "dir": "skills/jobfinder",
+        "label": "Job Finder (skill)",
+        "type": "skill",
+        "dependencies": ["ai-job-search"],
+    },
+    # ── plugins (opencode-only — not portable to other agents) ──────────────
+    {
+        "id": "opencode-telegram-answers",
+        "dir": "plugins/opencode-telegram-answers",
+        "label": "OpenCode Telegram Answers (plugin)",
+        "type": "plugin",
+        "platforms": ["opencode"],
+        "dependencies": [],
+        "entry": "notification.ts",
+    },
+    {
+        "id": "opencode-tui-queue",
+        "dir": "plugins/opencode-tui-queue",
+        "label": "OpenCode TUI Queue (plugin)",
+        "type": "plugin",
+        "platforms": ["opencode"],
+        "dependencies": [],
+        "entry": "queue.ts",
+        "commands": ["queue.md"],
+    },
 ]
 
-_TYPE_ORDER = {"agent": 0, "skill": 1}
-_TYPE_LABEL = {"agent": "Agents", "skill": "Skills"}
+_TYPE_ORDER = {"agent": 0, "skill": 1, "plugin": 2}
+_TYPE_LABEL = {"agent": "Agents", "skill": "Skills", "plugin": "Plugins"}
 
 # ── dependency propagation ────────────────────────────────────────────────────
 
@@ -707,21 +745,68 @@ def _commands_root(skills_root: Path) -> Path:
     return skills_root.parent / "commands"
 
 
-def install_items(toggled: dict[str, bool], project_root: Path, skills_root: Path, agents_dir: Path) -> None:
+def install_items(
+    toggled: dict[str, bool],
+    project_root: Path,
+    skills_root: Path,
+    agents_dir: Path,
+    plugins_dir: Path | None = None,
+    platform_id: str | None = None,
+) -> None:
     """Copy enabled items into the project (files or directories).
 
     ``skills_root`` is the platform's skills directory (e.g. ``.opencode/skills``);
     agents are installed to ``agents_dir`` (e.g. ``.opencode/agent``) so the
-    platform can discover them.
+    platform can discover them. ``plugins_dir`` (e.g. ``.opencode/plugins``) is
+    only set for platforms that support plugins; plugin items are additionally
+    gated by their ``platforms`` list so they never install on other agents.
     """
     skills_root.mkdir(parents=True, exist_ok=True)
     cmds_root = _commands_root(skills_root)
+    if plugins_dir:
+        plugins_dir.mkdir(parents=True, exist_ok=True)
 
     for it in ITEMS:
         src = project_root / it["dir"]
-        dst = _item_dest(it, skills_root, agents_dir)
         enabled = toggled.get(it["id"], False)
+        applies = it.get("platforms", None) is None or platform_id in it.get("platforms", [])
+        if it["type"] == "plugin":
+            if not applies:
+                # Plugin not intended for this platform — never install nor remove.
+                continue
+            if enabled:
+                if not src.exists():
+                    print(f"  {YLW}..{RST} {it['label']}  source not found: {_rel_path(src)}")
+                else:
+                    entry = src / it.get("entry", "notification.ts")
+                    stale_dir = plugins_dir / Path(it["dir"]).name
+                    if stale_dir.exists():
+                        # Modelo antiguo (carpetas): OpenCode solo autoload .ts planos
+                        _remove_one(stale_dir)
+                    if entry.exists():
+                        _copy_one(entry, plugins_dir / f"{it['id']}.ts")
+                        print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}{ARR}{RST}  {_rel_path(plugins_dir / f"{it['id']}.ts")}")
+                    else:
+                        print(f"  {YLW}..{RST} {it['label']}  entry not found: {it.get('entry', 'notification.ts')}")
+                # command files del plugin (registrados como slash commands)
+                for cmd_src in it.get("commands", []):
+                    cmd_path = src / "commands" / cmd_src
+                    cmd_dst = cmds_root / cmd_src
+                    if enabled:
+                        if cmd_path.exists():
+                            cmd_dst.parent.mkdir(parents=True, exist_ok=True)
+                            _copy_one(cmd_path, cmd_dst)
+                            print(f"  {GRN}{TIK}{RST} command/{cmd_src}  {DIM}{ARR}{RST}  {_rel_path(cmd_dst)}")
+                    else:
+                        _remove_one(cmd_dst)
+            else:
+                _remove_one(plugins_dir / f"{it['id']}.ts")
+                _remove_one(plugins_dir / Path(it["dir"]).name)
+                for cmd_src in it.get("commands", []):
+                    _remove_one(cmds_root / cmd_src)
+            continue
 
+        dst = _item_dest(it, skills_root, agents_dir)
         if enabled:
             if not src.exists():
                 print(f"  {YLW}..{RST} {it['label']}  source not found: {_rel_path(src)}")
@@ -840,7 +925,7 @@ def pull_changes() -> None:
 # ── main ──────────────────────────────────────────────────────────────────────
 
 
-def _parse_args() -> dict[str, str | bool]:
+def _parse_args() -> dict[str, str | bool | None]:
     """Parse CLI arguments using argparse."""
     import argparse as _ap
     parser = _ap.ArgumentParser(description="Toggle skills/agents and install them.")
@@ -848,13 +933,53 @@ def _parse_args() -> dict[str, str | bool]:
     parser.add_argument("-g", "--global", action="store_true", dest="global_", help="Install globally")
     parser.add_argument("--local", action="store_true", help="Install locally")
     parser.add_argument("--platform", default=None, help="Target platform")
+    parser.add_argument("--manifest", action="store_true", help="Print JSON inventory and exit (for AI agents)")
     parsed = parser.parse_args()
-    return {"all": parsed.all, "global": parsed.global_, "local": parsed.local, "platform": parsed.platform}
+    return {"all": parsed.all, "global": parsed.global_, "local": parsed.local,
+            "platform": parsed.platform, "manifest": parsed.manifest}
+
+
+def print_manifest() -> None:
+    """Print a machine-readable inventory of every installable item."""
+    from collections import Counter
+
+    counts = Counter(it["type"] for it in ITEMS)
+    sys.stdout.write(
+        json.dumps(
+            {
+                "repo_root": str(_repo_root()),
+                "count": {
+                    "agents": counts.get("agent", 0),
+                    "skills": counts.get("skill", 0),
+                    "plugins": counts.get("plugin", 0),
+                },
+                "items": [
+                    {
+                        "id": it["id"],
+                        "type": it["type"],
+                        "label": it["label"],
+                        "src": it["dir"],
+                        "dependencies": it.get("dependencies", []),
+                        "commands": it.get("commands", []),
+                        "platforms": it.get("platforms"),
+                    }
+                    for it in ITEMS
+                ],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+    sys.stdout.write("\n")
 
 
 def main() -> None:
     base = Path.cwd()
     cli = _parse_args()
+
+    if cli["manifest"]:
+        print_manifest()
+        sys.exit(0)
 
     # ── Platform selection ──
     if cli["platform"]:
@@ -884,9 +1009,12 @@ def main() -> None:
     skills_dir = paths["skills_dir"]
     agents_file = paths["agents_file"]
     agents_dir = paths["agents_dir"]
+    plugins_dir = paths["plugins_dir"]
     uses_agents_json = paths["uses_agents_json"]
     print(f"  {DIM}Skills dir: {skills_dir}{RST}")
     print(f"  {DIM}Agents dir: {agents_dir}{RST}")
+    if plugins_dir:
+        print(f"  {DIM}Plugins dir: {plugins_dir}{RST}")
     if uses_agents_json:
         print(f"  {DIM}Agents file: {agents_file}{RST}")
 
@@ -897,7 +1025,7 @@ def main() -> None:
         toggled = run_toggle_menu()
 
     print(f"\n  {BLD}Installing to {PLATFORMS[platform_id]['label']} ({mode})...{RST}\n")
-    install_items(toggled, base, skills_dir, agents_dir)
+    install_items(toggled, base, skills_dir, agents_dir, plugins_dir=plugins_dir, platform_id=platform_id)
     if uses_agents_json:
         agent_targets(agents_file=agents_file)
     cleanup_orphaned_mds(skills_dir)

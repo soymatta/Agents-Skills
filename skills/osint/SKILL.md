@@ -159,13 +159,13 @@ Available scrapers: `google`, `truecaller`, `whitepages`, `callerid`, `8x8`, `wh
 
 For each investigation type, select appropriate tools from the reference files:
 
-- **Person/Name**: `references/person_osint.md`
-- **Email**: `references/email_osint.md`
-- **Phone**: `references/phone_osint.md`
-- **Username**: `references/username_osint.md`
-- **Domain/IP**: `references/domain_osint.md`
-- **Company**: `references/company_osint.md`
-- **Crypto**: `references/crypto_osint.md`
+- **Person/Name**: `reference/person_osint.md`
+- **Email**: `reference/email_osint.md`
+- **Phone**: `reference/phone_osint.md`
+- **Username**: `reference/username_osint.md`
+- **Domain/IP**: `reference/domain_osint.md`
+- **Company**: `reference/company_osint.md`
+- **Crypto**: `reference/crypto_osint.md`
 
 Each reference file contains:
 - Free tools and their usage
@@ -391,7 +391,7 @@ osint/
 │   ├── phone_parser.py       # Parse phone numbers (no APIs needed)
 │   ├── scrape_directories.py # Scrape free phone directories
 │   └── run_investigation.py  # Execute investigation pipeline
-└── references/
+└── reference/
     ├── person_osint.md       # Person investigation guide
     ├── email_osint.md        # Email investigation guide
     ├── phone_osint.md        # Phone investigation guide

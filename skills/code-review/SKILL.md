@@ -57,7 +57,7 @@ it; if it is unclear whether they want all or one, ask.
 <what the diff does correctly — acknowledge good work>
 
 ## Recommendations
-<top 3-5 actionable, ordered by severity x probability x effort>
+<top 3-5 actionable, ordered by severity x probability x effort, each with an effort estimate>
 ```
 
 ## Guidelines
@@ -71,7 +71,8 @@ it; if it is unclear whether they want all or one, ask.
 ## Handoff
 
 The report is the deliverable another agent (e.g. `builder`) can act on. Keep it tight and
-token-optimized so a fix can be applied directly from the Findings table.
+token-optimized so a fix can be applied directly from the Findings table. Close with one
+next action for the caller (e.g. "fix this diff's CRITICAL, then re-run the review").
 
 ## Keywords
 "review", "code review", "revisar", "review diff", "revisar cambios", "verdict", "ship or iterate", "code review report"

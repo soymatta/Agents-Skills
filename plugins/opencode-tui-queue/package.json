@@ -1,0 +1,23 @@
+{
+  "name": "opencode-tui-queue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plugin de OpenCode que encola los prompts escritos en el TUI mientras la sesión está ocupada y los envía de uno en uno cuando queda libre.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node test/smoke.mjs && node test/integration.mjs",
+    "install:global": "powershell -ExecutionPolicy Bypass -File install.ps1"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.29",
+    "@opencode-ai/sdk": "^1.18.29"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

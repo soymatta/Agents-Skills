@@ -13,6 +13,10 @@ python setup.py
 
 The interactive installer lets you toggle which agents/skills to install, resolves dependencies automatically, and copies them to your AI assistant's config directory.
 
+> **For AI agents:** don't scan the repo. Read `INSTALL.md`, run
+> `python setup.py --manifest` for the inventory, then
+> `python setup.py --all --global --platform opencode`.
+
 ## Usage
 
 ### Agents
@@ -40,6 +44,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `goal` | "Alcanza este objetivo", "Optimize this metric to 95% accuracy" |
 | `roadmaps` | "Create a plan for this project" |
 | `project-analyzer` | "Analyze this codebase for issues" |
+| `qa-tester` | "Test this app", "Runs QA on the project", "Intenta romper la app" |
 | `research-pipeline` | "Research this prediction market question" |
 | `backtest-run` | "Backtest this trading strategy" |
 | `backtest-validate` | "Validate this backtest quality" |
@@ -53,6 +58,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `project-memory` | "Set up project memory" |
 | `impeccable` | `/init`, `/shape`, `/critique`, `/polish`, `/audit` |
 | `ai-job-search` | `/setup`, `/apply`, `/scrape`, `/rank`, `/interview` |
+| `jobfinder` | "Find jobs for this profile", "Score my CV against this posting", "Generate a cover letter" |
 
 ### Commands
 
@@ -60,6 +66,7 @@ Slash commands you can type directly in your AI assistant:
 
 | Skill | Command | Description |
 |-------|---------|-------------|
+| `project-analyzer` | `/init_review [ruta]` | Onboarding + scan de salud de un proyecto (solo lectura) y correcciones guiadas |
 | `impeccable` | `/init` | Capture product context in PRODUCT.md |
 | | `/shape [feature]` | Plan UX/UI before writing code |
 | | `/critique [target]` | UX design review with heuristic scoring |
@@ -78,6 +85,19 @@ Slash commands you can type directly in your AI assistant:
 | | `/interview` | Stage-specific interview prep + mock interview |
 | | `/upskill` | Skill gap analysis with learning plans |
 
+### Plugins
+
+Runtime plugins for OpenCode that act automatically on SDK events (no prompt
+needed). OpenCode-only by design — they are not ported to other assistants.
+
+| Plugin | What it does | Install |
+|--------|--------------|---------|
+| `opencode-telegram-answers` | Sends a Telegram notification when the AI finishes a task (`session.idle`) or requests a tool permission (`permission.asked`/`permission.updated`). Text-only, markdown→HTML, debounced. | `python setup.py` and toggle it, or `plugins/opencode-telegram-answers/install.ps1` |
+
+> **Relation to `telegram-notify`:** the skill is an on-demand Telegram library
+> (text, files, webhooks); the plugin is an automatic event listener. They are
+> complementary — both use `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID`.
+
 ## Repository Structure
 
 ```
@@ -89,6 +109,8 @@ Agents-Skills/
     paper-researcher.md  # Academic paper writer
     jobfinder.md         # Job application assistant
     builder.md            # Build Mod — full-access dev agent (clone of opencode build)
+  plugins/               # OpenCode runtime plugins (event listeners)
+    opencode-telegram-answers/  # Telegram alerts on session.idle / permission.*
   skills/                # Skill definitions + scripts
     requirements.txt     # Python dependencies
     pyproject.toml       # Project config + pytest settings
@@ -99,7 +121,7 @@ Agents-Skills/
     citation-formatter/
     content-humanizer/   # + tests/
     impeccable/          # (Third-party — pbakaus, Apache 2.0)
-    jobfinder/           # scripts/ + templates/
+    jobfinder/           # scripts/ + templates/ + tests/
     math-notation/
     goal/
     osint/               # + tests/
@@ -114,6 +136,7 @@ Agents-Skills/
     skill-creator/       # (Third-party — Anthropic, Apache 2.0) + tests/
     telegram-notify/
     agent-self-improver/ # + tests/
+  web/                   # Astro landing page (documentation site; not installed by setup.py)
 ```
 
 ## Agents
@@ -123,7 +146,7 @@ Agents-Skills/
 | `vault` | Unified notes manager for Obsidian, OneNote, Notion, and any markdown-based app. Index, search, organize, verify, create notes, health checks, broken links, and link suggestions — 8 workflows, bilingual EN/ES. | read, glob, grep, task, edit |
 | `paper-researcher` | Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES. | bash, read, glob, grep, webfetch, task, edit |
 | `jobfinder` | Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs/cover letters, and tracks applications. | bash, read, glob, grep, webfetch, task, edit |
-| `builder` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). | all tools (allow), question, doom_loop (ask) |
+| `builder` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Descubre e integra desde la web MCP, skills, plugins y comandos (bajo aprobación). Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). Decisión-first estilo hermes-agent: resuelve opciones con evidencia (determinista → simulación → pregunta), sin interrogatorio. | all tools (allow), question, doom_loop (ask) |
 
 ## Skills
 

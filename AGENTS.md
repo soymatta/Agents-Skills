@@ -2,6 +2,10 @@
 
 > On the first message of a conversation, greet the user with: "AI-Driven Development ON"
 
+> **If the user asks to install this repo:** do not scan the tree. Run
+> `python setup.py --manifest` to see the inventory, then
+> `python setup.py --all --global --platform opencode`. Details in `INSTALL.md`.
+
 > **Sync note:** the shared rules below (task sizing, self-rating, confusion protocol,
 > communication) are mirrored in `agents/builder.md` and injected for sessions that use
 > that agent. This file is the source of truth; when one of the shared rules changes,
@@ -24,6 +28,19 @@
 - **Specific file references:** use `file_path:line_number` format, not vague descriptions.
 - **No AI vocabulary:** avoid "delve", "crucial", "robust", "comprehensive", "nuanced", "multifaceted", "furthermore", "moreover", "pivotal", "landscape", "tapestry", "underscore", "foster", "showcase", "intricate", "vibrant", "fundamental", "significant", "interplay".
 - **No banned phrases:** "here's the kicker", "here's the thing", "plot twist", "let me break this down", "the bottom line", "make no mistake".
+- **Shape multi-step output:** when more than one step is pending, write a numbered list of single bounded actions, not a paragraph or a dump.
+- **Cap lists at 5:** if a list would exceed 5 items, show the top 5 and split "do now" from "later" instead of dumping the rest.
+- **Give effort in minutes:** state time estimates as "~15 min" or "about an hour" when a task or option has one; never "a bit" or "soon".
+- **Errors, matter-of-fact:** say what broke, where (file:line), and what fixes it. No "uh oh", no apology tour.
+
+**Pre-send check — before answering, delete anything a reader would skip:**
+- an opening that announces what you'll do ("I'll check...", "Let me look at...");
+- a closing "anything else?" or a recap of what you said;
+- "by the way" sidebars that are not the task;
+- content-free hedges ("perhaps", "might be worth");
+- idioms and AI vocabulary (see above).
+
+After the trim, the first and last lines must together carry: what just happened and what happens next.
 
 ## Action
 
@@ -33,7 +50,7 @@
 - **Do not commit or push** unless the user asks.
 - **Don't assume your knowledge is current.**
 - **Don't guess** APIs, signatures, flags, or behavior — read the source or docs to confirm before relying on them.
-- **Ambiguous or expensive task:** ask one sharp question to pin down scope before building, rather than guess.
+- **Ambiguous or expensive task:** resolve it via the decision ladder (deterministic → empirical → value) before asking. Ask one sharp question only for value calls, never for something a probe can settle.
 - **Batch independent operations** in one pass, not one at a time.
 - **Before adding any instruction, finding, or rule, check whether an existing one already covers or contradicts it.** If so, don't add a parallel: delete it, merge it into the stronger one, or rewrite with explicit scope and priority.
 - **Name by intention, not mechanism:** describe the goal or responsibility, not the tool or file format.
@@ -86,6 +103,7 @@ Every piece of work belongs to one of two spaces:
 - Every feature ships with a test suite in the same commit.
 - Every bug fix ships with a regression test.
 - "I'll add tests later" is banned. If the tests aren't in the diff, the work isn't done.
+- **Permanent coherence gate (via `qa-tester`):** any skill whose outputs are objectively verifiable ships assertion-driven evals in the same commit. If the outputs are verifiable and the evals aren't in the diff, the work isn't done. Precedent: `osint`, `citation-formatter`, `skill-creator`.
 
 ## Safety
 
@@ -103,7 +121,20 @@ When you hit high-stakes ambiguity:
 - A destructive operation with unclear scope
 - Missing context that would materially change the approach
 
-**STOP.** Name the ambiguity in one sentence. Present 2-3 options with real trade-offs. Ask the user. Do not guess on architectural decisions.
+Resolve before asking, cheapest evidence first:
+
+1. **Deterministic** - a script, spec, doc, or test answers it. Write/run it. No question.
+2. **Empirical** - the best option is measurable. Prototype or simulate ALL viable options,
+   measure each against explicit criteria, pick the best result, and proceed. This is the
+   default for architecture/approach questions.
+3. **Value/judgment** - a preference or risk call only the user can make. This is the only
+   case that reaches the question tool: STOP, name the ambiguity in one sentence, present
+   2-3 options with real trade-offs (not a fake spread), with your recommended default, and
+   proceed with that default when one exists. Do not guess on irreversible calls.
+4. **Safety stop (unconditional)** - destructive, irreversible, or production-touching
+   operations always confirm first, regardless of the above.
+
+Does not apply to routine coding or small obvious changes.
 
 ## Completion status protocol
 
@@ -129,3 +160,41 @@ Before the final report, rate the work 1-10 from a fresh read of the deliverable
 - No em dashes. No AI vocabulary (see Communication section).
 - If something is broken, say so plainly.
 - End responses with the next action, not a recap.
+
+## Session ledger (2026-09-11) — reviewed from ses_f6d2
+
+State verified against the working tree after the prior session ended.
+
+### Pending to do
+1. **Commit the staged + modified batch (still pending by design).** Staged: the 2026-09-11
+   files (28) plus the 2026-09-23 additions (`plugins/_harness/`, both
+   `test/integration.mjs`, `plugins/opencode-telegram-answers/package-lock.json`,
+   `skills/skill-creator/references/writing-guide.md`); 16+ modified (`README.md`,
+   `setup.py`, `AGENTS.md`, `agents/*`, `.github/workflows/ci.yml`, `skills/*/SKILL.md`,
+   `web/`). No commit exists. Repo rule: no commit without an explicit user ask.
+2. **Resolved in the working tree — skill-creator externalization complete.**
+   `skills/skill-creator/SKILL.md` is 336 lines (< 500 ceiling): the `### Skill Writing
+   Guide` block was cut and replaced with a progressive-disclosure pointer
+   (`references/writing-guide.md`, referenced at L104-105). Both files tracked/staged;
+   land them in the batch commit.
+3. **Verified resolved — evals exist and are green.** `osint` and `citation-formatter`
+   ship objection-driven test suites, tracked and passing (osint: 22 assertions via
+   `test_gen_commands` + `test_phone_parser`; citation-formatter: 56 assertions via
+   `test_references` + `test_generate_outputs`; combined suite 57 passed). Codified as a
+   permanent `## Tests and evals` gate above.
+
+### Verified resolved — do not redo
+- `plugins/` is tracked (was 100% untracked; the CI plugin job was vacuous on a fresh clone). `plugins/opencode-*` typecheck + smoke pass (`tsc`, `node test/smoke.mjs`).
+- Nested `plugins/plugins/opencode-tui-queue/test/smoke.mjs` removed; real `plugins/opencode-tui-queue/test/smoke.mjs` exists and target is correct.
+- README plugin name: 0 refs to `opencode-telegram-notifier`, 2 to `opencode-telegram-answers` (README.md:90, 108).
+- `LastSession.md` deleted and `.gitignore`d; `reports/` dir removed (never held files).
+- `plugins/opencode-tui-queue/queue.ts:201` showToast TS2353 is GREEN with SDK ^1.18.29 (`tsc` exit 0, smoke OK). "Fix showToast signature" is a non-issue with current deps.
+- `agents/builder.md` BuilderSkills write-boundary documented; AGENTS.md↔builder shared-rule mirror is healthy (5/5 lines shared; section headings differ by design, AGENTS.md is the source of truth).
+- `BuilderSkills/` absent at repo root: expected (the builder creates it at runtime).
+- Coherence gate: `.github/scripts/check_doc_code_coherence.py` = 100/100 script refs OK.
+- 2026-09-23 structure fixes: `__pycache__/` trees removed from disk; `plugins/_harness/`,
+  plugin `integration.mjs` tests, and the telegram-answers `package-lock.json` fully staged
+  (indexed). `init_review` scan found no blockers (health: verde).
+- Shared-rule mirror updated 2026-09-23: decision-first confusion protocol (deterministic →
+  empirical → value → safety) in both `AGENTS.md` and `agents/builder.md`; builder gained
+  hermes-style "Decide first" + skill-authoring standards. Mirror stays in sync.

@@ -67,7 +67,8 @@ move/delete during the scan; fixes happen in Phase 2):
 ### F5 — Show the report on screen
 Present the complete, token-optimized summary in the terminal. The scan writes no files at
 all: no report copy, no JSON, nothing under `reports/`. Remain read-only with respect to
-the audited project. Structure:
+the audited project. Number every finding within each section (1, 2, 3...) so the user can
+reference them when choosing a scope. Structure:
 
 ```
 ## Qué hace
@@ -91,6 +92,8 @@ the audited project. Structure:
 
 ## Estado del proyecto
 [Saludable | Con problemas | Rotto] — 1 línea de resumen
+
+> Siguiente paso: elige el scope (opciones 1-5). Sin recap.
 ```
 
 ## Phase 2 — Offer fix scope (agent: plan)
@@ -107,6 +110,9 @@ the options exactly:
 The moment the user answers, `plan` stops and hands off immediately to opencode's default
 `build` agent (built-in, full permissions). Do not run any further scan, summary, or
 report pass after the question; the switch is immediate and unconditional.
+
+If the user hesitates, offer the easy default with an effort estimate: "Si no estás seguro,
+empieza por **Solo lo crítico** (~5 min)".
 
 ## Phase 3 — Apply fixes (agent: build)
 
@@ -125,3 +131,6 @@ context so it applies the fixes. The build agent:
 
 Each chosen finding must map to a concrete fix; nothing is fixed silently. The build
 agent may ask the user for confirmation before a destructive or behavior-changing fix.
+
+When the fixes land, close with a single next action: re-run `init_review` to confirm zero
+blockers, or, if everything is committed, say so (nothing pending).

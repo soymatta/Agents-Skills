@@ -68,6 +68,33 @@ jobs:
       - name: Run setup.py syntax check
         run: python -c "import py_compile; py_compile.compile('setup.py', doraise=True)"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          node-version: 22
+
+      - name: Validate plugins (typecheck + tests)
+        run: |
+          failed=0
+          for plugin in plugins/*/; do
+            [ -d "$plugin" ] || continue
+            if [ ! -f "$plugin/package.json" ]; then
+              echo "SKIP: $plugin is not a plugin package (no package.json)"
+              continue
+            fi
+            echo "=== Testing $plugin ==="
+            cd "$plugin"
+            npm install
+            npm run typecheck
+            npm test || failed=1
+            cd ../..
+          done
+          if [ $failed -eq 1 ]; then
+            echo "Some plugin checks failed"
+            exit 1
+          fi
+          echo "All plugins validated"
+
       - name: Run skill tests
         run: |
           failed=0

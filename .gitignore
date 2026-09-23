@@ -74,3 +74,6 @@ Job/
 
 # Candidate profile (PII: name, email, phone) — never commit
 /profile.json
+
+# Session log (transient, regenerated every run)
+LastSession.md

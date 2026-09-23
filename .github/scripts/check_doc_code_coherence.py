@@ -32,6 +32,7 @@ _SCRIPT_RE = re.compile(r"[\w./\\-]+\.(?:py|mjs|sh)\b", re.IGNORECASE)
 # Things that look like scripts but aren't repo promises.
 _SKIP_BASENAMES = {
     "crt.sh",  # external OSINT service (crt.sh), not a script
+    "skills.sh",  # open agent skills registry domain (skills.sh), not a script
     "next.js",  # framework
     "three.js",  # library
     "commands.sh",  # OSINT generated runtime artifact (gen_commands.py --output), not shipped

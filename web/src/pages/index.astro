@@ -126,14 +126,6 @@ const skills = [
 		type: "first-party" as const,
 	},
 	{
-		name: "jobfinder",
-		description: "Multi-board job search with 5-dimension fit scoring, personalized recommendations, CV PDF generation, application tracking, and interview prep.",
-		usage: "Find jobs matching my profile",
-		dependencies: [],
-		category: "career",
-		type: "first-party" as const,
-	},
-	{
 		name: "agent-self-improver",
 		description: "Self-improvement framework for agents: collects feedback, detects patterns, suggests improvements with human supervision.",
 		usage: "Improve this agent's performance",
@@ -216,6 +208,16 @@ const skills = [
 	},
 ];
 
+const plugins = [
+	{
+		name: "opencode-telegram-notifier",
+		description: "OpenCode-only plugin: notifies Telegram when the AI finishes a task (session.idle) or requests a tool permission (permission.asked/updated). Text-only, markdown->HTML, debounced.",
+		usage: "Runs automatically — no prompt needed. Installed via the repo installer or install.ps1.",
+		target: "opencode",
+		type: "first-party" as const,
+	},
+];
+
 const aiCommands = [
 	{
 		skill: "impeccable",
@@ -278,6 +280,7 @@ const categoryColors: Record<string, string> = {
 				<a href="#skills">Skills</a>
 				<a href="#agents">Agents</a>
 				<a href="#commands">Commands</a>
+				<a href="#plugins">Plugins</a>
 				<a href="#third-party">Third-Party</a>
 				<a href="https://github.com/soymatta/Agents-Skills" target="_blank">GitHub</a>
 			</div>
@@ -309,6 +312,10 @@ const categoryColors: Record<string, string> = {
 			<div class="stat">
 				<span class="stat-num">{aiCommands.reduce((acc, c) => acc + c.commands.length, 0)}</span>
 				<span class="stat-label">Commands</span>
+			</div>
+			<div class="stat">
+				<span class="stat-num">{plugins.length}</span>
+				<span class="stat-label">Plugins</span>
 			</div>
 			<div class="stat">
 				<span class="stat-num">4</span>
@@ -444,6 +451,29 @@ python setup.py --all --platform opencode --local</code></pre>
 
 			<div class="commands-note">
 				<strong>Note:</strong> Most skills activate from natural language — no commands needed. Only skills with explicit slash commands are listed here.
+			</div>
+		</div>
+	</section>
+
+	<section id="plugins" class="section">
+		<div class="container">
+			<h2>Plugins</h2>
+			<p class="section-desc">Runtime plugins that hook into the OpenCode SDK and act automatically on events. OpenCode-only by design.</p>
+
+			<div class="plugin-grid">
+				{plugins.map(plugin => (
+					<div class="plugin-card">
+						<div class="plugin-header">
+							<h3 class="plugin-name">{plugin.name}</h3>
+							<span class="plugin-badge">{plugin.target}</span>
+						</div>
+						<p class="plugin-desc">{plugin.description}</p>
+						<div class="plugin-usage">
+							<span class="usage-label">Usage:</span>
+							<code class="usage-example">{plugin.usage}</code>
+						</div>
+					</div>
+				))}
 			</div>
 		</div>
 	</section>
@@ -750,6 +780,56 @@ python setup.py --all --platform opencode --local</code></pre>
 	.skill-card:hover {
 		border-color: var(--accent);
 		box-shadow: 0 0 0 1px var(--accent-glow);
+	}
+
+	.plugin-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+		gap: 16px;
+	}
+
+	.plugin-card {
+		background: var(--bg);
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		padding: 20px;
+		transition: border-color 0.2s, box-shadow 0.2s;
+	}
+
+	.plugin-card:hover {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent-glow);
+	}
+
+	.plugin-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 8px;
+	}
+
+	.plugin-name {
+		font-size: 0.95rem;
+		font-weight: 600;
+		font-family: var(--mono);
+	}
+
+	.plugin-badge {
+		font-size: 0.7rem;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		color: var(--accent);
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.plugin-desc {
+		font-size: 0.875rem;
+		color: var(--text-muted);
+		line-height: 1.6;
+		margin-bottom: 12px;
 	}
 
 	.skill-header {

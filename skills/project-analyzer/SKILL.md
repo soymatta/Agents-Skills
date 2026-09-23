@@ -78,7 +78,7 @@ first; flag high-severity-but-unlikely items for verification rather than ignori
 ## Security Concerns (findings with severity + pattern)
 ## Performance Considerations
 ## Dependency Health
-## Recommendations  (top 3-5 actionable, ordered by severity x probability x effort)
+## Recommendations  (top 3-5 actionable, ordered by severity x probability x effort, each with a rough time estimate)
 ```
 
 Skip empty sections with "No significant issues found." Don't force every section if nothing notable.
@@ -121,6 +121,7 @@ mode defines how fixes are executed:
 - **Fit maturity**: small script ≠ production service rigor
 - **Read broadly, cite precisely**
 - **Say when unsure**: "tests may not exist yet"
+- **Estimate effort in minutes** per recommendation (~5 min, ~1 h) so the fix scope can be sized at a glance
 
 ## Keywords
 "analyze", "audit", "code review", "code quality", "security review", "security audit", "project health", "analizar", "revisar", "auditar", "que se puede mejorar", "encontrar bugs", "problemas de seguridad", "codebase analysis", "project report", "technical debt", "code smells", "architecture review", "repo audit", "代码审查", "project overview"

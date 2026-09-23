@@ -120,7 +120,8 @@ Multi-strategy search with fuzzy matching and related note suggestions.
    - **Link search:** `grep` tool for `\[\[.*keyword.*\]\]`
 4. Apply filters if specified
 5. Rank results by relevance (exact match > partial > fuzzy)
-6. For each result, show: file path, line number, relevant snippet
+6. Show the top 5 results with file path, line number, and relevant snippet; if more match,
+   list the extras one line each or state the remaining count
 7. Suggest 3-5 related notes (by shared tags + wiki-links)
 8. If no results: suggest synonyms, broader terms, alternative spellings, different language
 
@@ -392,6 +393,9 @@ Issues found:
     → Deepest path: vault/dev/python/fastapi/auth/middleware.md (5 levels)
 ```
 
+If an issue category holds more than 5 items, show the top 5 and note the total remaining —
+the number matters more than the full list.
+
 ---
 
 ## Workflow: Link
@@ -493,6 +497,8 @@ Tags: #tag1 #tag2 | Links: [[link1]], [[link2]]
 ```
 
 If multiple files relate, mention all. Follow `[[wiki-links]]` to access referenced notes.
+Cap result lists at 5 (extra matches collapse to a one-line count) and end every answer with
+one concrete next action: a question to pick the next step, or "nothing pending".
 
 ---
 

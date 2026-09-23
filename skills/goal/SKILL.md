@@ -104,7 +104,7 @@ direction, budget, measure_cmd, and the current baseline).
 
 ### 2. STATUS — Show current vs target
 Log current metric, best metric, iteration count, and remaining budget. Show
-delta toward the target.
+delta toward the target as `before → after` so the win is visible every turn.
 
 ### 3. CHECK BUDGET — Stop safely
 If `iterations >= budget.max_iterations`, or `max_cost`/`deadline` is exceeded
@@ -162,6 +162,8 @@ Write to `.opencode/decisions/goal_state.json` with the checkpoint reference.
 - Iteration log with metric history, checkpoints, blockers, approaches tried
 - Final: SUCCESS (target reached), CEILING REACHED (with recommendation), or
   BUDGET EXHAUSTED (with progress summary)
+- Progress updates to the user: one line with current/best/target, the `before → after`
+  delta, and budget left (iterations, cost, deadline in minutes) — then the next move.
 
 ## Dependencies
 None.

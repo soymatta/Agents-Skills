@@ -1,0 +1,23 @@
+{
+  "name": "opencode-telegram-answers",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plugin de OpenCode que notifica por Telegram cuando la IA termina una tarea o pide permiso, y permite RESPONDER: botones de aprobación en permisos y replies a las notificaciones.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node test/smoke.mjs && node test/integration.mjs",
+    "install:global": "powershell -ExecutionPolicy Bypass -File install.ps1"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.29",
+    "@opencode-ai/sdk": "^1.18.29"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

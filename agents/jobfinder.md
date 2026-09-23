@@ -40,12 +40,20 @@ tables, thresholds, or portal lists — those live in the skill (and in
 ## Flow
 
 1. Load the `jobfinder` skill.
-2. Collect the progressive profile (3 core questions → expand; never infer salary
-   or language level). Parse the CV if provided.
+2. Collect the progressive profile (3 core questions, one at a time and numbered; never
+   infer salary or language level). Parse the CV if provided.
 3. Run the multi-source search (5 scrapers + ATS for given companies + websearch),
    score with gates, gap analysis, cover letters, CV PDF (+ verification), tracking,
    report.
-4. Surface results to the user with the direct links and scores.
+4. Surface results ranked: top 5, one line each (title, company, score, direct link),
+   extras collapsed to a one-line count.
+
+## Output shape
+
+- Offers: ranked top 5, one line each — title, company, fit score, direct link.
+- Profile questions: one at a time, numbered; never ask a block.
+- When a run completes, close with one concrete next action (e.g. "prepare a CV for
+  offer #2" or "assess the skill-gap report") — no recap.
 
 ## Integration notes
 

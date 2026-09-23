@@ -35,6 +35,8 @@ work" to `03`. Ask one question when the intent is ambiguous.
   done only when the repro no longer reproduces.
 - **Regression test**: every bug fix ships the regression test that would have caught the
   bug. Verify the test fails with the bug present and passes with the fix.
+- **Direct on failure**: name the failing `file:line` and the exact error, then the path to
+  the fix. Matter-of-fact, no "uh oh", no apology tour.
 - **Severity** uses the project's shared scale.
 
 ## Workflow
@@ -46,8 +48,9 @@ work" to `03`. Ask one question when the intent is ambiguous.
 3. **Fix** — apply the smallest fix that closes the cause at the root, not the symptom.
 4. **Verify** — run the repro again (gone), run the regression test (fails pre-fix, passes
    post-fix), run the touched module's existing tests.
-5. **Report** — root cause, the fix (`file:line`), verification evidence, and the regression
-   test added.
+5. **Report** — numbered, in this order: (1) root cause in one line, (2) the fix
+   (`file:line`), (3) verification evidence, (4) the regression test added. Close with the
+   next action: nothing pending, or "watch X".
 
 ## Stuck investigation (reflect-issue)
 
