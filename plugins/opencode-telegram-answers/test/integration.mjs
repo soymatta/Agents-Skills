@@ -147,5 +147,23 @@ const PERM_TEXT =
   assert.equal(tg.edits().length, nEdits2, "tap tardio no re-edita")
 }
 
+// ── 6. HTML rechazado con 400 → fallback a texto plano (no se pierde) ───
+{
+  const s = "ses-fallback-1"
+  const n0 = tg.sends().length
+  tg.failSendsWhen((body) => body.parse_mode === "HTML", {
+    status: 400,
+    description: "Bad Request: can't parse entities: Unmatched end tag",
+  })
+  fake.setMessages([assistantEntry("m-final-3", "**negrita** y *cursiva*")])
+  await fire("session.idle", { sessionID: s })
+  assert.ok(await waitFor(() => tg.sends().length > n0 + 1), "reintento en plano tras 400")
+  const retry = tg.sends().at(-1)
+  assert.ok(!("parse_mode" in retry.body), "reintento sin parse_mode")
+  assert.ok(!retry.body.text.includes("<b>") && !retry.body.text.includes("<i>"), "plano sin etiquetas")
+  assert.ok(retry.body.text.includes("negrita") && retry.body.text.includes("cursiva"), "contenido conservado")
+  tg.clearSendFailures()
+}
+
 console.log("OK: integracion telegram-answers")
 process.exit(0)

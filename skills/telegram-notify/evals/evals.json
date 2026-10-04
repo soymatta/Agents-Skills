@@ -1,0 +1,23 @@
+{
+  "skill_name": "telegram-notify",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Avisame por Telegram cuando termine este backtest largo",
+      "expected_output": "Mensaje de estado al completar, con reintentos si falla el envio",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Enviame este PDF del reporte por Telegram",
+      "expected_output": "Documento subido al chat configurado",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Manda alerta a Telegram si el drawdown supera el 10% en el monitoreo",
+      "expected_output": "Alerta condicional con formato MarkdownV2/HTML valido",
+      "files": []
+    }
+  ]
+}

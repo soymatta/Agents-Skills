@@ -4,6 +4,7 @@
 import assert from "node:assert/strict"
 import {
   buildPermKeyboard,
+  htmlToPlainText,
   isFinalAlreadyDelivered,
   isSubagentSession,
   isWorkingEntryFresh,
@@ -111,6 +112,62 @@ assert.equal(parseCallbackData(""), null, "vacio")
 // ── transformInline / escape ───────────────────────────────────────────
 assert.ok(markdownToHtml("a < b && c").includes("a &lt; b &amp;&amp; c"), "escape HTML")
 
+// ── Regresión 400 "can't parse entities" (Telegram rechaza anidados del
+// mismo tipo y cruces: <b><b>, <i><i>, </b> donde iba </i>) ─────────────
+{
+  // Validador: pila estricta + prohibido anidar el mismo tag + `code`
+  // atómico (Telegram: ni dentro de formato ni con formato dentro)
+  const wellFormed = (html, label) => {
+    const stack = []
+    for (const m of html.matchAll(/<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g)) {
+      const full = m[0]
+      const name = m[1].toLowerCase()
+      if (full.startsWith("</")) {
+        assert.equal(stack.pop(), name, `${label}: cierre </${name}> con pila [${stack}] en ${html.slice(0, 80)}`)
+      } else if (!["br", "hr", "img", "meta"].includes(name)) {
+        if (name === "code") assert.deepEqual(stack, [], `${label}: <code> anidado en [${stack}]`)
+        assert.ok(!stack.includes(name), `${label}: <${name}> anidado en ${html.slice(0, 80)}`)
+        stack.push(name)
+      }
+    }
+    assert.deepEqual(stack, [], `${label}: sin etiquetas abiertas en ${html.slice(0, 80)}`)
+  }
+
+  // Patrones exactos del fallo en producción
+  const cases = [
+    '| 2.1 | ¶23/¶30/¶76 | **Pregunta y objetivo piden causalidad ("¿De qué manera...**',
+    '*"Las respuestas Likert exportadas desde Google Forms **ya se encuentran en formato numérico (1 a 5)**"*',
+    '**razonamiento**. Error de *mejor* en una definición clave.\n• **¶8: "si *infiere* o no en el ejercicio prof**',
+    '*"considerando el **riego** del sesgo de automatización"* -> **riesgo**.',
+    '## **3.5 Nombres propios en minúscu** con **más**',
+    '> *nota* con **negrita** y *otra*',
+    '**a *b** c*',
+    '***triple*** y **doble**',
+    'sin cierre *asi queda',
+    '**sin cierre asi queda',
+    '[texto con **bold**](https://example.com/a*b)',
+    '```\n**no** *tocar* `ni` esto\n```',
+    // Regresión `</code>` vs `</i>`: código con formato alrededor y dentro
+    'DONE. Error `400` de entidades con *cursiva* y **negrita `mixta`** fin',
+    'texto *itálico* con `código` y **bold `más`**',
+    '## título con `código` y **bold**',
+    '> nota con `código` y *ital*',
+    '[`x` y](https://example.com)',
+    'backtick huérfano `asi queda',
+    '**bold con `code` dentro** y *ital con `code` dentro*',
+  ]
+  for (const c of cases) wellFormed(markdownToHtml(c), JSON.stringify(c.slice(0, 40)))
+
+  // Wrapper de encabezado/cita no duplica el tag interno
+  assert.ok(!markdownToHtml("## **T**").includes("<b><b>"), "heading sin <b><b>")
+  assert.ok(!markdownToHtml("> *n*").includes("<i><i>"), "cita sin <i><i>")
+  // Marcadores huérfanos quedan literales (sin etiquetas abiertas)
+  assert.ok(!markdownToHtml("a *b c").includes("<i>"), "cursiva huerfana literal")
+  assert.ok(!markdownToHtml("a **b c").includes("<b>"), "negrita huerfana literal")
+  // htmlToPlainText desmonta sin dejar restos
+  assert.equal(htmlToPlainText("<b>hola</b> &quot;mundo&quot; &amp; <i>x</i>"), 'hola "mundo" & x', "plain fallback")
+}
+
 // ── splitHtmlChunks (sin truncado: techo absoluto 4096 = limite Telegram) ─
 {
   // Bajo el límite: un solo trozo, idéntico
@@ -147,6 +204,22 @@ assert.ok(markdownToHtml("a < b && c").includes("a &lt; b &amp;&amp; c"), "escap
     const chunked = splitHtmlChunks(h)
     assert.ok(chunked.length > 1, "adverso se parte")
     for (const c of chunked) assert.ok(c.length <= 4096, `adverso <= 4096: ${c.length}`)
+  }
+  // Corte nunca parte etiqueta (<a href="..."> lleva espacio) ni entidad
+  // (&quot;) a medias: eso era 400 "can't parse entities" en producción
+  {
+    const link = '<a href="https://example.com/una/ruta/muy/larga/con/muchos/segmentos">texto del enlace</a> '
+    const h = "<b>cabecera</b> " + link.repeat(60) + 'cola &quot;citada&quot; ' + "z".repeat(3000)
+    const chunked = splitHtmlChunks(h)
+    assert.ok(chunked.length > 1, "enlaces se parten")
+    for (const c of chunked) {
+      assert.ok(!/<[^>]*$/.test(c), "sin \"<\" colgante")
+      const lt = c.lastIndexOf("<")
+      assert.ok(lt === -1 || c.indexOf(">", lt) !== -1, "sin etiqueta partida")
+      const amp = c.lastIndexOf("&")
+      assert.ok(amp === -1 || c.indexOf(";", amp) !== -1, "sin entidad partida")
+      assert.ok(c.length <= 4096, `trozo <= 4096: ${c.length}`)
+    }
   }
   // Límite personalizado
   assert.deepEqual(splitHtmlChunks("abcdef", 3).join(""), "abcdef", "limite custom")

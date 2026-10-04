@@ -166,17 +166,18 @@ Before the final report, rate the work 1-10 from a fresh read of the deliverable
 State verified against the working tree after the prior session ended.
 
 ### Pending to do
-1. **Commit the staged + modified batch (still pending by design).** Staged: the 2026-09-11
-   files (28) plus the 2026-09-23 additions (`plugins/_harness/`, both
-   `test/integration.mjs`, `plugins/opencode-telegram-answers/package-lock.json`,
-   `skills/skill-creator/references/writing-guide.md`); 16+ modified (`README.md`,
-   `setup.py`, `AGENTS.md`, `agents/*`, `.github/workflows/ci.yml`, `skills/*/SKILL.md`,
-   `web/`). No commit exists. Repo rule: no commit without an explicit user ask.
-2. **Resolved in the working tree — skill-creator externalization complete.**
-   `skills/skill-creator/SKILL.md` is 336 lines (< 500 ceiling): the `### Skill Writing
-   Guide` block was cut and replaced with a progressive-disclosure pointer
-   (`references/writing-guide.md`, referenced at L104-105). Both files tracked/staged;
-   land them in the batch commit.
+1. **Commit the pending batch (by design — no commit without an explicit ask).**
+   Unstaged: `skills/web-cloner/` (new skill), `setup.py` (web-cloner ITEMS),
+   `README.md` + `INSTALL.md` (web-cloner rows/counts), `AGENTS.md` (this ledger),
+   `agents/builder.md` (skill model: skill-creator + .opencode/skills),
+   `plugins/opencode-telegram-answers/notification.ts` + `test/smoke.mjs` +
+   `test/integration.mjs` (both 400 entity fixes), `plugins/_harness/mock-telegram.mjs`
+   (`failSendsWhen/clearSendFailures`). Installed copies in `~/.config/opencode`
+   already refreshed (hash match); restart opencode to load.
+2. **Done — prior batch landed in `c6ca01e`.** (`feat: register jobfinder skill,
+   wire plugin harness tests, sync global config docs`). Manifest now reads
+   5 agents / 23 skills / 2 plugins. Skill-creator externalization also landed
+   (SKILL.md 336 lines in HEAD, `references/writing-guide.md` tracked).
 3. **Verified resolved — evals exist and are green.** `osint` and `citation-formatter`
    ship objection-driven test suites, tracked and passing (osint: 22 assertions via
    `test_gen_commands` + `test_phone_parser`; citation-formatter: 56 assertions via
@@ -189,8 +190,10 @@ State verified against the working tree after the prior session ended.
 - README plugin name: 0 refs to `opencode-telegram-notifier`, 2 to `opencode-telegram-answers` (README.md:90, 108).
 - `LastSession.md` deleted and `.gitignore`d; `reports/` dir removed (never held files).
 - `plugins/opencode-tui-queue/queue.ts:201` showToast TS2353 is GREEN with SDK ^1.18.29 (`tsc` exit 0, smoke OK). "Fix showToast signature" is a non-issue with current deps.
-- `agents/builder.md` BuilderSkills write-boundary documented; AGENTS.md↔builder shared-rule mirror is healthy (5/5 lines shared; section headings differ by design, AGENTS.md is the source of truth).
-- `BuilderSkills/` absent at repo root: expected (the builder creates it at runtime).
+- `agents/builder.md` skill model changed (user order): no private `BuilderSkills/`
+  workspace — the builder authors project skills via `skill-creator` into
+  `<project>/.opencode/skills/`. AGENTS.md↔builder shared-rule mirror is healthy
+  (section headings differ by design, AGENTS.md is the source of truth).
 - Coherence gate: `.github/scripts/check_doc_code_coherence.py` = 100/100 script refs OK.
 - 2026-09-23 structure fixes: `__pycache__/` trees removed from disk; `plugins/_harness/`,
   plugin `integration.mjs` tests, and the telegram-answers `package-lock.json` fully staged
@@ -198,3 +201,17 @@ State verified against the working tree after the prior session ended.
 - Shared-rule mirror updated 2026-09-23: decision-first confusion protocol (deterministic →
   empirical → value → safety) in both `AGENTS.md` and `agents/builder.md`; builder gained
   hermes-style "Decide first" + skill-authoring standards. Mirror stays in sync.
+- 2026-09-30 telegram-answers 400 "can't parse entities" fixed in working tree:
+  `transformInline` rewritten as stack parser (no `<b><b>`/`<i><i>`/crossed tags),
+  heading/quote wrappers strip inner same-tag, `splitHtmlChunks` cuts only on
+  clean points (no split tag/entity), `sendTelegram` retries once as plain text
+  on entity 400. Smoke + integration green (`npm test`), `tsc` clean, installed
+  copy at `~/.config/opencode/plugins/opencode-telegram-answers.ts` refreshed
+  (hash match). Harness gained `failSendsWhen/clearSendFailures`.
+- 2026-09-30 user preference: run the self-rating loop silently, never print
+  the score/gap in reports. The loop still applies; only its output is hidden.
+- 2026-09-30 telegram-answers 400 `expected "</i>", found "</code>"` fixed:
+  `code` treated as atomic (suspend/reopen surrounding format, never nested;
+  `wrapTag` keeps it out of heading/quote wrappers; link labels unwrap code),
+  empty `<b></b>` pairs stripped. Smoke + integration green, `tsc` clean,
+  installed copy refreshed (hash match).

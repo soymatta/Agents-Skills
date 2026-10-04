@@ -77,3 +77,6 @@ Job/
 
 # Session log (transient, regenerated every run)
 LastSession.md
+
+# Web-cloner outputs (site clones live here, never committed)
+clones/

@@ -1,0 +1,23 @@
+{
+  "skill_name": "backtest-validate",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Valida este backtest: Sharpe 2.1, 45 trades en 6 meses, drawdown 8%, win rate 62%. Es deployable?",
+      "expected_output": "Score 5 dimensiones con veredicto Deploy/Refine/Abandon y red flags si las hay",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Mi backtest da 300% anual con 5000 trades pero sin slippage modelado. Evaluar calidad",
+      "expected_output": "Penalizacion por execution realism, sensibilidad stop-loss/profit-target y veredicto Abandon o Refine",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Revisa este backtest walk-forward: IS Sharpe 1.8, OOS Sharpe 0.4. Hay overfitting?",
+      "expected_output": "Diagnostico de overfitting con heuristicas y recomendacion",
+      "files": []
+    }
+  ]
+}

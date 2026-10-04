@@ -1,0 +1,23 @@
+{
+  "skill_name": "web-esenciales",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Mejora mi web de fontaneria, le faltan detalles: https://example.com (solo tiene inicio y contacto, sin FAQs ni resenas)",
+      "expected_output": "Audita los 20, reporta faltantes (faq-5, resenas-reales, casos-exito, 404, gracias, robots, schema...) y pregunta cuales implementa antes de tocar codigo",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Revisa mi landing, creo que ya esta lista: tiene 404, CTA arriba, FAQs, resenas, mapa, robots, titulos, metas, og:image, alt, schema, privacidad, analytics y equipo",
+      "expected_output": "Auditoria en verde 20/20, una linea de confirmacion y PARA sin proponer nada (gate anti-disparo)",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Dale los detalles finales a mi pagina de clinica dental antes de publicar",
+      "expected_output": "Audita, lista faltantes con por que importa (1 frase cada uno) y pregunta en lote que implementa",
+      "files": []
+    }
+  ]
+}

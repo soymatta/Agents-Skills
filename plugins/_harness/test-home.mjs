@@ -11,5 +11,9 @@ export function setupTestHome(prefix = "plugin-test-") {
   process.env.HOME = dir // POSIX
   process.env.TELEGRAM_BOT_TOKEN = "test-token"
   process.env.TELEGRAM_CHAT_ID = "12345"
+  // Aislar del entorno real: si la máquina tiene TELEGRAM_ANSWERS_ENABLED=false
+  // (interruptor global), el plugin devuelve {} sin `event` y los tests de
+  // integración mueren con "hooks.event is not a function".
+  process.env.TELEGRAM_ANSWERS_ENABLED = "true"
   return dir
 }

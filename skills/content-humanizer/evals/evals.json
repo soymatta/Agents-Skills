@@ -1,0 +1,23 @@
+{
+  "skill_name": "content-humanizer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Humaniza este capitulo de tesis para que pase Turnitin sin perder rigor academico",
+      "expected_output": "Texto revisado con las 9 tecnicas y verificacion con detect_ai.py",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Este ensayo lo marca GPTZero al 95% IA, reescribelo manteniendo las citas",
+      "expected_output": "Ensayo reescrito con burstiness y score de deteccion reducido",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Revision final de mi articulo: citas y referencias ya estan, solo hazlo sonar humano",
+      "expected_output": "Pase final sin cambios de contenido, solo estilo y ritmo",
+      "files": []
+    }
+  ]
+}

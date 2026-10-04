@@ -426,6 +426,27 @@ ITEMS: list[dict] = [
         "dependencies": [],
     },
     {
+        "id": "web-cloner",
+        "dir": "skills/web-cloner",
+        "label": "Web Cloner",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "ui-ux-pro-max",
+        "dir": "skills/ui-ux-pro-max",
+        "label": "UI UX Pro Max (third-party)",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "web-esenciales",
+        "dir": "skills/web-esenciales",
+        "label": "Web Esenciales",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
         "id": "jobfinder-skill",
         "dir": "skills/jobfinder",
         "label": "Job Finder (skill)",

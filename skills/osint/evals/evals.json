@@ -1,0 +1,23 @@
+{
+  "skill_name": "osint",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Investiga este email sospechoso de phishing que me llego (tengo el header completo, doy consentimiento)",
+      "expected_output": "Plan por fases con comandos aprobados, veredicto y reporte estructurado",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Due diligence sobre esta empresa antes de firmar contrato: dominio, registros y presencia",
+      "expected_output": "Reporte OSINT con hallazgos verificados y nivel de confianza",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Verifica si este numero de telefono es legitimo (es del supuesto banco que me llamo)",
+      "expected_output": "Parseo con phone parser + veredicto de legitimidad",
+      "files": []
+    }
+  ]
+}

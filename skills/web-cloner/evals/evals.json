@@ -1,0 +1,23 @@
+{
+  "skill_name": "web-cloner",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Mira esta pagina https://example.com/landing la quiero en HTML para estudiarla, es mia",
+      "expected_output": "Pregunta alcance (solo pagina / subenlaces / sitio), luego clona a clon/ con index.html + styles/ + scripts/ + assets/ y check_links en verde",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Te paso este link https://example.com/app replica este dashboard en Astro, solo la pagina principal",
+      "expected_output": "Sin pregunta de alcance (ya dicho: solo principal + framework Astro), port en src/pages/*.astro con astro build en verde",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Bajame todo este sitio https://example.com/ completo con imagenes",
+      "expected_output": "Mapeo desde raiz con map.json, descarga con todas las imagenes, layout clon/ completo y reporte de pendientes",
+      "files": []
+    }
+  ]
+}

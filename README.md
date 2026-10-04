@@ -58,7 +58,10 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `project-memory` | "Set up project memory" |
 | `impeccable` | `/init`, `/shape`, `/critique`, `/polish`, `/audit` |
 | `ai-job-search` | `/setup`, `/apply`, `/scrape`, `/rank`, `/interview` |
+| `web-cloner` | "Clone this landing page", "Descarga esta web a HTML estático", "Replica este sitio en Astro" |
 | `jobfinder` | "Find jobs for this profile", "Score my CV against this posting", "Generate a cover letter" |
+| `ui-ux-pro-max` | "Build a landing page for my SaaS", "Design a dashboard", "Mejora el diseño de mi app" |
+| `web-esenciales` | "Mejora mi web", "Que le falta a mi pagina", "Revisa mi landing antes de publicar" |
 
 ### Commands
 
@@ -122,6 +125,9 @@ Agents-Skills/
     content-humanizer/   # + tests/
     impeccable/          # (Third-party — pbakaus, Apache 2.0)
     jobfinder/           # scripts/ + templates/ + tests/
+    web-cloner/          # scripts/ + tests/
+    ui-ux-pro-max/       # (Third-party — nextlevelbuilder)
+    web-esenciales/      # scripts/ + tests/ + evals/
     math-notation/
     goal/
     osint/               # + tests/
@@ -175,6 +181,9 @@ Agents-Skills/
 | `skill-creator` | Meta-skill: create, evaluate, compare and optimize other skills. *(Third-party — Anthropic, Apache 2.0)* | — |
 | `impeccable` | Frontend design audit, polish, and redesign skill. *(Third-party — pbakaus, Apache 2.0)* | — |
 | `ai-job-search` | AI job application framework: 5D fit evaluation, CV tailoring, cover letters. *(Third-party — MadsLorentzen, MIT)* | — |
+| `web-cloner` | Clona páginas y sitios a HTML estático organizado (index.html, styles/, scripts/, assets/) con detección de stack y port a Astro/React/Vue/Svelte. | — |
+| `ui-ux-pro-max` | Genera sistemas de diseño completos (patron, estilo, colores, tipografia) con 79 estilos y 192 reglas por industria. *(Third-party — nextlevelbuilder)* | — |
+| `web-esenciales` | Audita y completa los 20 imprescindibles de una web de negocio (404, CTA, FAQs, schema, analytics); pregunta antes de implementar cada faltante. | — |
 
 ## Commands
 
@@ -315,5 +324,6 @@ python -m pytest skills/agent-self-improver/tests/ -v
 ### Third-party skills
 
 - `skill-creator` — authored by **Anthropic, PBC** (Apache 2.0). Do not modify. To update, pull from the upstream source.
+- `ui-ux-pro-max` — authored by **nextlevelbuilder** (check upstream repo for license). Do not modify. To update, pull from the upstream source or run `uipro update`.
 - `impeccable` — authored by **pbakaus** (Apache 2.0). Do not modify. To update, run `npx impeccable install --providers=opencode --scope=project --force`.
 - `ai-job-search` — authored by **MadsLorentzen** (MIT). Do not modify. To update, pull from the upstream source.

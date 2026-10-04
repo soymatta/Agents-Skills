@@ -1,0 +1,23 @@
+{
+  "skill_name": "code-review",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Review this diff: agrega autenticacion JWT al login, 5 archivos",
+      "expected_output": "Veredicto unico en 3 ejes (calidad, comportamiento vs plan, relevancia) con fixes descritos, sin parchear",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Revisa estos cambios de refactor del modulo de pagos antes del merge",
+      "expected_output": "Hallazgos severizados con linea y fix propuesto, read-only",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Este PR toca 20 archivos pero el plan solo pedia 3, revisalo",
+      "expected_output": "Flag de alcance con recomendacion de recorte",
+      "files": []
+    }
+  ]
+}

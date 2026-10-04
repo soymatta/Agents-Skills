@@ -401,12 +401,17 @@ function splitHtmlChunks(text: string, max = CONFIG.maxBodyChars): string[] {
       let cut = -1
       const from = Math.min(buf.length - 1, room)
       for (let s = from; s > Math.max(0, from - 300); s--) {
-        if (buf[s] === " " || buf[s] === "\n") {
+        if ((buf[s] === " " || buf[s] === "\n") && isCleanCut(buf.slice(0, s + 1))) {
           cut = s + 1
           break
         }
       }
-      if (cut <= 0) cut = Math.max(1, Math.min(room, buf.length - 1))
+      if (cut <= 0) {
+        // Corte duro: retroceder hasta un punto limpio (nunca partir
+        // etiqueta ni entidad a medias). cut >= 1 garantiza progreso.
+        cut = Math.max(1, Math.min(room, buf.length - 1))
+        while (cut > 1 && !isCleanCut(buf.slice(0, cut))) cut--
+      }
       const head = buf.slice(0, cut)
       const tail = buf.slice(cut)
       pushChunk(head)
@@ -417,8 +422,18 @@ function splitHtmlChunks(text: string, max = CONFIG.maxBodyChars): string[] {
   return chunks.length > 0 ? chunks : [text]
 }
 
-async function sendTelegram(
-  token: string,
+/**
+ * True si `head` no deja etiqueta ni entidad HTML a medias (el texto ya
+ * viene escapado: todo `<`/`>` crudo es etiqueta nuestra y todo `&` es
+ * entidad). Cortar solo en puntos limpios evita 400 de Telegram.
+ */
+function isCleanCut(head: string): boolean {
+  if (head.lastIndexOf("<") > head.lastIndexOf(">")) return false
+  if (head.lastIndexOf("&") > head.lastIndexOf(";")) return false
+  return true
+}
+
+async function sendTelegram(  token: string,
   chatId: string,
   text: string,
   opts?: { replyMarkup?: unknown; replyTo?: number; tag?: string },
@@ -463,6 +478,30 @@ async function sendTelegram(
       if (res.status === 400 && typeof body.reply_to_message_id === "number" && /reply|not found/i.test(description)) {
         delete body.reply_to_message_id
         continue
+      }
+      // 400 por HTML que Telegram no traga (entidades/etiquetas): última
+      // bala, reenviar como texto plano sin parse_mode (llega sin formato
+      // antes que perderse).
+      if (res.status === 400 && /can't parse entities|end tag|start tag/i.test(description)) {
+        const plain = htmlToPlainText(msg)
+        if (plain !== msg) {
+          const plainBody: Record<string, unknown> = { ...body, text: plain }
+          delete plainBody.parse_mode
+          try {
+            const r2 = await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(plainBody),
+            })
+            if (r2.ok) {
+              const p2 = (await r2.json().catch(() => null)) as { result?: { message_id?: number } } | null
+              console.warn(`[telegram-answers] Telegram API fallback plain (${tag}): HTML rechazado, enviado sin formato`)
+              return typeof p2?.result?.message_id === "number" ? p2.result.message_id : null
+            }
+          } catch {
+            // cae al warn de abajo
+          }
+        }
       }
       console.warn(
         `[telegram-answers] Telegram API error ${res.status} (${tag}): ${description} | len=${msg.length} head=${JSON.stringify(msg.slice(0, 120))}`,
@@ -1655,6 +1694,14 @@ const plugin: Plugin = async ({ client, directory }) => {
     return {}
   }
 
+  // Interruptor local: TELEGRAM_ANSWERS_ENABLED=false desactiva notificaciones
+  // y respuestas sin tocar el resto de la config (sobrevive re-syncs).
+  const enabledFlag = (process.env.TELEGRAM_ANSWERS_ENABLED ?? "true").trim().toLowerCase()
+  if (["0", "false", "no", "off"].includes(enabledFlag)) {
+    await log("TELEGRAM_ANSWERS_ENABLED=false. Notificaciones y respuestas desactivadas.")
+    return {}
+  }
+
   startPolling(client, token, chatId)
   await log("Notificaciones y respuestas de Telegram habilitadas")
   // Auto-verificación E2E en segundo plano: informa sola por Telegram/log
@@ -1977,6 +2024,18 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 }
 
+/** HTML del plugin → texto plano (última bala ante 400 de entidades). */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+}
+
 /**
  * Convierte markdown (salida típica de un agente) a HTML compatible con
  * Telegram (parse_mode="HTML"). Soporta: negrita, cursiva, tachado, código
@@ -2019,28 +2078,173 @@ function markdownToHtml(md: string): string {
 
 function transformLine(line: string): string {
   const heading = /^#{1,6}\s+(.*)$/.exec(line)
-  if (heading) return `<b>${transformInline(heading[1])}</b>`
+  // El wrapper ya es <b>: quitar <b> internos y no envolver <code>
+  // (Telegram no anida código en nada).
+  if (heading) return wrapTag(stripTag(transformInline(heading[1]), "b"), "b")
 
   const quote = /^&gt;\s?(.*)$/.exec(line)
-  if (quote) return `<i>\u25b8 ${transformInline(quote[1])}</i>`
+  // Idem con <i> en citas
+  if (quote) return wrapTag("\u25b8 " + stripTag(transformInline(quote[1]), "i"), "i")
 
   if (/^\s*(\*{3,}|-{3,}|_{3,})\s*$/.test(line)) return "\u2500".repeat(14)
 
   return transformInline(line.replace(/^\s*[-*+]\s+/, "\u2022 "))
 }
 
+/**
+ * Envuelve en <tag> por tramos, dejando los <code> fuera del wrapper:
+ * `<b>a <code>x</code> b</b>` → `<b>a </b><code>x</code><b> b</b>`.
+ */
+function wrapTag(html: string, tag: string): string {
+  return html
+    .split(/(<code>.*?<\/code>)/g)
+    .filter((p) => p.length > 0)
+    .map((p) => (/^<code>.*<\/code>$/.test(p) ? p : `<${tag}>${p}</${tag}>`))
+    .join("")
+}
+
+/** Quita las aperturas/cierres de una etiqueta (evita anidar la misma). */
+function stripTag(html: string, tag: string): string {
+  return html.replace(new RegExp(`</?${tag}>`, "g"), "")
+}
+
 function transformInline(text: string): string {
-  return text
-    .replace(/`([^`\n]+)`/g, "<code>$1</code>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2">$1</a>')
-    .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
-    .replace(/\*(.+?)\*/g, "<i>$1</i>")
-    .replace(/~~(.+?)~~/g, "<s>$1</s>")
+  // Una sola pasada: parseMarkers maneja código, enlaces, **, * y ~~
+  // (el código suspende/reabre el formato exterior en vez de anidarse).
+  return transformRich(text)
+}
+
+function transformRich(text: string): string {
+  // Enlaces: enmascarar para que `*`/`~~`/`` ` `` de la URL no se lean como
+  // formato; el texto del enlace sí se procesa. El código dentro del texto
+  // del enlace se desenvuelve (Telegram no anida `code` en nada).
+  const links: string[] = []
+  const masked = text.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+    (_m, label: string, url: string) => {
+      links.push(`<a href="${url}">${parseMarkers(label).replace(/<\/?code>/g, "")}</a>`)
+      return `\u0000${links.length - 1}\u0000`
+    },
+  )
+  const parsed = parseMarkers(masked)
+  return parsed.replace(/\u0000(\d+)\u0000/g, (_m, n: string) => links[Number(n)] ?? _m)
+}
+
+const MARKER_TAG: Record<string, string> = { "**": "b", "*": "i", "~~": "s" }
+
+/**
+ * Parser de marcadores en una pasada con pila: nunca genera etiquetas
+ * anidadas del mismo tipo (`<b><b>`) ni cruces (`<b><i></b></i>`), que
+ * Telegram rechaza con 400 "can't parse entities". Además `code` es
+ * atómico para Telegram: al abrirlo se cierran las etiquetas en curso y se
+ * reabren al cerrarlo (nunca `<i><code>` ni formato dentro del código).
+ * Los marcadores sin pareja, o que obligarían a anidar/cruzar, se dejan
+ * literales.
+ */
+function parseMarkers(s: string): string {
+  const frags: string[] = []
+  // pila de aperturas emitidas (índice en frags para poder revertirlas)
+  const stack: Array<{ fragIdx: number; marker: string; tag: string; suspended?: Array<{ fragIdx: number; marker: string; tag: string }> }> = []
+  const markerAt = (p: number): string | null => {
+    if (s.startsWith("**", p)) return "**"
+    if (s[p] === "*") return "*"
+    if (s.startsWith("~~", p)) return "~~"
+    if (s[p] === "`") return "`"
+    return null
+  }
+  let i = 0
+  while (i < s.length) {
+    const m = markerAt(i)
+    if (!m) {
+      frags.push(s[i])
+      i++
+      continue
+    }
+    // Código: atómico, nunca anidado ni con formato dentro
+    if (m === "`") {
+      const t = stack[stack.length - 1]
+      if (t && t.marker === "`") {
+        stack.pop()
+        frags.push("</code>")
+        // Reabrir lo suspendido al abrir el código
+        for (const susp of t.suspended ?? []) {
+          stack.push({ fragIdx: frags.length, marker: susp.marker, tag: susp.tag })
+          frags.push(`<${susp.tag}>`)
+        }
+        i += 1
+        continue
+      }
+      // `` vacío: literal
+      if (s[i + 1] === "`") {
+        frags.push("`")
+        i += 1
+        continue
+      }
+      // Cerrar formato en curso antes del código (se reabre al cerrarlo)
+      const suspended: Array<{ fragIdx: number; marker: string; tag: string }> = []
+      while (stack.length > 0) {
+        const o = stack.pop()!
+        frags.push(`</${o.tag}>`)
+        suspended.unshift(o)
+      }
+      // Sin cierre por delante: todo literal (restaurar lo cerrado)
+      if (s.indexOf("`", i + 1) === -1) {
+        for (let k = 0; k < suspended.length; k++) frags.pop()
+        for (const o of suspended) stack.push(o)
+        frags.push("`")
+        i += 1
+        continue
+      }
+      stack.push({ fragIdx: frags.length, marker: "`", tag: "code", suspended })
+      frags.push("<code>")
+      i += 1
+      continue
+    }
+    const top = stack[stack.length - 1]
+    // Dentro de código todo es literal (incluidos **/*/~~)
+    if (top && top.marker === "`") {
+      frags.push(m)
+      i += m.length
+      continue
+    }
+    // `***` con cursiva abierta: el primer `*` la cierra, el resto se reevalúa
+    if (m === "**" && top && top.marker === "*") {
+      stack.pop()
+      frags.push("</i>")
+      i += 1
+      continue
+    }
+    const tag = MARKER_TAG[m]
+    if (top && top.marker === m) {
+      stack.pop()
+      frags.push(`</${tag}>`)
+      i += m.length
+    } else if (stack.some((e) => e.marker === m)) {
+      // Reabrir el mismo tipo dentro de sí mismo → literal (no anidar)
+      frags.push(m)
+      i += m.length
+    } else if (s.indexOf(m, i + m.length) === -1) {
+      // Sin cierre por delante → literal (evita `<b>` huérfanos)
+      frags.push(m)
+      i += m.length
+    } else {
+      stack.push({ fragIdx: frags.length, marker: m, tag })
+      frags.push(`<${tag}>`)
+      i += m.length
+    }
+  }
+  // Aperturas que quedaron sin cierre: revertir a marcador literal
+  for (const open of stack) {
+    frags[open.fragIdx] = open.marker
+  }
+  // Pares vacíos residuales del suspend/reopen (`<b></b>`): fuera
+  return frags.join("").replace(/<(b|i|s|u|code)><\/\1>/g, "")
 }
 
 export {
   escapeHtml,
   extractInfo,
+  htmlToPlainText,
   isSubagentSession,
   buildPermKeyboard,
   isWorkingEntryFresh,

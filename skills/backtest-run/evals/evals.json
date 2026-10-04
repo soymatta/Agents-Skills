@@ -1,0 +1,23 @@
+{
+  "skill_name": "backtest-run",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Backtestea una estrategia de cruce de medias moviles (50/200) en BTC-USD diario, ultimo año, con slippage y fills realistas",
+      "expected_output": "Reporte con Sharpe, drawdown, win rate, expectancy, Monte Carlo y conclusion deploy/refine/abandon",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Prueba mi estrategia RSI-2 mean reversion en SPY con stops del 3%, quiero saber si es robusta o overfit",
+      "expected_output": "Backtest completo con sensibilidad de parametros y veredicto fundado",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Simula una estrategia de breakout con ATR trailing stop en ETH, train/val/test split",
+      "expected_output": "Metricas por split, walk-forward y recomendacion de deploy o descarte",
+      "files": []
+    }
+  ]
+}

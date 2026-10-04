@@ -1,0 +1,23 @@
+{
+  "skill_name": "debug",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "El login devuelve 500 tras el deploy de ayer, encuentra la causa y arreglalo",
+      "expected_output": "Reproduccion, hipotesis validada, fix con regression test",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Flaky test en el pipeline: test_checkout pasa 1 de cada 3 veces",
+      "expected_output": "Causa raiz del flake con fix determinista y evidencia de 2+ corridas",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Memory leak en el worker de colas, crece 100MB por hora",
+      "expected_output": "Diagnostico con medicion antes/despues y test de regresion",
+      "files": []
+    }
+  ]
+}

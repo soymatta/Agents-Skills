@@ -1,0 +1,23 @@
+{
+  "skill_name": "jobfinder",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Busca empleos Python remoto para mi perfil (5 años backend, Django, AWS) y puntua fit 5D",
+      "expected_output": "Shortlist con 5D scores, carta y CV adaptado para el mejor match",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Evalua este posting de data analyst vs mi CV y genera cover letter",
+      "expected_output": "Score de fit con gaps + cover letter forward-looking + CV tailoreado",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Hazme skill-gap analysis para pasar de QA manual a SDET con plan de aprendizaje",
+      "expected_output": "Gaps priorizados con plan y prep de entrevista STAR",
+      "files": []
+    }
+  ]
+}

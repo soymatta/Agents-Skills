@@ -6,7 +6,7 @@ an install failure.
 
 ## What this repo ships
 
-- 4 agents, 23 skills, 2 plugins (opencode-only), 2 slash commands.
+- 4 agents, 26 skills, 2 plugins (opencode-only), 2 slash commands.
 - Authoritative inventory: `python setup.py --manifest` (JSON, no interaction).
 - Installer: `setup.py` copies items + resolves dependencies, then outputs the
   destination of every file. No manual copying.

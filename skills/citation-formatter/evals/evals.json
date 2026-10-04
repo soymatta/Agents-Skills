@@ -1,0 +1,23 @@
+{
+  "skill_name": "citation-formatter",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Formatea estas 8 referencias en APA 7ma edicion con lista de referencias y pagina de titulo",
+      "expected_output": "Documento con citas en texto, lista de referencias APA y portada, generado via generate_outputs.py",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Necesito mis citas en formato IEEE con DOCX y hipervinculos clicables",
+      "expected_output": "DOCX IEEE con citas numericas e hipervinculos via generate_docx.py",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Convierte esta bibliografia Vancouver desordenada a formato correcto con citas en texto",
+      "expected_output": "Referencias Vancouver numeradas en orden de aparicion y citas corregidas",
+      "files": []
+    }
+  ]
+}

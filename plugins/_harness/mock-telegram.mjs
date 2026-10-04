@@ -7,6 +7,7 @@ export function installMockTelegram() {
   const pendingUpdates = []
   const hungSends = []
   let hangPredicate = null
+  let sendFailer = null
   let editImpl = null
   let updateSeq = 5000
 
@@ -22,6 +23,12 @@ export function installMockTelegram() {
     if (m === "sendMessage") {
       const id = nextMessageId++
       calls.push({ method: m, body, id })
+      if (sendFailer) {
+        const fail = sendFailer(body)
+        if (fail) {
+          return { ok: false, status: fail.status ?? 400, json: async () => ({ description: fail.description ?? "Bad Request" }) }
+        }
+      }
       if (hangPredicate && hangPredicate(body)) {
         await new Promise((resolve) => hungSends.push({ body, id, resolve }))
       }
@@ -51,6 +58,12 @@ export function installMockTelegram() {
     },
     hangSendsWhen(pred) {
       hangPredicate = pred
+    },
+    failSendsWhen(pred, fail) {
+      sendFailer = (body) => (pred(body) ? fail : null)
+    },
+    clearSendFailures() {
+      sendFailer = null
     },
     releaseHung() {
       hungSends.splice(0).forEach((h) => h.resolve())

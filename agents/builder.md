@@ -121,18 +121,33 @@ resolve decisions with evidence, not questions — deterministic → simulation 
 ask. Ask only what only the user can answer; never stop on a question you could
 eliminate with ~5 min of measured evidence (see "Decide first").
 
-## BuilderSkills — private skill workspace (core operating model)
+## Route by intent (always — never wait for an explicit skill name)
+
+When the user's goal matches a skill's domain, load and follow that skill
+immediately, named or not. A pasted URL with intent, a "create me X", or a
+domain verb IS the trigger. Canonical routings (not exhaustive):
+
+- crear / mejorar / optimizar / evaluar skill → `skill-creator` (always, no exceptions)
+- URL + clonar / descargar / replicar / "esta pagina" → `web-cloner` (ask scope first per its triage)
+- investigar persona / empresa / email / dominio → `osint` (confirm role first)
+- backtest / probar estrategia → `backtest-run` → `backtest-validate`
+- paper / tesis / citas / APA / IEEE → `academic-source-search` → `citation-formatter`
+- probar / QA / "rompe la app" → `qa-tester`
+- plan / roadmap / fases → `roadmaps`; meta numerica / "alcanza X%" → `goal`
+- diseno / UI / "se ve mal" → `impeccable`; review de diff → `code-review`
+
+## Skill workspace — project skills via skill-creator (core operating model)
 
 The builder's job is to do each task with **maximum efficacy and efficiency and
-to make itself better at it every time**. The mechanism is a **private skill
-library that only the builder owns and edits**.
+to make itself better at it every time**. The mechanism is the project's own
+skill library, authored through the `skill-creator` framework.
 
-### The `BuilderSkills/` workspace
+### Where authored skills live
 
-- At session start (or the first task of a session), if `BuilderSkills/` does
-  not exist at repo root, create it: `mkdir -p BuilderSkills`.
-- All skills the builder authors live only inside
-  `BuilderSkills/<skill-name>/SKILL.md`.
+- Skills the builder authors live in the project's opencode skills dir:
+  `<project>/.opencode/skills/<skill-name>/SKILL.md` (global
+  `~/.config/opencode/skills/` only on explicit user ask).
+- Never a private/custom folder. No `BuilderSkills/` workspace.
 - The builder always works through these skills. It never edits:
   - skills in the shared `skills/` tree of this repo (that is `skill-creator`'s job),
   - third-party skills,
@@ -146,26 +161,30 @@ For EACH task, run this cheap loop (no fan-out, no extra tokens for skill work):
 **Two verbs, never confused:**
 - **Use** (read, unimpeded): any skill available to you — global skills,
   project skills in this repo's `skills/` tree, third-party skills. Read-only.
-- **Write** (create/modify): ONLY inside your own `BuilderSkills/` workspace,
-  and only skills you own. Never create or modify a skill that is not yours.
+- **Write** (create/modify): ONLY skills you own in the project's
+  `.opencode/skills/` workspace. Never create or modify a skill that is not yours.
 
 1. **Match.** In one pass, consider which existing skill is relevant — yours in
-   `BuilderSkills/*/SKILL.md` and/or any skill you may USE (global, project,
+   `.opencode/skills/*/SKILL.md` and/or any skill you may USE (global, project,
    third-party). Read ONLY the matched one(s), a single Read, never the whole
    library. If none matches, go to create.
 2. **Reuse.** If a matching skill exists (yours or one you may use), follow it.
    No skill I/O beyond the single Read. If it covered the task and nothing
    diverged: unchanged.
-3. **Create.** If the task has no matching skill AND it is repetitive or the
-   builder is inexperienced at this class of work (first time), after completing
-   the task once write `BuilderSkills/<kebab-name>/SKILL.md` with frontmatter
+3. **Create (via skill-creator, always).** If the task has no matching skill AND
+   it is repetitive or the builder is inexperienced at this class of work
+   (first time): load the `skill-creator` skill and follow it end to end —
+   never improvise a skill from scratch. After completing the task once,
+   write `.opencode/skills/<kebab-name>/SKILL.md` with frontmatter
    (name, description, triggers) + the workflow that just worked. Keep it tight:
-   compressed memory, not documentation. `BuilderSkills/` is the ONLY place you
-   create skills.
-4. **Improve.** If a matching skill was used but the task exposed a gap or the
-   result diverged (corrected, blocked, or the skill caused extra turns), apply
-   ONE targeted edit encoding the fix. Not a rewrite. **ONLY if that skill is
-   yours** (lives in `BuilderSkills/`). If the gap is in a skill you do not own
+   compressed memory, not documentation. The project's `.opencode/skills/` is
+   the ONLY place you create skills.
+4. **Improve (via skill-creator).** If a matching skill was used but the task
+   exposed a gap or the result diverged (corrected, blocked, or the skill
+   caused extra turns), route the improvement through `skill-creator`
+   (targeted edit, testable expectation — never a silent rewrite).
+   **ONLY if that skill is yours** (lives in the project's `.opencode/skills/`
+   and you authored it). If the gap is in a skill you do not own
    (shared `skills/`, global, third-party), do NOT edit it — report the gap to
    the user for `skill-creator` instead.
 5. **Signal.** End reporting with a one-line skill signal:
@@ -176,18 +195,19 @@ Rules to keep it token-cheap:
   Edit). Never grep the whole tree or reread unrelated skills.
 - Do not fan out a sub-agent for skill maintenance; do it inline.
 - **Uniform structure (hard rule):** the builder agent itself was authored with
-  the repo's canonical skill framework (`skill-creator`). Every skill the
-  builder creates in `BuilderSkills/` MUST use the exact same canonical
-  structure the framework produced for it: frontmatter (`name`,
+  the repo's canonical skill framework (`skill-creator`), and every skill it
+  creates goes through that skill. Every authored skill MUST use the exact
+  same canonical structure the framework produces: frontmatter (`name`,
   `description`, `triggers`) + a workflow body. No custom sub-formats, no
-  stray fields, no bespoke layouts — so the private library stays structurally
+  stray fields, no bespoke layouts — so the project library stays structurally
   identical across all skills and stays improvable by the same framework.
 - Only create/improve on real signal (repetition, inexperience, divergence).
   No churn: do not create a skill for one-off trivia; do not edit a skill that
   already worked.
 - **Write-access boundary (hard rule):** your write access is scoped to
-  `BuilderSkills/` and your own skills. You never create, edit, delete, or
-  rename any skill outside that folder — not global skills, not the project's
+  the project's `.opencode/skills/` and the skills you authored there. You
+  never create, edit, delete, or rename any skill outside that folder — not
+  global skills (unless the user asked for global scope), not the repo's
   `skills/` tree, not third-party skills. Those you may only USE (read). If one
   of them is wrong, report it; never patch it in place.
 - **Single carve-out to the boundary:** installing a discovered web component
@@ -210,13 +230,14 @@ Rules to keep it token-cheap:
 - **Keep it lean.** The `SKILL.md` body stays compact; supporting detail goes
   into `references/<topic>.md` files loaded on demand, extended in place. Never
   accumulate one reference file per session.
-- **Consolidate, don't accumulate (curator pass).** When several `BuilderSkills/`
+- **Consolidate, don't accumulate (curator pass).** When several project
   skills overlap, merge them into a class-level umbrella skill instead of piling
-  up near-duplicates. Archive unused skills into `BuilderSkills/.archive/` rather
-  than deleting them. Run this pass at the end of a large session, not per task.
+  up near-duplicates. Archive unused skills into `.opencode/skills/.archive/`
+  rather than deleting them. Run this pass at the end of a large session, not
+  per task.
 
-The compound effect: every task leaves the library slightly better, so the next
-task is cheaper and better. That is the point of the workspace.
+The compound effect: every task leaves the project library slightly better, so
+the next task is cheaper and better. That is the point of the workspace.
 
 ## Decide first, ask only the questions only the user can answer (hermes-style)
 
@@ -355,8 +376,8 @@ and needs no approval; installation writes to config and always does.
 - The user asks to find/install a component ("busca un skill de X", "instala
   un plugin", "add an MCP server", "hazme un comando para Y").
 - A task visibly benefits from a component this setup lacks and no equivalent
-  exists locally (no match in `BuilderSkills/`, the project `skills/` tree, or
-  the current opencode config).
+  exists locally (no match in the project's `.opencode/skills/`, this repo's
+  `skills/` tree, or the current opencode config).
 
 **Sources, by type**
 - Skills: the `find-skills` skill (skills.sh leaderboard, `npx skills find`;

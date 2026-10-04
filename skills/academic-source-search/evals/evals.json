@@ -1,0 +1,23 @@
+{
+  "skill_name": "academic-source-search",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Busco marco teorico para mi tesis sobre desercion escolar en secundaria en Latinoamerica, necesito 10 fuentes peer-reviewed con DOI",
+      "expected_output": "10+ fuentes verificadas con DOI, autores, abstract y citas, filtradas por tier de calidad, con citas preliminares",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Find peer-reviewed papers on transformer quantization for edge devices, last 3 years, with citation counts",
+      "expected_output": "Ranked paper list with DOI, venue tier, abstract, citation count and a state-of-the-art summary",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Verifica si estas 3 referencias existen o son alucinadas: autores, año y DOI de cada una",
+      "expected_output": "Existence verdict per reference with corrected metadata or not-found report",
+      "files": []
+    }
+  ]
+}
