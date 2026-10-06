@@ -6,7 +6,8 @@ description: >-
   Produces a severity-rated report (CRITICAL/MAJOR/MINOR/SUGGESTION) prioritized by severity x probability x
   effort, with baseline/delta on re-runs. Language-agnostic; works with any project. Asks one optional scoping
   question then runs non-stop. Use when the user wants to analyze/audit/review a project, find bugs, or get
-  improvement suggestions. Triggers: "analyze", "audit", "code review", "security audit", "analizar",
+  improvement suggestions. Whole-codebase scope (for a single diff use code-review).
+  Triggers: "analyze", "audit", "review project", "security audit", "analizar",
   "revisar", "auditar", "que se puede mejorar", "repo audit".
 compatibility: Language-agnostic, works with any project type. No external dependencies. May write its own reports/audit JSON for baseline/delta.
 ---

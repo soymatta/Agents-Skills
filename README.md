@@ -182,10 +182,10 @@ Agents-Skills/
 | `skill-creator` | Meta-skill: create, evaluate, compare and optimize other skills. *(Third-party — Anthropic, Apache 2.0)* | — |
 | `impeccable` | Frontend design audit, polish, and redesign skill. *(Third-party — pbakaus, Apache 2.0)* | — |
 | `ai-job-search` | AI job application framework: 5D fit evaluation, CV tailoring, cover letters. *(Third-party — MadsLorentzen, MIT)* | — |
-| `web-cloner` | Clona páginas y sitios a HTML estático organizado (index.html, styles/, scripts/, assets/) con detección de stack y port a Astro/React/Vue/Svelte. | — |
-| `ui-ux-pro-max` | Genera sistemas de diseño completos (patron, estilo, colores, tipografia) con 79 estilos y 192 reglas por industria. *(Third-party — nextlevelbuilder)* | — |
-| `web-esenciales` | Audita y completa los 20 imprescindibles de una web de negocio (404, CTA, FAQs, schema, analytics); pregunta antes de implementar cada faltante. | — |
+| `web-cloner` | Clones pages and full sites into organized local code (index.html, styles/, scripts/, assets/) with stack detection and port to Astro/React/Vue/Svelte. | — |
+| `ui-ux-pro-max` | Generates complete design systems (pattern, style, colors, typography) with 79 styles and 192 per-industry rules. *(Third-party — nextlevelbuilder)* | — |
 
+| `web-esenciales` | Audits and completes the 20 must-haves of a business website (404, CTA, FAQs, schema, analytics); asks before implementing each gap. | — |
 ## Commands
 
 Slash commands you can type directly in your AI assistant:

@@ -1,69 +1,69 @@
 ---
 name: web-esenciales
-description: Audita y completa los 20 imprescindibles de una web de negocio antes de darla por buena (404 personalizada, CTA visible sin scroll, enlaces internos, pagina de gracias, breadcrumbs, casos de exito, 5 FAQs, promesa de tiempo de respuesta, CTA fijo en movil, robots.txt, titulos unicos, metadescripciones, og:image, mapa y direcciones, resenas reales, alt en imagenes, schema LocalBusiness, privacidad, Google Analytics, foto del equipo). Usa esta skill SIEMPRE que el usuario hable de una web: crearla, mejorarla, pulirla, darle detalles, "revisa mi web", "mejora la landing", "que le falta a mi pagina", "optimiza el sitio", "detalles finales", "esta lista para publicar". PRIMERO audita con scripts/check_web_esenciales.py o revision manual; si los 20 estan presentes NO hagas nada mas (evita el disparo innecesario). Si falta al menos uno, reporta faltantes y pregunta al usuario si implementa cada uno antes de tocar codigo.
+description: >-
+  Audits and completes the 20 must-haves of a business website before sign-off (custom 404, above-the-fold CTA, internal links, thank-you page, breadcrumbs, success stories, 5 FAQs, response-time promise, sticky mobile CTA, robots.txt, unique titles, meta descriptions, og:image, map + address, real reviews, image alts, LocalBusiness schema, privacy, Google Analytics, team photo). Use whenever the user talks about a website: create, improve, polish, add details, "revisa mi web", "mejora la landing", "que le falta a mi pagina", "optimiza el sitio", "detalles finales", "esta lista para publicar", "review my site", "improve my landing", "is my site ready". Audit FIRST with scripts/check_web_esenciales.py or manual review; if all 20 are present do nothing else (avoids misfires). If at least one is missing, report gaps and ask the user before implementing each one.
 ---
 
-# Web Esenciales — los 20 imprescindibles
+# Web Esenciales — the 20 must-haves
 
-Nombre original propuesto por el usuario: *WebNecesaris*. Se renombra a
-`web-esenciales`: kebab-case como el resto del repo, ortografia correcta y
-significado inmediato en ES/CA.
+Original name proposed by the user: *WebNecesaris*. Renamed to
+`web-esenciales`: kebab-case like the rest of the repo, correct spelling,
+immediate meaning in ES/CA.
 
-Convierte una web "casi lista" en una web completa de negocio. No es diseño
-(eso es `impeccable` / `ui-ux-pro-max`) ni clonado (`web-cloner`): es el gate
-de imprescindibles que toda web comercial debe tener.
+Turns an "almost done" site into a complete business website. Not design
+(that is `impeccable` / `ui-ux-pro-max`) nor cloning (`web-cloner`): it is
+the must-have gate every commercial site must pass.
 
-## Gate anti-disparo (obligatorio, primero, sin excepcion)
+## No-misfire gate (mandatory, first, no exceptions)
 
-1. Audita la web (script de abajo o revision manual pagina por pagina).
-2. Si los 20 estan presentes: dilo en una linea y PARA. No propongas nada.
-3. Si falta al menos uno: sigue al workflow. Nunca te saltes la auditoria.
+1. Audit the site (script below or manual page-by-page review).
+2. If all 20 are present: say so in one line and STOP. Propose nothing.
+3. If at least one is missing: follow the workflow. Never skip the audit.
 
 ## Checklist (20)
 
-Conversión (5): `cta-sin-scroll` CTA visible sin hacer scroll · `cta-movil-fijo`
-CTA fijo/sticky en movil · `tiempo-respuesta` promesa explicita ("respondemos en
-24 h") · `casos-exito` casos de exito/clientes · `resenas-reales` resenas o
-testimonios reales con nombre.
+Conversion (5): `cta-sin-scroll` CTA visible without scrolling ·
+`cta-movil-fijo` sticky/fixed CTA on mobile · `tiempo-respuesta` explicit
+promise ("we reply within 24 h") · `casos-exito` success stories/clients ·
+`resenas-reales` real reviews or testimonials with names.
 
-Confianza (4): `faq-5` minimo 5 preguntas frecuentes · `foto-equipo` foto del
-equipo real · `mapa-direcciones` mapa + direccion · `pagina-gracias` pagina de
-agradecimiento tras formulario.
+Trust (4): `faq-5` at least 5 FAQs · `foto-equipo` real team photo ·
+`mapa-direcciones` map + address · `pagina-gracias` thank-you page after
+forms.
 
-SEO/tecnico (8): `404` pagina 404 personalizada · `robots-txt` archivo robots.txt ·
-`titulos-unicos` `<title>` unico por pagina · `metadescripciones` meta description
-por pagina · `og-image` imagen para compartir en redes · `alt-imagenes` alt con
-contenido en toda `<img>` · `schema-local` JSON-LD LocalBusiness · `analytics`
-Google Analytics / tag manager.
+SEO/technical (8): `404` custom 404 page · `robots-txt` robots.txt file ·
+`titulos-unicos` unique `<title>` per page · `metadescripciones` meta
+description per page · `og-image` social share image · `alt-imagenes`
+contentful alt on every `<img>` · `schema-local` JSON-LD LocalBusiness ·
+`analytics` Google Analytics / tag manager.
 
-Estructura/legal (3): `enlaces-internos` enlaces internos entre paginas ·
-`breadcrumbs` migas de pan o equivalente · `privacidad` politica de privacidad.
+Structure/legal (3): `enlaces-internos` internal links between pages ·
+`breadcrumbs` breadcrumbs or equivalent · `privacidad` privacy policy.
 
 ## Workflow
 
-1. **Audita.** `python scripts/check_web_esenciales.py <dir>` sobre el HTML local
-   (o revision manual si es URL/maqueta). Guarda el resultado como tabla
-   presente/faltante por item.
-2. **Reporta.** Una linea por faltante: que falta + por que importa (1 frase).
-   No mas de 5 lineas en el reporte inicial; el detalle va despues.
-3. **Pregunta.** Por cada faltante, pregunta al usuario si lo implementa
-   (lote en una sola pregunta, no 20 turnos). Solo los confirmados se tocan.
-4. **Implementa.** Lo confirmado, con el patron minimo de `references/patrones.md`
-   si existe; si no, el patron estandar del stack del proyecto.
-5. **Re-audita.** Vuelve a correr el script: cero faltantes confirmados = DONE.
+1. **Audit.** `python scripts/check_web_esenciales.py <dir>` on local HTML
+   (or manual review for URLs/mockups). Save the result as a
+   present/missing table per item.
+2. **Report.** One line per gap: what is missing + why it matters (1 sentence).
+   No more than 5 lines in the initial report; detail comes later.
+3. **Ask.** For each gap, ask the user whether to implement it (batched in a
+   single question, not 20 turns). Only confirmed items get touched.
+4. **Implement.** Confirmed items, with the minimal pattern from
+   `references/patrones.md` if present; otherwise the project stack standard.
+5. **Re-audit.** Re-run the script: zero confirmed gaps = DONE.
 
-## Reglas
+## Rules
 
-- Un faltante no confirmado por el usuario NO se implementa. Se lista como
-  pendiente y listo.
-- Si el proyecto ya usa `impeccable` o `ui-ux-pro-max`, esta skill no rediseña
-  nada: solo añade los imprescindibles faltantes con los tokens existentes.
-- Caracteres especiales (tildes, `ñ`, emojis) van directo en UTF-8; nunca
-  escapes del shell en el HTML.
+- A gap the user did not confirm is NOT implemented. Listed as pending, done.
+- If the project already uses `impeccable` or `ui-ux-pro-max`, this skill
+  redesigns nothing: it only adds the missing must-haves with existing tokens.
+- Special characters (accents, `ñ`, emojis) go directly in UTF-8; never
+  shell escapes in the HTML.
 
 ## Scripts
 
-- `scripts/check_web_esenciales.py` — `audit(root)` audita un directorio con
-  HTML y devuelve `{item: bool}` + CLI que imprime JSON y tabla.
+- `scripts/check_web_esenciales.py` — `audit(root)` audits a directory of
+  HTML and returns `{item: bool}` + CLI printing JSON and table.
   (`python scripts/check_web_esenciales.py <dir>`)
 - Tests: `tests/test_web_esenciales.py` (`python -m pytest skills/web-esenciales -v`).

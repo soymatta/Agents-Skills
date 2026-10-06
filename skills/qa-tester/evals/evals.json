@@ -45,6 +45,16 @@
       "id": 9,
       "prompt": "La app web tiene rutas sin cubrir por la suite. Usa la grabadora para escafaldar esos specs rápido.",
       "expected_output": "Usa playwright codegen SOLO como escafold de exploración (tooling y navegadores portátiles en el workspace), endurece lo grabado (selectores por rol, sin waits fijos, guard de consola, datos propios) y lo corre 2 veces antes de aceptarlo en la suite; reporta con la plantilla."
+    },
+    {
+      "id": 10,
+      "prompt": "Haz QA a una app Next.js con Supabase que ya tiene datos reales. Propón el alcance y cuida no dejar basura.",
+      "expected_output": "Propone el default Next.js+Supabase (funcional, exploración, rendimiento, seguridad RLS/RPC/headers/npm audit, BD; multi-usuario solo si hay roles), y todo dato de prueba usa prefijo QA_ con borrado al terminar y verificación de restos QA_ = 0; reporta con la plantilla."
+    },
+    {
+      "id": 11,
+      "prompt": "Prueba de punta a punta crear, pagar y borrar una deuda a cuotas (con permiso de escritura con limpieza). El pago no se refleja y la fecha quedó vacía.",
+      "expected_output": "Primero repara el test antes de culpar a la app: login con reintentos ante hidratación, fecha con tipeo real en el DateField ubicado por placeholder (nunca nth), clic de confirmar con alcance a la tarjeta (un match document-wide pega en otra tarjeta), reintenta; si el pago sigue sin reflejarse, documenta [DEFECTO] con archivo:línea. Limpia QA_ y avisa del residuo en historial."
     }
   ]
 }

@@ -6,7 +6,8 @@ description: >-
   quality gates, completion criteria), prioritizes lower-cost approaches first (deterministic > rules > ML > LLM),
   persists progress in goal_state.json, reverts on degradation, and stops on an exhausted budget. Asks one scoping
   question then runs autonomously. Use when the user wants to set a goal or objective and reach it: improve a
-  metric to X%, tune parameters, hit a quantitative target, or iterate toward a measurable outcome. Triggers:
+  metric to X%, tune parameters, hit a quantitative target, or iterate toward a measurable outcome.
+  NOT for step-by-step task tracking (use roadmaps). Triggers:
   "goal", "objetivo", "alcanzar", "reach X%", "optimizar", "optimize", "target", "improve metric", "tune",
   "accuracy".
 ---

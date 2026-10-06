@@ -5,7 +5,7 @@ description: >-
   Originality.ai, ZeroGPT). Adjusts sentence structure, vocabulary, punctuation, and burstiness while keeping
   academic rigor; includes detect_ai.py for local verification. Run ONLY at the end when content, citations,
   and references are finalized. Use when the user wants to humanize text, avoid AI detection, or pass Turnitin/
-  GPTZero. Triggers: "humanize", "anti-AI", "Turnitin", "GPTZero", "pasar Turnitin", "revision final",
+  GPTZero. Triggers: "humanize", "humanizar", "anti-AI", "evitar deteccion", "Turnitin", "GPTZero", "pasar Turnitin", "revision final",
   "make this sound human", "AI detector".
 ---
 

@@ -5,7 +5,9 @@ description: >-
   fixing, or applying findings from a project-analyzer audit report. Use when the user wants to
   refactor, optimize, harden, or remove code. NOT for read-only diagnosis (use project-analyzer)
   or adding features. Behavior-preserving except security, which may change behavior to close a
-  hole. Triggers: "refactor", "refactorizar", "optimize", "clean up", "hardening", "limpiar codigo".
+  hole. Use for public websites too: runs the 20-point web launch checklist (SEO, canonical URLs, SSL, backups, conversions).
+  Triggers: "refactor", "refactorizar", "optimize", "optimizar", "clean up", "limpiar", "hardening",
+  "limpiar codigo", "remove dead code", "extract helper", "checklist web", "web launch", "lista de lanzamiento".
 compatibility: Language-agnostic. Edits target code. Verifies with tests/type-checks.
 ---
 
@@ -42,51 +44,51 @@ to one axis.
   refactor with the project's existing tests / type checks / a side-by-side run.
 - **Severity** uses the project's shared scale (`CRITICAL` / `MAJOR` / `MINOR` / `SUGGESTION`).
 
-## Web launch checklist (solo webs de negocio)
+## Web launch checklist (business websites only)
 
-Cuando el target es una web pública, verifica estos 20 puntos como parte del
-eje que corresponda (casi todo es `architecture` o `security`; nada cambia
-comportamiento visible salvo `security`). Marca cada uno ✔/✘ con
-`archivo:línea` o comando. Solapa con `web-esenciales`: si esa skill ya
-auditó la web, reutiliza su reporte en vez de repetirlo.
+When the target is a public website, verify these 20 items under the matching
+axis (almost all is `architecture` or `security`; nothing changes visible
+behavior except `security`). Mark each ✔/✘ with `file:line` or command.
+Overlaps `web-esenciales`: if that skill already audited the site, reuse its
+report instead of repeating it.
 
-Indexación y buscadores:
+Indexing and search:
 
-1. Sin `noindex` residual en prod (ni meta ni `X-Robots-Tag` ni
-   `Disallow: /` en `robots.txt`).
-2. Alta en Search Console (propiedad verificada) + sitemap enviado.
-3. Alta en Bing Webmaster Tools (propiedad verificada) + sitemap enviado.
+1. No leftover `noindex` in prod (neither meta nor `X-Robots-Tag` nor
+   `Disallow: /` in `robots.txt`).
+2. Search Console signup (verified property) + sitemap submitted.
+3. Bing Webmaster Tools signup (verified property) + sitemap submitted.
 
-URLs y enlaces:
+URLs and links:
 
-4. Una sola versión del dominio (con/sin `www` + `http`→`https` con 301).
-5. Redirects 301 reales para URLs viejas/cambiadas (no 302 ni meta-refresh).
-6. URLs canónicas (`rel="canonical"` absoluta, una por página).
-7. URLs limpias (legibles, minúsculas, sin IDs ni parámetros de sesión).
-8. Jerarquía de enlaces internos (toda página a ≤3 clics del inicio, sin
-   huérfanas ni cadenas de redirects).
-9. Una página por intención de búsqueda (sin canibalización entre URLs).
+4. Single domain version (with/without `www` + `http`→`https` with 301).
+5. Real 301 redirects for old/changed URLs (no 302, no meta-refresh).
+6. Canonical URLs (absolute `rel="canonical"`, one per page).
+7. Clean URLs (readable, lowercase, no IDs or session params).
+8. Internal link hierarchy (every page ≤3 clicks from home, no orphans,
+   no redirect chains).
+9. One page per search intent (no cannibalization between URLs).
 
-Contacto y social:
+Contact and social:
 
-10. Teléfono (`tel:`) y correo (`mailto:`) tocables en móvil y escritorio.
-11. Iconos de redes sociales reales (apuntan a los perfiles, no a `#`).
-12. Vista previa al compartir (Open Graph + Twitter Card con imagen absoluta
-    ≥1200×630, título y descripción por página).
+10. Tappable phone (`tel:`) and email (`mailto:`) on mobile and desktop.
+11. Real social icons (point to the profiles, not to `#`).
+12. Share preview (Open Graph + Twitter Card with absolute image
+    ≥1200×630, title and description per page).
 
 Infra:
 
-13. Caché configurada (estáticos con hash + `Cache-Control`, HTML revalidado).
-14. SSL válido con renovación automática (expiry >30 días + cron/timer verificado).
-15. Copias de seguridad automáticas (qué, cada cuánto, dónde, retención).
-16. Avisos si la web se cae (monitor uptime con alerta al canal del dueño).
+13. Cache configured (hashed statics + `Cache-Control`, HTML revalidated).
+14. Valid SSL with auto-renewal (expiry >30 days + cron/timer verified).
+15. Automatic backups (what, how often, where, retention).
+16. Downtime alerts (uptime monitor with alerts to the owner's channel).
 
-Contenido y validación:
+Content and validation:
 
-17. Contenido de prueba borrado (lorem, imágenes de stock con marca, usuarios demo).
-18. Probada en varios navegadores (Chromium + Firefox + WebKit, sin errores de consola).
-19. Página de gracias tras cada formulario (conversión confirmada + no reenvío al recargar).
-20. Conversiones medidas (evento de analytics en cada objetivo: formulario, llamada, compra).
+17. Test content removed (lorem, watermarked stock, demo users).
+18. Tested in several browsers (Chromium + Firefox + WebKit, zero console errors).
+19. Thank-you page after every form (conversion confirmed + no resubmit on reload).
+20. Conversions measured (analytics event on each goal: form, call, purchase).
 
 ## Workflow
 
@@ -105,4 +107,4 @@ Output is a token-optimized report listing each change with `file:line`, the axi
 verification evidence. Another agent or the user can judge the refactor from the report.
 
 ## Keywords
-"refactor", "refactorizar", "optimize", "optimizar", "clean up", "limpiar", "hardening", "eliminar codigo muerto", "remove dead code", "extract helper"
+"refactor", "refactorizar", "optimize", "optimizar", "clean up", "limpiar", "hardening", "eliminar codigo muerto", "remove dead code", "extract helper", "checklist web", "web launch", "lista de lanzamiento", "pasar a produccion", "go live"

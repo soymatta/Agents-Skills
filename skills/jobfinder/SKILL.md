@@ -5,7 +5,9 @@ description: >-
   letters and CV PDFs, track applications, run skill-gap analysis, and prep interviews. Searches job boards
   (RemoteOK, LinkedIn, Indeed, Glassdoor), ATS APIs (Greenhouse, Lever, Ashby), and company career pages.
   ALWAYS ask for profile data before searching. Use when the user wants to find jobs, assess job offers,
-  match a CV, or prepare for an interview. Triggers: "find jobs", "job search", "busco trabajo", "ofertas
+  match a CV, or prepare for an interview. First-party scripts alternative to the `ai-job-search`
+  framework (third-party) and the conversational `jobfinder` agent: use this skill for scripted
+  scoring/CV pipelines, the agent for guided back-and-forth. Triggers: "find jobs", "job search", "busco trabajo", "ofertas
   de empleo", "cv", "cover letter", "carta de presentacion", "interview prep", "aplicar empleo", "generate CV".
 ---
 

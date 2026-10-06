@@ -6,8 +6,8 @@ description: >-
   HTML/DOCX generation. Use when the user needs to format citations, create a reference list or bibliography,
   apply APA/IEEE/Vancouver, format a title page, or produce a formatted PDF/DOCX/LaTeX. Consumes metadata from
   academic-source-search. Also bundles generate_docx.py for IEEE DOCX with clickable citation hyperlinks.
-  Triggers: "APA", "APA 7th", "IEEE", "Vancouver", "citation", "references",
-  "bibliography", "referencias APA", "normas IEEE", "generate DOCX".
+  Triggers: "APA", "APA 7th", "IEEE", "Vancouver", "citation", "citas", "references",
+  "bibliography", "bibliografia", "referencias APA", "normas IEEE", "generate DOCX".
 compatibility: Consumes metadata from academic-source-search. Uses math-notation rules for mathematical variables in references. Includes references.py (sources.yaml → references) and generate_outputs.py scripts for HTML, DOCX and real PDF (reportlab) generation.
 ---
 

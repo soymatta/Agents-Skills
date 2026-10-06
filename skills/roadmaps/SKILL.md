@@ -6,7 +6,8 @@ description: >-
   failure strategies (retry/rollback/scope change/blocked deps). USE PROACTIVELY — check for roadmap.md
   before any significant work. Use when the user mentions a roadmap, plan, step-by-step, milestones,
   task breakdown, "break this down", "what should I do next", or multi-step tasks. Run this whenever
-  roadmap.md exists in the project root. Triggers: "roadmap", "plan", "que hago primero", "fases del
+  roadmap.md exists in the project root. NOT for metric-optimization loops (use goal).
+  Triggers: "roadmap", "plan", "que hago primero", "fases del
   proyecto", "multi-step", "big project".
 ---
 

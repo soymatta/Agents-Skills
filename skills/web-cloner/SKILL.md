@@ -1,193 +1,194 @@
 ---
 name: web-cloner
-description: Clona paginas web y sitios completos a codigo local organizado (index.html, styles/, scripts/, assets/). Detecta el stack original (Wappalyzer-style), elige la herramienta (Playwright/Chromium/Selenium/fetch estatico), mapea el sitio, descarga HTML/CSS/JS/imagenes, reescribe URLs a rutas locales y porta a Astro, React, Vue o Svelte. Usa esta skill cuando el usuario pida clonar una pagina web, descargar un sitio, copiar una landing, replicar una web en otro framework, "clone this website", "descarga esta pagina", o migrar un sitio a HTML estatico, Astro, React, Vue o Svelte, aunque no diga la palabra "clonar". Dispara tambien ante un link con intencion (URL pegada con verbo de accion, "mira esta pagina", "te paso este link", "bajame esto", "quiero esto en HTML"): en ese caso aplica el triaje de alcance de abajo antes de tocar nada.
+description: >-
+  Clones web pages and full sites into organized local code (index.html, styles/, scripts/, assets/). Detects the original stack (Wappalyzer-style), picks the tool (Playwright/Chromium/Selenium/static fetch), maps the site, downloads HTML/CSS/JS/images, rewrites URLs to local paths, and ports to Astro, React, Vue, or Svelte. Use when the user asks to clone a web page, download a site, copy a landing, replicate a site in another framework, "clone this website", "descarga esta pagina", or migrate a site to static HTML, Astro, React, Vue, or Svelte, even without the word "clone". Also fires on a link with intent (pasted URL with an action verb, "mira esta pagina", "te paso este link", "bajame esto", "quiero esto en HTML", "look at this page", "download this for me"): then apply the scope triage below before touching anything.
 ---
 
 # Web Cloner
 
-Convierte una URL publica en un proyecto local fiel y organizado. Por defecto
-produce HTML + CSS + JavaScript estatico; si el usuario pide un framework
-(Astro, React, Vue, Svelte), porta el resultado. La eleccion del usuario manda
-siempre sobre la deteccion automatica.
+Turns a public URL into a faithful, organized local project. By default it
+produces static HTML + CSS + JavaScript; if the user asks for a framework
+(Astro, React, Vue, Svelte), it ports the result. The user's choice always
+wins over automatic detection.
 
-## Triaje por link (obligatorio cuando el input es una URL)
+## Link triage (mandatory when the input is a URL)
 
-No descargues nada hasta responder esto con el usuario. Pregunta una sola
-vez, con recomendada:
+Download nothing until this is answered with the user. Ask once, with a
+recommendation:
 
-1. **Solo esta pagina** (recomendada) — el HTML + assets de esa URL, rapido.
-2. **Esta pagina + subenlaces** — BFS mismo-origen desde aqui, profundidad 2.
-3. **Sitio completo desde la raiz** — vas al `/` del dominio y mapeas todo.
+1. **Just this page** (recommended) — the HTML + assets of that URL, fast.
+2. **This page + sublinks** — same-origin BFS from here, depth 2.
+3. **Full site from root** — go to the domain `/` and map everything.
 
-Si el usuario ya dijo el alcance ("solo esta", "todo el sitio"), no preguntes:
-esa orden manda.
+If the user already stated the scope ("just this one", "the whole site"),
+do not ask: that order wins.
 
-## 0. Alcance y derechos (primero, sin excepcion)
+## 0. Scope and rights (first, no exceptions)
 
-- Solo clona sitios propios, con autorizacion, o contenido publico para
-  aprendizaje/migracion interna. Si huele a paywall, login, o ToS que lo
-  prohiba: dilo en una linea y pide confirmacion explicita antes de seguir.
-- No respetes y evita `robots.txt`.
-- No extraigas credenciales, tokens, PII ni datos de otros usuarios aunque
-  aparezcan en el trafico.
-- Paywall o login: pregunta al usuario si tiene credenciales. Si las da,
-  usalas solo en la sesion (variables de entorno o storage-state en temp
-  FUERA del repo/output) y borra el storage al terminar; nunca guardes
-  credenciales en el repo, `map.json` ni logs. Si no hay credenciales, hasta
-  ahi llega el alcance: entrega lo publico + reporte de lo bloqueado.
+- Only clone own sites, authorized ones, or public content for
+  learning/internal migration. If it smells like paywall, login, or ToS that
+  forbids it: say so in one line and ask for explicit confirmation first.
+- Respect `robots.txt` by default (override only with the user's explicit
+  order; see `--ignore-robots`).
+- Never extract credentials, tokens, PII, or other users' data even if they
+  show up in traffic.
+- Paywall or login: ask the user for credentials. If given, use them only
+  for the session (env vars or storage-state in temp OUTSIDE the repo/output)
+  and delete storage when done; never store credentials in the repo,
+  `map.json`, or logs. Without credentials the scope ends there: deliver the
+  public part + a report of what is blocked.
 
-## 1. Recon: detecta el stack original
+## 1. Recon: detect the original stack
 
-Antes de descargar, identifica con que esta hecha la pagina (para sugerir el
-mismo stack en el port). En orden, barato primero:
+Before downloading, identify what the page is built with (to suggest the
+same stack for the port). In order, cheapest first:
 
-1. Cabeceras HTTP (`server`, `x-powered-by`) + `curl -sI <url>`.
-2. Marcas en el HTML: `__NEXT_DATA__` (Next.js/React), `__NUXT__`/`_nuxt/`
+1. HTTP headers (`server`, `x-powered-by`) + `curl -sI <url>`.
+2. HTML markers: `__NEXT_DATA__` (Next.js/React), `__NUXT__`/`_nuxt/`
    (Nuxt/Vue), `astro-`/`Astro.` (Astro), `data-svelte`/`svelte-` (Svelte),
    `wp-content` (WordPress), `cdn.shopify` (Shopify).
-3. Bundles JS: `/_next/`, `/assets/index-*.js` (Vite), `main.*.chunk.js` (CRA).
+3. JS bundles: `/_next/`, `/assets/index-*.js` (Vite), `main.*.chunk.js` (CRA).
 4. `python -m pip show wappalyzer 2>/dev/null || npx -y wappalyzer-cli <url>`
-   si hace falta confirmacion fina.
+   for fine confirmation if needed.
 
-Reporta en una linea: stack detectado + framework sugerido para el port.
-Si el usuario ya dijo framework, esa eleccion gana y el resto es informativo.
+Report in one line: detected stack + suggested framework for the port.
+If the user already named a framework, that choice wins and the rest is
+informational.
 
-## 2. Elige la herramienta
+## 2. Pick the tool
 
-| Caso | Herramienta |
-|------|-------------|
-| Pagina estatica o SSR con HTML completo | `curl`/fetch + scripts de esta skill |
-| SPA / contenido renderizado por JS | Playwright + Chromium headless (defecto) |
-| Playwright falla (WebGL, DRM, captchas) | Selenium + Chrome real; ultimo recurso manual |
-| Solo antibot ligero (Cloudflare check, rate-limit) | Chromium real, `headless=False` una vez, espera a `networkidle`, reintenta con backoff, delays 1-3 s entre paginas |
+| Case | Tool |
+|------|------|
+| Static page or SSR with full HTML | `curl`/fetch + this skill's scripts |
+| SPA / JS-rendered content | Playwright + headless Chromium (default) |
+| Playwright fails (WebGL, DRM, captchas) | Selenium + real Chrome; manual as last resort |
+| Light antibot only (Cloudflare check, rate-limit) | Real Chromium, `headless=False` once, wait for `networkidle`, retry with backoff, 1-3 s delays between pages |
 
-**Evasion agresiva pero acotada** (anti-deteccion de automatizacion): perfil
-persistente de Chromium real (no headless clasico: `headless=new` o headed),
-viewport y user-agent comunes, una sola sesion, esperas humanas
-(`networkidle` + 1-3 s), backoff exponencial ante 429/403, respeta
-`Retry-After`. Paradas duras (ahi se acaba, se reporta, no se rodea): CAPTCHA
-interactivo, 403 persistente tras 3 reintentos, login sin credenciales, IP
-baneada. Fuera de alcance: servicios rompe-captchas y rotacion agresiva para
-evadir baneos.
+**Bounded aggressive evasion** (automation anti-detection): persistent real
+Chromium profile (not classic headless: `headless=new` or headed), common
+viewport and user-agent, a single session, human-like waits (`networkidle`
++ 1-3 s), exponential backoff on 429/403, honor `Retry-After`. Hard stops
+(it ends there, reported, never worked around): interactive CAPTCHA,
+persistent 403 after 3 retries, login without credentials, banned IP. Out of
+scope: captcha-solving services and aggressive rotation to evade bans.
 
-Prerrequisitos (instalar una vez): `python -m pip install playwright &&
-python -m playwright install chromium`. Selenium solo si Playwright no basta.
+Prerequisites (install once): `python -m pip install playwright &&
+python -m playwright install chromium`. Selenium only if Playwright is not
+enough.
 
-## 3. Mapea el sitio
+## 3. Map the site
 
-- Punto de partida: la URL pedida. Pagina unica = solo ella + sus assets.
-- Sitio: BFS mismo-origen hasta profundidad 3 por defecto (preguntar si se
-  quiere mas), mas URLs de `sitemap.xml` y enlaces internos del HTML.
-- Guarda el mapa como `map.json`: `{ "url_remota": "ruta/local/relativa" }`.
-  Es el contrato que usan los scripts de abajo.
+- Start: the requested URL. Single page = just it + its assets.
+- Site: same-origin BFS to depth 3 by default (ask for more), plus
+  `sitemap.xml` URLs and internal links from the HTML.
+- Save the map as `map.json`: `{ "remote_url": "relative/local/path" }`.
+  It is the contract the scripts below use.
 
-## 4. Descarga assets
+## 4. Download assets
 
-Usa `scripts/clone_site.py` como driver (hace fetch, mapa, descarga,
-reescritura y verificacion en un paso deterministic). Lo manual solo si el
-driver no cubre el caso.
+Use `scripts/clone_site.py` as the driver (fetch, map, download, rewrite,
+and verify in one deterministic pass). Manual only if the driver does not
+cover the case.
 
-- HTML final post-JS (`page.content()` en Playwright) + CSS/JS/imagenes/
-  fuentes/medios enlazados. Imagenes en su resolucion original (`srcset`:
-  la mayor por defecto, todas con `--all-srcset`). Lazy-load incluido:
-  `data-src`/`data-srcset`/`data-poster` se tratan como `src`/`srcset`.
-- Tres fases de coleccion (todas deterministicas y testeadas): HTML
-  (`AssetCollector`), CSS descargados (`collect_css_urls`: `url()`/`@import`
-  relativos al CSS, reescritos con su propio prefijo) y JS descargados
-  (`collect_js_urls`: `import()`/`fetch()`/strings quoted; punto fijo,
-  max 2 rondas). Lo no descargable dentro de JS/CSS queda absolutizado
-  al vivo, igual que en HTML.
-- Cotas: `--asset-delay` (default 0.3 s; paginas usan `--delay`) y
-  `--max-assets` (default 400, se reporta en `pending.txt`). Sin cotas,
-  sitios grandes no terminan nunca.
-- Nombres (`asset_local`, con tests): `.js` conserva su subarbol original
-  (los bundles se referencian entre si por hash: renombrarlos rompe la app);
-  `.css` va a `styles/` (hash → `main.css`/`style-N.css`); imagenes/fuentes/
-  medios a nombres amigables en `assets/img|fonts|media`; `favicon.*`,
-  `apple-touch-icon*`, `*.webmanifest` quedan en la raiz (los navegadores
-  los piden ahi automaticamente).
-- Reescribe referencias con `scripts/rewrite_urls.py` usando `map.json`
-  (o deja que `clone_site.py` lo haga); lo no mapeado queda intacto y se
-  lista como pendiente. Paginas anidadas usan `--prefix ../` por nivel
-  (`clone_site.py` lo calcula solo con `depth_prefix`).
-- Encoding: el HTML nunca pasa por strings del shell (PowerShell recodifica
-  stdout y produce mojibake `ÔÇö`). `rewrite_urls.py --out` escribe el
-  archivo directo en UTF-8; `clone_site.py` ya lo hace asi siempre.
-- Links fuera de alcance quedan absolutizados al sitio vivo (navegacion que
-  sigue funcionando) y NO cuentan como pendientes.
-- Regla de proposito: los scripts de `scripts/` son 100% genericos (cero
-  dominios, cero selectores, cero rutas de un sitio). Lo especifico de un
-  caso (orquestadores, dumps con navegador) vive en temp, nunca se commitea
-  ni entra a la skill.
+- Final post-JS HTML (`page.content()` in Playwright) + linked CSS/JS/
+  images/fonts/media. Images at original resolution (`srcset`: largest by
+  default, all with `--all-srcset`). Lazy-load included: `data-src`/
+  `data-srcset`/`data-poster` treated as `src`/`srcset`.
+- Three collection phases (all deterministic and tested): HTML
+  (`AssetCollector`), downloaded CSS (`collect_css_urls`: `url()`/`@import`
+  relative to the CSS, rewritten with their own prefix) and downloaded JS
+  (`collect_js_urls`: `import()`/`fetch()`/quoted strings; fixed point,
+  max 2 rounds). Anything not downloadable inside JS/CSS stays absolutized
+  to the live site, same as in HTML.
+- Budgets: `--asset-delay` (default 0.3 s; pages use `--delay`) and
+  `--max-assets` (default 400, reported in `pending.txt`). Without budgets,
+  large sites never finish.
+- Names (`asset_local`, with tests): `.js` keeps its original subtree
+  (bundles reference each other by hash: renaming breaks the app); `.css`
+  goes to `styles/` (hash → `main.css`/`style-N.css`); images/fonts/media
+  get friendly names in `assets/img|fonts|media`; `favicon.*`,
+  `apple-touch-icon*`, `*.webmanifest` stay at root (browsers request them
+  there automatically).
+- Rewrite references with `scripts/rewrite_urls.py` using `map.json`
+  (or let `clone_site.py` do it); unmapped stays intact and is listed as
+  pending. Nested pages use `--prefix ../` per level (`clone_site.py`
+  computes it alone with `depth_prefix`).
+- Encoding: HTML never passes through shell strings (PowerShell re-encodes
+  stdout and produces `ÔÇö` mojibake). `rewrite_urls.py --out` writes the
+  file directly in UTF-8; `clone_site.py` always does so.
+- Out-of-scope links stay absolutized to the live site (navigation keeps
+  working) and do NOT count as pending.
+- Purpose rule: `scripts/` are 100% generic (zero domains, zero selectors,
+  zero single-site paths). Case-specific code (orchestrators, browser dumps)
+  lives in temp, never committed, never enters the skill.
 
-## 5. Layout de salida (siempre igual: espeja la jerarquia de URLs)
+## 5. Output layout (always the same: mirrors the URL hierarchy)
 
 ```
 /              → index.html
 /a/b           → a/b/index.html
 clon/
   index.html
-  <ruta/original>/index.html  # ej. tools/compress/index.html
-  favicon.svg                 # archivos de raiz, en la raiz
-  styles/*.css                # (bundles JS conservan su subarbol original)
-  <subarbol-js-original>/     # ej. _next/static/chunks/*.js
-  assets/img|fonts|media/     # creado solo si cae algo dentro
-  map.json                    # contrato url_remota -> ruta local
+  <original/path>/index.html  # e.g. tools/compress/index.html
+  favicon.svg                 # root files, at root
+  styles/*.css                # (JS bundles keep their original subtree)
+  <original-js-subtree>/      # e.g. _next/static/chunks/*.js
+  assets/img|fonts|media/     # created only if something lands inside
+  map.json                    # remote_url -> local path contract
 ```
 
-Sin carpetas vacias: cada dir se crea solo al recibir su primer archivo.
-Los routers cliente (Next/Nuxt) esperan las rutas originales: con jerarquia
-espejada la navegacion no cae en 404.
-Regla raiz: todo clon lleva `index.html` en la raiz (clon de una sola
-pagina: esa pagina ES el `index.html`, aunque su URL sea `/co/` o `/en`).
+No empty folders: each dir is created only on its first file.
+Client routers (Next/Nuxt) expect the original routes: with mirrored
+hierarchy navigation never 404s.
+Root rule: every clone carries `index.html` at root (single-page clone:
+that page IS the `index.html`, even if its URL is `/co/` or `/en`).
 
-## Gates y modales bloqueantes (cookie walls, email gates, newsletters)
+## Blocking gates and modals (cookie walls, email gates, newsletters)
 
-1. Captura servido + screenshot: confirma que bloquea de verdad.
-2. Inspecciona: ¿el contenido esta en el HTML estatico (solo oculto) o lo
-   entrega el backend tras el gate?
-3. Contenido presente y gate puramente visual → `--strip "#id-del-gate"`
-   (verifica servido que la pagina queda utilizable, no negra).
-4. Contenido server-gated (como un registro que devuelve datos) → NO hay
-   bypass: pide credenciales al usuario; sin ellas el alcance termina ahi
-   y el clon queda fiel (con gate, igual que el vivo).
+1. Capture served HTML + screenshot: confirm it truly blocks.
+2. Inspect: is the content in the static HTML (merely hidden) or served by
+   the backend after the gate?
+3. Content present and purely visual gate → `--strip "#gate-id"`
+   (verify served that the page stays usable, not black).
+4. Server-gated content (like a signup returning data) → NO bypass: ask the
+   user for credentials; without them the scope ends there and the clone
+   stays faithful (with gate, like the live site).
 
-## 6. Port a framework (solo si se pide)
+## 6. Framework port (only if asked)
 
-| Destino | Regla |
-|---------|-------|
-| Astro (defecto si el origen es estatico) | `src/pages/*.astro` + `src/styles/`, `astro build` debe pasar |
-| React | `src/components/` + `src/App.jsx`, `npm run build` debe pasar |
-| Vue | `src/components/*.vue`, `npm run build` debe pasar |
-| Svelte | `src/routes/` + `src/lib/`, `npm run build` debe pasar |
+| Target | Rule |
+|--------|------|
+| Astro (default if origin is static) | `src/pages/*.astro` + `src/styles/`, `astro build` must pass |
+| React | `src/components/` + `src/App.jsx`, `npm run build` must pass |
+| Vue | `src/components/*.vue`, `npm run build` must pass |
+| Svelte | `src/routes/` + `src/lib/`, `npm run build` must pass |
 
-El build del framework destino tiene que terminar en verde; si no, entrega
-el estatico y reporta el error del build tal cual.
+The target framework build must finish green; if not, deliver the static
+version and report the build error as-is.
 
-## 7. Verifica antes de entregar
+## 7. Verify before delivering
 
-1. `python scripts/check_links.py clon/` → cero rotos locales.
-2. Revisa `pending.txt`: fallos de descarga (reintenta o reporta) y refs
-   relativas sin resolver. Links fuera de alcance quedan absolutizados al
-   sitio vivo por diseño (no son pendientes).
-3. Conteo: paginas en `map.json` == HTML en disco; assets listados ==
-   assets en disco.
-3. Bytes: cero secuencias doble-codificadas (`Ã` en latin1 = mojibake).
-4. Previsualiza SERVIDO (`python -m http.server` o `npx serve` en `clon/`),
-   nunca `file://`: los routers cliente y los fetch relativos lo exigen.
-   Clicka la navegacion principal y confirma que ninguna pagina cae en 404.
+1. `python scripts/check_links.py clon/` → zero local broken links.
+2. Review `pending.txt`: download failures (retry or report) and unresolved
+   relative refs. Out-of-scope links stay absolutized to the live site by
+   design (not pending).
+3. Counts: pages in `map.json` == HTML on disk; listed assets == assets on disk.
+3. Bytes: zero double-encoded sequences (`Ã` in latin1 = mojibake).
+4. Preview SERVED (`python -m http.server` or `npx serve` in `clon/`),
+   never `file://`: client routers and relative fetch require it.
+   Click the main navigation and confirm no page 404s.
 
 ## Scripts
 
-- `scripts/clone_site.py` — driver completo: fetch (con charset de
-  cabecera/meta), `robots.txt`, sitemap/crawl, descarga, `map.json`,
-  reescritura con prefijo por profundidad y reporte. `--pages`, `--sitemap`
-  (sigue un nivel de sitemap-index), `--crawl N`, `--delay`, `--insecure`
-  (solo TLS roto, opt-in), `--ignore-robots` (SOLO con orden explicita del
-  usuario). Escribe `pending.txt` (fallos de descarga + refs sin resolver).
-- `scripts/rewrite_urls.py` — sanitiza rutas (`local_path_for`), extrae
-  referencias (`AssetCollector`) y las reescribe a locales (`rewrite_html`,
-  `--prefix`, `--out` para escribir UTF-8 directo).
-- `scripts/check_links.py` — `find_broken(root)` lista referencias locales
-  rotas en `*.html`.
+- `scripts/clone_site.py` — full driver: fetch (with header/meta charset),
+  `robots.txt`, sitemap/crawl, download, `map.json`, depth-prefixed rewrite
+  and report. `--pages`, `--sitemap` (follows one sitemap-index level),
+  `--crawl N`, `--delay`, `--insecure` (broken TLS only, opt-in),
+  `--ignore-robots` (ONLY with the user's explicit order). Writes
+  `pending.txt` (download failures + unresolved refs).
+- `scripts/rewrite_urls.py` — sanitizes paths (`local_path_for`), extracts
+  references (`AssetCollector`) and rewrites them to local (`rewrite_html`,
+  `--prefix`, `--out` for direct UTF-8 writes).
+- `scripts/check_links.py` — `find_broken(root)` lists broken local
+  references in `*.html`.
 - Tests: `tests/test_web_cloner.py` (`python -m pytest skills/web-cloner -v`).
