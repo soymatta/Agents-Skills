@@ -40,6 +40,11 @@
       "id": 8,
       "prompt": "Aplica la suite completa de la skill a una app que NO es web: un contenedor Docker con una API pequeña y su BD. Que pruebe arranque, salud, datos e intentar romperla.",
       "expected_output": "Usa la parte platform-agnostic: docker build/compose up saludable, healthcheck, smoke CRUD real, integridad BD y un mini-bucle romper→reparar→reintentar (inputs inválidos a la API), con reporte según plantilla y sin instalar nada fijo (todo portable en el workspace de la skill)."
+    },
+    {
+      "id": 9,
+      "prompt": "La app web tiene rutas sin cubrir por la suite. Usa la grabadora para escafaldar esos specs rápido.",
+      "expected_output": "Usa playwright codegen SOLO como escafold de exploración (tooling y navegadores portátiles en el workspace), endurece lo grabado (selectores por rol, sin waits fijos, guard de consola, datos propios) y lo corre 2 veces antes de aceptarlo en la suite; reporta con la plantilla."
     }
   ]
 }

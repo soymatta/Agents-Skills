@@ -127,6 +127,25 @@ Cita la evidencia: `encontré <archivo> → proyecto tipo <tipo>`.
 - El entregable mínimo no exige árboles de artefactos: script determinista +
   reporte.
 
+## Codegen como escafold (solo exploración web)
+
+`playwright codegen` graba el recorrido real en el navegador y genera el
+spec base. Úsalo SOLO para escafaldar la dimensión Exploración en web
+(rutas sin cubrir o sin suite previa). Nunca para regresión, multi-usuario
+ni CI: el código grabado trae waits frágiles y selectores acoplados al DOM.
+
+1. Levanta el tooling portátil primero: `npm install --prefix
+   <workspace>/tools playwright` y navegadores con
+   `PLAYWRIGHT_BROWSERS_PATH=<workspace>/browsers` (misma var al correr
+   codegen, para no tocar `AppData`/`~/.cache`).
+2. Graba un flujo por spec: `npx --prefix <workspace>/tools playwright
+   codegen <url-local>` (~10 min por flujo).
+3. Endurece lo grabado antes de guardarlo en `<workspace>/scripts/`: cambia
+   selectores a roles (`getByRole`), quita waits fijos, agrega el guard de
+   consola (`console.error`/`pageerror` fallan el test) y datos propios que
+   se crean/limpian solos.
+4. Corre el spec endurecido 2 veces seguidas: si es flaky, no entra a la suite.
+
 ## Romper → Documentar → Reparar → Reintentar (bucle destructivo)
 
 Obligatorio cuando pidan "intenta romper la app" o "prueba todo":
