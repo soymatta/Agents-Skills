@@ -44,7 +44,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `goal` | "Alcanza este objetivo", "Optimize this metric to 95% accuracy" |
 | `roadmaps` | "Create a plan for this project" |
 | `project-analyzer` | "Analyze this codebase for issues" |
-| `qa-tester` | "Test this app", "Runs QA on the project", "Intenta romper la app" |
+| `qa-tester` | "Test this app", "Runs QA on the project", "Intenta romper la app", "Usa codegen para escafaldar specs" |
 | `research-pipeline` | "Research this prediction market question" |
 | `backtest-run` | "Backtest this trading strategy" |
 | `backtest-validate` | "Validate this backtest quality" |
@@ -52,7 +52,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `agent-self-improver` | "Improve this agent's performance" |
 | `skill-creator` | "Create a new skill from scratch" |
 | `code-review` | "Review this diff" |
-| `refactor` | "Refactor this module for performance" |
+| `refactor` | "Refactor this module for performance", "Pasa el checklist web launch" |
 | `debug` | "Debug why this breaks" |
 | `git-workflow` | "Commit these changes" |
 | `project-memory` | "Set up project memory" |
@@ -172,9 +172,10 @@ Agents-Skills/
 | `goal` | Iterative loop that drives a flow until a measurable objective is reached (metrics, quality gates, targets). | — |
 | `roadmaps` | Creates, updates, and follows adaptive roadmaps for any project. | — |
 | `project-analyzer` | Read-only project analysis: structure, code quality, bugs, security, performance. | — |
+| `qa-tester` | Multiplatform QA suite: functional regression, exploration, break-to-fix loop, multi-user, performance, security, device compatibility. Playwright codegen only as exploration scaffolding. | — |
 | `agent-self-improver` | Self-improvement framework for agents with human supervision. | — |
 | `code-review` | Reviews a diff read-only on three axes (code quality, feature behavior vs. plan, relevancy) into one verdict report. | — |
-| `refactor` | Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security. | — |
+| `refactor` | Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security. Includes the 20-point web launch checklist (SEO, canonical URLs, SSL, backups, conversions). | — |
 | `debug` | Reproduces and fixes a known bug, or finds an unknown root cause by hypothesis validation, with a test-driven fix and regression test. | — |
 | `git-workflow` | Version-control workflows: atomic conventional commits, branches, pull/merge requests, release tags. | — |
 | `project-memory` | Builds and maintains the project's durable memory of architecture, conventions, and decisions so every session starts grounded. | — |

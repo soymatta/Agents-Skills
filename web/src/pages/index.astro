@@ -143,7 +143,7 @@ const skills = [
 	},
 	{
 		name: "refactor",
-		description: "Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security.",
+		description: "Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security. Includes a 20-point web launch checklist (SEO, canonical URLs, SSL, backups, conversions).",
 		usage: "Refactor this module for performance",
 		dependencies: [],
 		category: "development",
@@ -206,11 +206,19 @@ const skills = [
 		license: "MIT",
 		repo: "https://github.com/MadsLorentzen/ai-job-search",
 	},
+	{
+		name: "qa-tester",
+		description: "Multiplatform QA suite: functional regression, exhaustive exploration, break-to-fix loop, multi-user, performance, security, and device compatibility. Uses Playwright codegen only as exploration scaffolding.",
+		usage: "Test this app / Intenta romper la app",
+		dependencies: [],
+		category: "testing",
+		type: "first-party" as const,
+	},
 ];
 
 const plugins = [
 	{
-		name: "opencode-telegram-notifier",
+		name: "opencode-telegram-answers",
 		description: "OpenCode-only plugin: notifies Telegram when the AI finishes a task (session.idle) or requests a tool permission (permission.asked/updated). Text-only, markdown->HTML, debounced.",
 		usage: "Runs automatically — no prompt needed. Installed via the repo installer or install.ps1.",
 		target: "opencode",
