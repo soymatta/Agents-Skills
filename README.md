@@ -29,6 +29,7 @@ Talk to these agents in natural language. They auto-detect intent and run the ap
 | `paper-researcher` | "Write a research paper on X in APA", "Find academic sources for my thesis", "Review my paper's citations" |
 | `jobfinder` | "Find remote Python developer jobs", "Score my CV against this posting", "Generate a cover letter for this role" |
 | `builder` | "Implement this feature", "Refactor this module", "Run the tests and fix failures", "Create a roadmap for this project", "Alcanza este objetivo", "Improve this skill" |
+| `reverse-engineer` | "Reverse engineer this APK", "Analyze this binary", "Como funciona esta app", "Decompile this Electron app" |
 
 ### Skills
 
@@ -55,6 +56,7 @@ Skills are triggered automatically when the AI detects relevant keywords. Just d
 | `refactor` | "Refactor this module for performance", "Pasa el checklist web launch" |
 | `debug` | "Debug why this breaks" |
 | `git-workflow` | "Commit these changes" |
+| `commit` | "Commit this", "Guardar cambios", "Make a commit" |
 | `project-memory` | "Set up project memory" |
 | `impeccable` | `/init`, `/shape`, `/critique`, `/polish`, `/audit` |
 | `ai-job-search` | `/setup`, `/apply`, `/scrape`, `/rank`, `/interview` |
@@ -112,6 +114,7 @@ Agents-Skills/
     paper-researcher.md  # Academic paper writer
     jobfinder.md         # Job application assistant
     builder.md            # Build Mod — full-access dev agent (clone of opencode build)
+    reverse-engineer.md   # Reverse-engineering orchestrator (apk-reverse + rea MCP)
   plugins/               # OpenCode runtime plugins (event listeners)
     opencode-telegram-answers/  # Telegram alerts on session.idle / permission.*
   skills/                # Skill definitions + scripts
@@ -135,6 +138,7 @@ Agents-Skills/
     code-review/
     debug/
     git-workflow/
+    commit/              # + scripts/ + tests/ + evals/
     project-memory/
     refactor/
     research-pipeline/
@@ -153,6 +157,7 @@ Agents-Skills/
 | `paper-researcher` | Produces rigorous academic papers in Markdown (APA/IEEE/Vancouver). Bilingual EN/ES. | bash, read, glob, grep, webfetch, task, edit |
 | `jobfinder` | Analyzes professional profile, searches jobs across multiple boards, calculates 5D match scores, generates CVs/cover letters, and tracks applications. | bash, read, glob, grep, webfetch, task, edit |
 | `builder` | Clone del agente opencode `build` (Build Mod): agente primario de trabajo con todas las herramientas. Integrado con auto-mejora, creación de skills, optimización de metas y roadmaps. Descubre e integra desde la web MCP, skills, plugins y comandos (bajo aprobación). Comunicación optimizada en tokens (breve entre agentes, completa con el usuario). Decisión-first estilo hermes-agent: resuelve opciones con evidencia (determinista → simulación → pregunta), sin interrogatorio. | all tools (allow), question, doom_loop (ask) |
+| `reverse-engineer` | Orquestador de ingeniería inversa para software propio o autorizado. Gate 0 de autorización, clasifica el objetivo y enruta a la toolchain correcta: `apk-reverse` (skill) para APKs Android; `rea` (MCP) para binarios nativos, .NET, JS/Electron, Flutter y firmware. No reimplementa RE: delega. Instala toolchains bajo demanda (aprobación). Bilingüe EN/ES. | edit, bash, read, glob, grep, list, webfetch, websearch, task, question |
 
 ## Skills
 
@@ -178,6 +183,7 @@ Agents-Skills/
 | `refactor` | Improves code across four axes (cleanup, performance, security, architecture) by scanning and fixing, or applying audit findings. Behavior-preserving except security. Includes the 20-point web launch checklist (SEO, canonical URLs, SSL, backups, conversions). | — |
 | `debug` | Reproduces and fixes a known bug, or finds an unknown root cause by hypothesis validation, with a test-driven fix and regression test. | — |
 | `git-workflow` | Version-control workflows: atomic conventional commits, branches, pull/merge requests, release tags. | — |
+| `commit` | Creates git commits in this repo's house convention (`{Type}: {explanation}`); ships a commit-msg validator and wires it into a husky hook (native git hook fallback). | — |
 | `project-memory` | Builds and maintains the project's durable memory of architecture, conventions, and decisions so every session starts grounded. | — |
 | `skill-creator` | Meta-skill: create, evaluate, compare and optimize other skills. *(Third-party — Anthropic, Apache 2.0)* | — |
 | `impeccable` | Frontend design audit, polish, and redesign skill. *(Third-party — pbakaus, Apache 2.0)* | — |
@@ -195,6 +201,7 @@ Slash commands you can type directly in your AI assistant:
 | Command | Description |
 |---------|-------------|
 | `/init` | Capture product context in PRODUCT.md |
+| `/craft [feature]` | Deprecated alias for an ordinary new-work request (build/redesign use the same flow) |
 | `/shape [feature]` | Plan UX/UI before writing code |
 | `/critique [target]` | UX design review with heuristic scoring |
 | `/audit [target]` | Technical quality checks (a11y, perf, responsive) |
@@ -209,6 +216,7 @@ Slash commands you can type directly in your AI assistant:
 | `/typeset [target]` | Improve typography hierarchy and fonts |
 | `/layout [target]` | Fix spacing, rhythm, and visual hierarchy |
 | `/delight [target]` | Add personality and memorable touches |
+| `/overdrive [target]` | Push past conventional limits: shaders, spring physics, scroll-driven reveals, 60fps motion |
 | `/clarify [target]` | Improve UX copy, labels, and error messages |
 | `/adapt [target]` | Adapt for different devices and screen sizes |
 | `/optimize [target]` | Diagnose and fix UI performance |
@@ -248,6 +256,13 @@ builder (agent, Build Mod)
   +-- skill-creator (skill)        # create/improve/benchmark skills
   +-- goal (skill)                # autonomous loop until an objective is reached
   +-- roadmaps (skill)             # multi-step task tracking (goal + steps)
+
+reverse-engineer (agent)
+  +-- apk-reverse (skill, external — newliver666, MIT; installed on demand)
+  +-- rea (MCP server, external — morluto, MIT; installed on demand)
+
+commit (skill)
+  +-- scripts/validate_commit_msg.py  # commit-msg validator + husky hook installer
 
 telegram-notify (skill)
   +-- backtest-run (skill)

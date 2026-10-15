@@ -95,6 +95,19 @@
         "Next references are updated to maintain correct flow",
         "Old Step 3 becomes Step 4"
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "My roadmap.md shows every step and milestone completed and I confirm the goal is met. What happens to the roadmap file now?",
+      "expected_output": "Agent finalizes: sets Status: completed, then deletes roadmap.md and .roadmap-state and removes any doc reference that only tracked this roadmap, verifying nothing dangles",
+      "files": [],
+      "expectations": [
+        "Confirms completion (all milestones + final step + user confirmation) before any cleanup",
+        "Deletes roadmap.md — a completed roadmap is not kept as a live file",
+        "Deletes .roadmap-state",
+        "Removes roadmap-only references in other docs if present",
+        "Verifies no doc still points at the deleted roadmap"
+      ]
     }
   ]
 }

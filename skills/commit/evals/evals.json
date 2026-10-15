@@ -1,0 +1,59 @@
+{
+  "skill_name": "commit",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "commit this",
+      "expected_output": "A commit with subject `{Type}: {explanation}` using a capitalized type (Fix/Feature/Docs/...), English explanation, <=72 chars, no trailing period. Inspects git status/diff first and stages only intended files.",
+      "files": [],
+      "expectations": [
+        "The commit subject matches `{CapitalizedType}: {explanation}`",
+        "The type is one of Fix, Feature, Docs, Refactor, Test, Chore, Perf, Build, CI, Style, Revert",
+        "The explanation is in English and has no trailing period",
+        "Only the intended files are staged (git status/diff inspected first)",
+        "No AI/agent co-author trailer is added"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "comitear los cambios, pon un mensaje en espanol porfa",
+      "expected_output": "The subject is still written in English (the explanation is not translated), using the capitalized-type format.",
+      "files": [],
+      "expectations": [
+        "The commit subject is written in English despite the request for Spanish",
+        "The subject follows the `{CapitalizedType}: {explanation}` format"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "add a commit-msg hook so bad messages can't be committed",
+      "expected_output": "Installs the validator hook (husky if package.json exists, otherwise native .git/hooks/commit-msg) and verifies an invalid message is rejected.",
+      "files": [],
+      "expectations": [
+        "Installs the commit-msg hook via scripts/validate_commit_msg.py --install (with --husky when package.json exists)",
+        "Demonstrates that a lowercase/invalid message is rejected",
+        "Does not bypass hooks with --no-verify"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "save my work",
+      "expected_output": "Recognizes the commit intent, inspects the diff, and commits with the house convention rather than a vague message like 'save my work'.",
+      "files": [],
+      "expectations": [
+        "Produces a specific `{Type}: {explanation}` subject, not the literal phrase 'save my work'",
+        "Does not push unless asked"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "create a branch for this fix and open a PR",
+      "expected_output": "Does NOT use this skill for branching/PR; defers to git-workflow.",
+      "files": [],
+      "expectations": [
+        "Recognizes branching/PR is out of scope and hands off to git-workflow",
+        "Does not invent a commit-message-only flow for a PR request"
+      ]
+    }
+  ]
+}

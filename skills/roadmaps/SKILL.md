@@ -31,6 +31,9 @@ any specific subagent or AI. Use whichever agent/role owns the current task.
    (asking for a roadmap on a one-step task adds unproductive overhead).
 4. After each step → update `roadmap.md` status + timestamp
 5. On new task → re-read roadmap, assess fit
+6. When every phase is complete (status `completed`) → run the **Completion cleanup**:
+   delete the roadmap and its state, and strip any doc reference that exists only to
+   track it (see "Completion"). A finished roadmap is dead weight, not documentation.
 
 ## Integration
 - If `AGENTS.md` exists in project root, read it after loading roadmap — it may override step instructions or add context
@@ -130,8 +133,24 @@ tracking). For single-step tasks, skip — see "When NOT to use".
 
 ## Completion
 
-- All milestones completed + final step completed + user confirms goal met
-- Set `Status: completed`, archive steps under "## Completed", delete `.roadmap-state`
+Completion = every phase done: all milestones completed + final step completed + the
+user confirms the goal is met. Do not clean up before that confirmation.
+
+1. Set `Status: completed` and capture the outcome where it belongs (commit message,
+   changelog, release notes) — never as a lingering roadmap file.
+2. **Full cleanup — remove everything tied to this roadmap.** A completed roadmap is
+   dead documentation: no step reads it, and it survives as stale state that misleads
+   the next session into resuming a finished plan. On completion, delete the roadmap
+   artifacts and any doc reference that exists only to track it:
+   - `roadmap.md`
+   - `.roadmap-state`
+   - roadmap-only pointers in other docs (a "see roadmap.md" / "follow the roadmap"
+     line in `AGENTS.md`, `README.md`, issue bodies, or notes; a TODO list that merely
+     mirrors the roadmap steps)
+   Keep anything that still has a live purpose. If the finished plan is worth an audit
+   trail, the version-control history already holds it — the working tree should not.
+3. Verify the cleanup left nothing dangling: no doc still points at the deleted
+   roadmap and no `.roadmap-state` remains. Only then close the task.
 
 ## When to use
 - Any multi-step project or task

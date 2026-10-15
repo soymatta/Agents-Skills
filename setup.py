@@ -268,6 +268,13 @@ ITEMS: list[dict] = [
         "type": "agent",
         "dependencies": ["agent-self-improver", "skill-creator", "goal", "roadmaps"],
     },
+    {
+        "id": "reverse-engineer",
+        "dir": "agents/reverse-engineer.md",
+        "label": "Reverse Engineer",
+        "type": "agent",
+        "dependencies": [],
+    },
     # ── skills ────────────────────────────────────────────────────────────────
     {
         "id": "telegram-notify",
@@ -380,6 +387,13 @@ ITEMS: list[dict] = [
         "id": "git-workflow",
         "dir": "skills/git-workflow",
         "label": "Git Workflow",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "commit",
+        "dir": "skills/commit",
+        "label": "Commit",
         "type": "skill",
         "dependencies": [],
     },
@@ -743,10 +757,19 @@ def run_toggle_menu() -> dict[str, bool]:
 
 
 def _copy_one(src: Path, dst: Path) -> None:
-    """Copy a single file or directory from src to dst."""
+    """Copy a single file or directory from src to dst.
+
+    Directory copies skip bytecode caches (``__pycache__``, ``*.pyc``) so a local
+    pytest run never leaks compiled artifacts into the installed config.
+    """
     dst.parent.mkdir(parents=True, exist_ok=True)
     if src.is_dir():
-        shutil.copytree(src, dst, dirs_exist_ok=True)
+        shutil.copytree(
+            src,
+            dst,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+        )
     else:
         shutil.copy2(src, dst)
 
