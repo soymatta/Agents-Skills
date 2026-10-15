@@ -828,8 +828,9 @@ def install_items(
                         # Modelo antiguo (carpetas): OpenCode solo autoload .ts planos
                         _remove_one(stale_dir)
                     if entry.exists():
-                        _copy_one(entry, plugins_dir / f"{it['id']}.ts")
-                        print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}{ARR}{RST}  {_rel_path(plugins_dir / f"{it['id']}.ts")}")
+                        dst_ts = plugins_dir / f"{it['id']}.ts"
+                        _copy_one(entry, dst_ts)
+                        print(f"  {GRN}{TIK}{RST} {it['label']}  {DIM}{ARR}{RST}  {_rel_path(dst_ts)}")
                     else:
                         print(f"  {YLW}..{RST} {it['label']}  entry not found: {it.get('entry', 'notification.ts')}")
                 # command files del plugin (registrados como slash commands)
