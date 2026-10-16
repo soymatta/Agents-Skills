@@ -344,6 +344,35 @@ silent trap:
   (`Select-Object -First/-Last`, `Measure-Object`, `Compare-Object`). `grep`,
   `curl`, `sort` happen to work as PowerShell aliases but `head`/`tail` do not.
 
+## Command timeouts (CRITICAL)
+
+Always set an explicit `timeout` (milliseconds) when calling `functions.bash`. Never rely on the default 120000ms for commands that can run long or hang. If a command is cut early (timeout/termination) but the last lines show activity, extend the timeout based on observed progress.
+
+### Heuristics by command type
+- **Instant checks** (git status, git log --oneline -5, pwd, ls, Get-ChildItem small): 15000–30000ms
+- **Searches/greps** (rg, findstr-like, content scans): 60000–120000ms
+- **Typecheck/lint** (tsc --noEmit, eslint): 120000–300000ms
+- **Builds** (npm run build, vite build, webpack): 300000–600000ms (5–10 min)
+- **Tests** (pytest, vitest, jest): 300000–600000ms
+- **Installs/deps** (npm ci, npm install, pip install, uv sync): 600000–900000ms (10–15 min)
+- **Heavy data/analysis scripts** (processing, benchmarks): start 300000ms; extend if progressing
+- **Dev servers/probes that may block** (npm run dev, vite, python -m http.server): 120000–180000ms max unless you intend to keep them alive in background; prefer running in background or capping
+
+### Adaptive timeout on early cutoff
+When the `bash` result shows it ended early (timeout) or looks truncated but the task clearly isn't done:
+1. Inspect the last 30–80 lines of the returned output (use PowerShell `Select-Object -Last 80` on the captured text, or read the temp file if truncated).
+2. Look for progress indicators: `%`, `KB/s`, `MB/s`, `ETA`, `downloading`, `fetching`, `resolving`, `installing`, `building`, `Compiling`, `Bundling`, `Linking`, `generating`, `processing`, `scanning`, `found`, `completed`, `done`, `chunks`, `modules`, timestamps increasing.
+3. If any progress indicator is present AND more work is expected: retry the SAME command with a larger timeout. Multiply by 1.5–2x (e.g. 120000 -> 180000–240000). Cap at 1800000ms (30 min).
+4. If NO progress is visible after cutoff: do NOT blindly extend. Stop, describe what was seen, and propose a different approach (narrow scope, run with --max-workers, target specific path, run in background, split).
+5. Never extend more than 2 times for the exact same command. After 2 extensions with no completion, treat as stuck.
+
+### Rules
+- **Always set timeout**: include `timeout: <ms>` in every `bash` call.
+- **Prefer bounded timeouts** over unbounded. For exploratory one-offs, start conservative.
+- **Read the tail before retrying**: evidence first (the actual output), not assumption.
+- **Background long-lived processes** explicitly (`&` in pwsh, or run detached) if you need them to keep running; don't let a blocking call idle forever.
+- **Don't retry the same failing hung command**: change args/workdir/scope instead.
+
 ## Skill handoff & conflict resolution
 Who owns what state, and how to chain the meta-skills without stepping on each
 other:
