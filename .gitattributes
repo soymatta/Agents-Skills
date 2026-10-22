@@ -1,0 +1,16 @@
+# Normalize text files to LF in the repository and in the working tree.
+# The repo is edited on both Windows and Linux; without this, checking it out
+# on Windows (core.autocrlf=true) rewrites every text file and dirties the tree.
+* text=auto eol=lf
+
+# Never rewrite known binaries.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
