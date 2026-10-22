@@ -72,6 +72,12 @@ import Layout from '../layouts/Layout.astro';
 		font-size: 0.875rem;
 	}
 
+	.nav-links a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 28px;
+	}
+
 	.wrap {
 		max-width: 640px;
 		margin: 0 auto;
@@ -118,12 +124,12 @@ import Layout from '../layouts/Layout.astro';
 	}
 
 	.btn-primary {
-		background: var(--accent);
+		background: var(--accent-fill);
 		color: #fff;
 	}
 
 	.btn-primary:hover {
-		background: var(--accent-light);
+		background: var(--accent-fill-hover);
 		color: #fff;
 	}
 
