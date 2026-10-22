@@ -5,7 +5,7 @@ description: >-
   into one verdict report. Use before shipping a change to catch issues. READ-ONLY: surfaces each
   finding with its fix described, never patches. Not for auditing a whole codebase (use
   project-analyzer) or for fixing findings. Triggers: "review", "revisar", "review this diff",
-  "code review", "revisar cambios".
+  "code review", "revisar cambios", "ship or iterate".
 compatibility: Language-agnostic. Read-only on target code. May write its report to disk.
 ---
 
@@ -73,6 +73,3 @@ it; if it is unclear whether they want all or one, ask.
 The report is the deliverable another agent (e.g. `builder`) can act on. Keep it tight and
 token-optimized so a fix can be applied directly from the Findings table. Close with one
 next action for the caller (e.g. "fix this diff's CRITICAL, then re-run the review").
-
-## Keywords
-"review", "code review", "revisar", "review diff", "revisar cambios", "verdict", "ship or iterate", "code review report"

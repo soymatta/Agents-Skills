@@ -3,6 +3,12 @@ import Layout from '../layouts/Layout.astro';
 
 const agents = [
 	{
+		name: "reverse-engineer",
+		description: "Reverse-engineering orchestrator for software you own or are authorized to analyze. Gates on authorization, classifies the target, and delegates to the right toolchain (apk-reverse skill for APKs, rea MCP for native/.NET/Electron/Flutter/firmware) instead of reinventing it. Bilingual EN/ES.",
+		permissions: "edit, bash, read, glob, grep, list, webfetch, websearch, task, question",
+		type: "agent" as const,
+	},
+	{
 		name: "vault",
 		description: "Unified notes manager for Obsidian, OneNote, Notion, and any markdown-based app. Index, search, organize, verify, create notes, run health checks, and detect broken links — all in one agent with bilingual support (EN/ES).",
 		permissions: "read, glob, grep, task, edit",
@@ -26,9 +32,39 @@ const agents = [
 		permissions: "* allow (question; doom_loop ask)",
 		type: "agent" as const,
 	},
+	{
+		name: "fitness-coach",
+		description: "Science-based fitness coach. Answers hypertrophy, strength, and conditioning questions from Tier 1-2 peer-reviewed evidence (meta-analyses, systematic reviews, RCTs); delegates search to academic-source-search and citations to citation-formatter. No code, no bro-science.",
+		permissions: "read, glob, grep, webfetch, websearch, task",
+		type: "agent" as const,
+	},
 ];
 
 const skills = [
+	{
+		name: "commit",
+		description: "Creates git commits in this repo's house convention ({Type}: {explanation}), with a commit-msg validator wired into a husky hook (native git hook fallback). Never branches, never opens PRs.",
+		usage: "Commit this",
+		dependencies: [],
+		category: "development",
+		type: "first-party" as const,
+	},
+	{
+		name: "ui-ux-orchestrator",
+		description: "Routes one frontend request to the right UI/UX skill (design system from zero, craft/refine, guidelines review, launch checklist, runtime QA), fixes the order and precedence so the skills never contradict each other, and merges the executable checks into one prioritized report.",
+		usage: "Orchestrate which UI/UX skills to run for this page",
+		dependencies: ["ui-ux-pro-max", "impeccable", "web-design-guidelines", "web-esenciales"],
+		category: "design",
+		type: "first-party" as const,
+	},
+	{
+		name: "web-design-guidelines",
+		description: "Third-party (Vercel): reviews UI code for compliance with the Web Interface Guidelines — accessibility, interaction, and layout best practices.",
+		usage: "Review my UI against the Web Interface Guidelines",
+		dependencies: [],
+		category: "web",
+		type: "third-party" as const,
+	},
 	{
 		name: "telegram-notify",
 		description: "Full Telegram Bot API client (sends text, photos, documents, media groups; webhooks, polling) with auto-retry and exponential backoff. Never blocks execution on failures.",
@@ -252,6 +288,20 @@ const skills = [
 
 const plugins = [
 	{
+		name: "opencode-auto-session",
+		description: "OpenCode-only plugin: writes a session dump when a free-tier/provider limit hits (429/402) or on demand with /autosession dump, injects the repo's previous session context into new sessions, and warns (or, opt-in, recovers) on the limit. One dump file per session, pruned.",
+		usage: "Runs automatically. Slash commands: /autosession status | dump | files | inject | simulate | reset.",
+		target: "opencode",
+		type: "first-party" as const,
+	},
+	{
+		name: "opencode-tui-queue",
+		description: "OpenCode-only plugin: queues prompts written while the assistant is busy and flushes them one by one, so nothing typed mid-turn is lost.",
+		usage: "Runs automatically. Slash command: /queue <text>.",
+		target: "opencode",
+		type: "first-party" as const,
+	},
+	{
 		name: "opencode-telegram-answers",
 		description: "OpenCode-only plugin: notifies Telegram when the AI finishes a task (session.idle) or requests a tool permission (permission.asked/updated). Text-only, markdown->HTML, debounced.",
 		usage: "Runs automatically — no prompt needed. Installed via the repo installer or install.ps1.",
@@ -291,7 +341,7 @@ const aiCommands = [
 	{
 		skill: "project-analyzer",
 		commands: [
-			{ cmd: "/init_review [scope]", desc: "Project onboarding + health scan, shown on screen, then offers guided fixes (all / critical / structure / code / none) via the build agent" },
+			{ cmd: "/init-review [scope]", desc: "Project onboarding + health scan, shown on screen, then offers guided fixes (all / critical / structure / code / none) via the builder agent" },
 		],
 	},
 ];
@@ -308,13 +358,48 @@ const categoryColors: Record<string, string> = {
 	career: "var(--green)",
 	development: "var(--orange)",
 };
+
+const firstPartySkills = skills.filter(s => s.type === "first-party");
+
+const skillGroups = [...new Set(firstPartySkills.map(s => s.category))]
+	.map(category => ({
+		category,
+		color: categoryColors[category],
+		items: firstPartySkills.filter(s => s.category === category),
+	}))
+	.sort((a, b) => b.items.length - a.items.length);
+
+// Big categories hold the full-width list; the one- and two-item categories
+// pair up beside each other so six labels do not cost six empty screens.
+const majorGroups = skillGroups.filter(g => g.items.length >= 3);
+const minorGroups = skillGroups.filter(g => g.items.length < 3);
+
+const tally = [
+	{ num: skills.length, label: "skills" },
+	{ num: agents.length, label: "agents" },
+	{ num: aiCommands.reduce((acc, c) => acc + c.commands.length, 0), label: "commands" },
+	{ num: plugins.length, label: "plugins" },
+	{ num: 4, label: "platforms" },
+];
+
+// Real excerpt from skills/commit/SKILL.md — the hero shows what a definition is.
+const artifactSnippet = `---
+name: commit
+description: Creates git commits in this repository's house
+  convention: a capitalized conventional type plus a short
+  English explanation.
+---
+
+1. Inspect git status, diff and log.
+2. Stage only the intended files.
+3. Commit: {Type}: {explanation}`;
 ---
 
 <Layout title="Agents & Skills — AI Agent Definitions">
-	<nav class="nav">
+	<nav class="nav" aria-label="Primary">
 		<div class="nav-inner">
-			<a href="#" class="nav-logo">
-				<span class="logo-icon">&#9670;</span>
+			<a href="/" class="nav-logo">
+				<span class="logo-icon" aria-hidden="true">&#9670;</span>
 				Agents-Skills
 			</a>
 			<div class="nav-links">
@@ -324,116 +409,141 @@ const categoryColors: Record<string, string> = {
 				<a href="#commands">Commands</a>
 				<a href="#plugins">Plugins</a>
 				<a href="#third-party">Third-Party</a>
-				<a href="https://github.com/soymatta/Agents-Skills" target="_blank">GitHub</a>
 			</div>
+			<a class="nav-cta" href="https://github.com/soymatta/Agents-Skills" target="_blank" rel="noopener noreferrer">GitHub</a>
 		</div>
 	</nav>
 
+	<main id="main">
 	<header class="hero">
-		<div class="hero-badge">Open Source &middot; MIT License</div>
-		<h1>AI Agents &amp; Skills</h1>
-		<p class="hero-sub">
-			A curated collection of agent and skill definitions for
-			<strong>OpenCode</strong>, <strong>Claude Code</strong>, <strong>Cursor</strong>,
-			and <strong>Windsurf</strong>. Each definition shapes how AI assistants
-			approach specific tasks — from vault indexing to backtesting to OSINT investigations.
-		</p>
-		<div class="hero-actions">
-			<a href="#install" class="btn btn-primary">Get Started</a>
-			<a href="#skills" class="btn btn-ghost">Browse Skills</a>
+		<div class="container hero-grid">
+			<div class="hero-copy">
+				<h1>AI Agents &amp; Skills</h1>
+				<p class="hero-sub">
+					A curated collection of agent and skill definitions for <strong>OpenCode</strong>, <strong>Claude Code</strong>, <strong>Cursor</strong>, and <strong>Windsurf</strong>. Each definition shapes how AI assistants approach specific tasks — from vault indexing to backtesting to OSINT investigations.
+				</p>
+				<div class="hero-actions">
+					<a href="#install" class="btn btn-primary">Get Started</a>
+					<a href="#skills" class="btn btn-ghost">Browse Skills</a>
+				</div>
+			</div>
+			<aside class="artifact" aria-label="Example skill definition">
+				<div class="artifact-bar">
+					<span class="artifact-path">skills/commit/SKILL.md</span>
+					<span class="artifact-chip">MIT</span>
+				</div>
+				<pre class="artifact-body"><code>{artifactSnippet}</code></pre>
+			</aside>
 		</div>
-		<div class="hero-stats">
-			<div class="stat">
-				<span class="stat-num">{skills.length}</span>
-				<span class="stat-label">Skills</span>
-			</div>
-			<div class="stat">
-				<span class="stat-num">{agents.length}</span>
-				<span class="stat-label">Agents</span>
-			</div>
-			<div class="stat">
-				<span class="stat-num">{aiCommands.reduce((acc, c) => acc + c.commands.length, 0)}</span>
-				<span class="stat-label">Commands</span>
-			</div>
-			<div class="stat">
-				<span class="stat-num">{plugins.length}</span>
-				<span class="stat-label">Plugins</span>
-			</div>
-			<div class="stat">
-				<span class="stat-num">4</span>
-				<span class="stat-label">Platforms</span>
-			</div>
+		<div class="container">
+			<ul class="tally">
+				{tally.map(item => (
+					<li>
+						<span class="tally-num">{item.num}</span>
+						<span class="tally-label">{item.label}</span>
+					</li>
+				))}
+			</ul>
 		</div>
 	</header>
 
 	<section id="install" class="section">
 		<div class="container">
-			<h2>Installation</h2>
-			<p class="section-desc">Clone the repo, install dependencies, and run the interactive installer to toggle which agents and skills you want.</p>
-
-			<div class="install-steps">
-				<div class="install-step">
-					<div class="step-num">1</div>
-					<div class="step-content">
-						<h3>Clone &amp; Install</h3>
-						<pre><code>git clone https://github.com/soymatta/Agents-Skills.git
-cd Agents-Skills
-pip install -r skills/requirements.txt</code></pre>
-					</div>
-				</div>
-				<div class="install-step">
-					<div class="step-num">2</div>
-					<div class="step-content">
-						<h3>Run the Installer</h3>
-						<pre><code>python setup.py</code></pre>
-						<p class="step-note">Interactive TUI — toggle agents/skills with arrow keys and space.</p>
-					</div>
-				</div>
-				<div class="install-step">
-					<div class="step-num">3</div>
-					<div class="step-content">
-						<h3>Or Install Everything</h3>
-						<pre><code>python setup.py --all
-python setup.py --all --platform opencode --local</code></pre>
-						<p class="step-note">Supports: opencode, claude, cursor, windsurf</p>
-					</div>
-				</div>
+			<div class="section-head">
+				<h2>Installation</h2>
+				<p class="section-desc">Clone the repo, install dependencies, and run the interactive installer to toggle which agents and skills you want.</p>
 			</div>
 
-			<div class="install-note">
-				<strong>Requirements:</strong> Python &ge; 3.11 &middot;
-				<strong>Environment:</strong> Copy <code>.env.example</code> to <code>.env</code> and set <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_CHAT_ID</code> for notification skills.
+			<div class="install-grid">
+				<div class="install-steps">
+					<div class="install-step">
+						<div class="step-num">1</div>
+						<div class="step-content">
+							<h3>Clone &amp; Install</h3>
+							<pre><code>git clone https://github.com/soymatta/Agents-Skills.git
+cd Agents-Skills
+pip install -r skills/requirements.txt</code></pre>
+						</div>
+					</div>
+					<div class="install-step">
+						<div class="step-num">2</div>
+						<div class="step-content">
+							<h3>Run the Installer</h3>
+							<pre><code>python setup.py</code></pre>
+							<p class="step-note">Interactive TUI — toggle agents/skills with arrow keys and space.</p>
+						</div>
+					</div>
+					<div class="install-step">
+						<div class="step-num">3</div>
+						<div class="step-content">
+							<h3>Or Install Everything</h3>
+							<pre><code>python setup.py --all
+python setup.py --all --platform opencode --local</code></pre>
+						</div>
+					</div>
+				</div>
+
+				<aside class="install-aside">
+					<div class="aside-block">
+						<h3 class="aside-title">Requirements</h3>
+						<div class="chip-row">
+							<span class="chip">Python &ge; 3.11</span>
+							<span class="chip">pip</span>
+							<span class="chip">git</span>
+						</div>
+					</div>
+					<div class="aside-block">
+						<h3 class="aside-title">Platforms</h3>
+						<div class="chip-row">
+							<span class="chip">opencode</span>
+							<span class="chip">claude</span>
+							<span class="chip">cursor</span>
+							<span class="chip">windsurf</span>
+						</div>
+					</div>
+					<div class="aside-block">
+						<h3 class="aside-title">Notifications</h3>
+						<p>Copy <code>.env.example</code> to <code>.env</code> and set <code>TELEGRAM_BOT_TOKEN</code> + <code>TELEGRAM_CHAT_ID</code> for notification skills.</p>
+					</div>
+				</aside>
 			</div>
 		</div>
 	</section>
 
 	<section id="skills" class="section section-alt">
 		<div class="container">
-			<h2>Skills</h2>
-			<p class="section-desc">Specialized instructions and workflows for specific tasks. Each skill is a markdown file with YAML frontmatter that defines triggers, permissions, and procedures.</p>
+			<div class="section-head">
+				<h2>Skills</h2>
+				<p class="section-desc">Specialized instructions and workflows for specific tasks. Each skill is a markdown file with YAML frontmatter that defines triggers, permissions, and procedures.</p>
+			</div>
 
-			<div class="skill-grid">
-				{skills.filter(s => s.type === "first-party").map(skill => (
-					<div class="skill-card">
-						<div class="skill-header">
-							<h3 class="skill-name">{skill.name}</h3>
-							<span class="skill-badge" style={`--badge-color: ${categoryColors[skill.category]}`}>
-								{skill.category}
-							</span>
+			<div class="catalog">
+				{[...majorGroups, ...minorGroups].map(group => (
+					<div class={`group${group.items.length >= 3 ? " group-wide" : ""}`}>
+						<div class="group-head">
+							<span class="dot" style={`background: ${group.color}`} aria-hidden="true"></span>
+							<span class="group-label">{group.category}</span>
+							<span class="group-count">{group.items.length}</span>
 						</div>
-						<p class="skill-desc">{skill.description}</p>
-						{skill.dependencies.length > 0 && (
-							<div class="skill-deps">
-								<span class="deps-label">Requires:</span>
-								{skill.dependencies.map(dep => (
-									<code class="dep-tag">{dep}</code>
-								))}
-							</div>
-						)}
-						<div class="skill-usage">
-							<span class="usage-label">Usage:</span>
-							<code class="usage-example">{skill.usage}</code>
-						</div>
+						<ul class="items">
+							{group.items.map(skill => (
+								<li class="item">
+									<div class="item-head">
+										<code class="item-name">{skill.name}</code>
+										<span class="chip-accent">{skill.usage}</span>
+									</div>
+									<p class="item-desc">{skill.description}</p>
+									{skill.dependencies.length > 0 && (
+										<p class="item-tail">
+											<span class="tail-label">requires</span>
+											{skill.dependencies.map(dep => (
+												<span class="dep">{dep}</span>
+											))}
+										</p>
+									)}
+								</li>
+							))}
+						</ul>
 					</div>
 				))}
 			</div>
@@ -442,106 +552,110 @@ python setup.py --all --platform opencode --local</code></pre>
 
 	<section id="agents" class="section">
 		<div class="container">
-			<h2>Agents</h2>
-			<p class="section-desc">Primary agents with defined permissions that shape how AI assistants behave for specific workflows.</p>
-
-			<div class="agent-grid">
-				{agents.map(agent => (
-					<div class="agent-card">
-						<div class="agent-header">
-							<h3 class="agent-name">{agent.name}</h3>
-							<span class="agent-badge">agent</span>
-						</div>
-						<p class="agent-desc">{agent.description}</p>
-						<div class="agent-perms">
-							<span class="perms-label">Permissions:</span>
-							<div class="perm-tags">
-								{agent.permissions.split(", ").map(p => (
-									<span class="perm-tag">{p}</span>
-								))}
-							</div>
-						</div>
-					</div>
-				))}
+			<div class="section-head">
+				<h2>Agents</h2>
+				<p class="section-desc">Primary agents with defined permissions that shape how AI assistants behave for specific workflows.</p>
 			</div>
+
+			<ul class="items">
+				{agents.map(agent => (
+					<li class="item">
+						<div class="item-head">
+							<code class="item-name">{agent.name}</code>
+						</div>
+						<p class="item-desc">{agent.description}</p>
+						<p class="item-tail">
+							<span class="tail-label">permissions</span>
+							{agent.permissions.split(", ").map(p => (
+								<span class="dep">{p}</span>
+							))}
+						</p>
+					</li>
+				))}
+			</ul>
 		</div>
 	</section>
 
 	<section id="commands" class="section section-alt">
 		<div class="container">
-			<h2>Commands</h2>
-			<p class="section-desc">Slash commands you can type directly in your AI assistant. Some skills expose explicit commands for common workflows.</p>
-
-			<div class="commands-grid">
-				{aiCommands.map(group => (
-					<div class="command-group">
-						<div class="command-group-header">
-							<h3 class="command-skill-name">{group.skill}</h3>
-							<span class="command-count">{group.commands.length} command{group.commands.length > 1 ? 's' : ''}</span>
-						</div>
-						<div class="command-list">
-							{group.commands.map(cmd => (
-								<div class="command-item">
-									<code class="command-cmd">{cmd.cmd}</code>
-									<span class="command-desc">{cmd.desc}</span>
-								</div>
-							))}
-						</div>
-					</div>
-				))}
+			<div class="section-head">
+				<h2>Commands</h2>
+				<p class="section-desc">Slash commands you can type directly in your AI assistant. Some skills expose explicit commands for common workflows.</p>
 			</div>
 
-			<div class="commands-note">
-				<strong>Note:</strong> Most skills activate from natural language — no commands needed. Only skills with explicit slash commands are listed here.
+			{aiCommands.map(group => (
+				<div class="group">
+					<div class="group-head">
+						<span class="group-label">{group.skill}</span>
+						<span class="group-count">{group.commands.length} command{group.commands.length > 1 ? 's' : ''}</span>
+					</div>
+					<ul class="items">
+						{group.commands.map(cmd => (
+							<li class="item item-cmd">
+								<code class="item-name cmd-name">{cmd.cmd}</code>
+								<p class="cmd-desc">{cmd.desc}</p>
+							</li>
+						))}
+					</ul>
+				</div>
+			))}
+
+			<div class="tp-rules note">
+				<h3>Note</h3>
+				<p>Most skills activate from natural language — no commands needed. Only skills with explicit slash commands are listed here.</p>
 			</div>
 		</div>
 	</section>
 
 	<section id="plugins" class="section">
 		<div class="container">
-			<h2>Plugins</h2>
-			<p class="section-desc">Runtime plugins that hook into the OpenCode SDK and act automatically on events. OpenCode-only by design.</p>
-
-			<div class="plugin-grid">
-				{plugins.map(plugin => (
-					<div class="plugin-card">
-						<div class="plugin-header">
-							<h3 class="plugin-name">{plugin.name}</h3>
-							<span class="plugin-badge">{plugin.target}</span>
-						</div>
-						<p class="plugin-desc">{plugin.description}</p>
-						<div class="plugin-usage">
-							<span class="usage-label">Usage:</span>
-							<code class="usage-example">{plugin.usage}</code>
-						</div>
-					</div>
-				))}
+			<div class="section-head">
+				<h2>Plugins</h2>
+				<p class="section-desc">Runtime plugins that hook into the OpenCode SDK and act automatically on events. OpenCode-only by design.</p>
 			</div>
+
+			<ul class="items">
+				{plugins.map(plugin => (
+					<li class="item">
+						<div class="item-head">
+							<code class="item-name">{plugin.name}</code>
+							<span class="chip-quiet">{plugin.target}</span>
+						</div>
+						<p class="item-desc">{plugin.description}</p>
+						<p class="item-tail">
+							<span class="tail-label">usage</span>
+							<span class="tail-text">{plugin.usage}</span>
+						</p>
+					</li>
+				))}
+			</ul>
 		</div>
 	</section>
 
 	<section id="third-party" class="section">
 		<div class="container">
-			<h2>Third-Party Skills</h2>
-			<p class="section-desc">These skills are authored externally and included with their original licenses. Do not modify them — pull updates from the upstream source.</p>
+			<div class="section-head">
+				<h2>Third-Party Skills</h2>
+				<p class="section-desc">These skills are authored externally and included with their original licenses. Do not modify them — pull updates from the upstream source.</p>
+			</div>
 
-			<div class="third-party-grid">
+			<ul class="items">
 				{skills.filter(s => s.type === "third-party").map(skill => (
-					<div class="tp-card">
-						<div class="tp-header">
-							<h3 class="tp-name">{skill.name}</h3>
-							<span class="tp-badge">{skill.license}</span>
+					<li class="item">
+						<div class="item-head">
+							<code class="item-name">{skill.name}</code>
+							<span class="chip-quiet">{skill.license}</span>
 						</div>
-						<p class="tp-desc">{skill.description}</p>
-						<div class="tp-meta">
-							<span>By <strong>{skill.author}</strong></span>
-							<a href={skill.repo} target="_blank" class="tp-link">
+						<p class="item-desc">{skill.description}</p>
+						<p class="item-tail">
+							<span class="tail-label">by {skill.author}</span>
+							<a href={skill.repo} target="_blank" rel="noopener noreferrer" class="tail-link">
 								View Source &rarr;
 							</a>
-						</div>
-					</div>
+						</p>
+					</li>
 				))}
-			</div>
+			</ul>
 
 			<div class="tp-rules">
 				<h3>Modification Rules</h3>
@@ -553,6 +667,7 @@ python setup.py --all --platform opencode --local</code></pre>
 			</div>
 		</div>
 	</section>
+	</main>
 
 	<footer class="footer">
 		<div class="container footer-inner">
@@ -567,8 +682,8 @@ python setup.py --all --platform opencode --local</code></pre>
 		position: sticky;
 		top: 0;
 		z-index: 100;
-		background: rgba(10, 10, 11, 0.8);
-		backdrop-filter: blur(16px);
+		background: rgba(10, 10, 11, 0.88);
+		backdrop-filter: blur(12px);
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
@@ -576,153 +691,222 @@ python setup.py --all --platform opencode --local</code></pre>
 		max-width: var(--max-w);
 		margin: 0 auto;
 		padding: 0 24px;
-		height: 56px;
+		height: var(--nav-h);
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 20px;
 	}
 
 	.nav-logo {
-		font-weight: 700;
-		font-size: 1rem;
-		color: var(--text);
 		display: flex;
 		align-items: center;
 		gap: 8px;
+		font-family: var(--mono);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--text);
 	}
 
 	.logo-icon {
 		color: var(--accent);
-		font-size: 1.2em;
+		font-size: 0.7rem;
 	}
 
 	.nav-links {
 		display: flex;
-		gap: 24px;
-		font-size: 0.875rem;
+		flex-wrap: wrap;
+		gap: 2px 18px;
+		margin-left: auto;
+		font-size: 0.8125rem;
 	}
 
 	.nav-links a {
 		color: var(--text-muted);
+		transition: color 0.15s ease-out;
 	}
 
 	.nav-links a:hover {
 		color: var(--text);
 	}
 
-	.hero {
-		max-width: var(--max-w);
-		margin: 0 auto;
-		padding: 80px 24px 60px;
-		text-align: center;
+	.nav-cta {
+		padding: 5px 12px;
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		font-size: 0.8125rem;
+		font-weight: 500;
+		color: var(--text);
+		transition: color 0.15s ease-out, border-color 0.15s ease-out;
 	}
 
-	.hero-badge {
-		display: inline-block;
-		padding: 6px 14px;
-		border-radius: 999px;
-		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.3);
+	.nav-cta:hover {
 		color: var(--accent-light);
-		font-size: 0.8rem;
-		font-weight: 500;
-		margin-bottom: 24px;
-		letter-spacing: 0.02em;
+		border-color: var(--accent-light);
+	}
+
+	.container {
+		max-width: var(--max-w);
+		margin: 0 auto;
+		padding: 0 24px;
+	}
+
+	/* Hero: copy on the left, a real definition excerpt on the right. */
+	.hero {
+		padding: 80px 0 0;
+	}
+
+	.hero-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+		gap: 56px;
+		align-items: start;
 	}
 
 	.hero h1 {
-		font-size: clamp(2.5rem, 6vw, 4rem);
-		font-weight: 800;
-		letter-spacing: -0.03em;
-		line-height: 1.1;
 		margin-bottom: 20px;
-		background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
+		font-size: clamp(2.5rem, 5.2vw, 3.9rem);
+		line-height: 1.05;
+		letter-spacing: -0.03em;
+		text-wrap: balance;
 	}
 
 	.hero-sub {
-		font-size: 1.125rem;
+		max-width: 60ch;
+		margin-bottom: 32px;
 		color: var(--text-muted);
-		max-width: 640px;
-		margin: 0 auto 32px;
-		line-height: 1.7;
+		font-size: 1.0625rem;
 	}
 
 	.hero-sub strong {
 		color: var(--text);
+		font-weight: 600;
 	}
 
 	.hero-actions {
 		display: flex;
+		flex-wrap: wrap;
 		gap: 12px;
-		justify-content: center;
-		margin-bottom: 48px;
 	}
 
 	.btn {
 		display: inline-flex;
 		align-items: center;
-		padding: 12px 24px;
+		padding: 11px 22px;
+		border: 1px solid transparent;
 		border-radius: var(--radius-sm);
+		font-size: 0.9375rem;
 		font-weight: 600;
-		font-size: 0.9rem;
-		transition: all 0.2s;
-		cursor: pointer;
+		transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
 	}
 
 	.btn-primary {
 		background: var(--accent);
-		color: white;
-		border: 1px solid var(--accent);
+		color: #fff;
 	}
 
 	.btn-primary:hover {
 		background: var(--accent-light);
-		color: white;
+		color: #fff;
 	}
 
 	.btn-ghost {
-		background: transparent;
-		color: var(--text-muted);
-		border: 1px solid var(--border);
+		background: var(--bg-card);
+		border-color: var(--border);
+		color: var(--text);
 	}
 
 	.btn-ghost:hover {
+		background: var(--bg-card-hover);
 		color: var(--text);
-		border-color: var(--text-dim);
 	}
 
-	.hero-stats {
-		display: flex;
-		gap: 48px;
-		justify-content: center;
+	.artifact {
+		border: 1px solid var(--border);
+		border-radius: var(--radius);
+		background: var(--bg-card);
+		overflow: hidden;
 	}
 
-	.stat {
+	.artifact-bar {
 		display: flex;
-		flex-direction: column;
 		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 14px;
+		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.stat-num {
-		font-size: 2rem;
-		font-weight: 800;
+	.artifact-path {
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--text-muted);
+		overflow-wrap: anywhere;
+	}
+
+	.artifact-chip {
+		padding: 2px 9px;
+		border: 1px solid var(--border);
+		border-radius: 999px;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		letter-spacing: 0.08em;
 		color: var(--accent-light);
-		line-height: 1;
 	}
 
-	.stat-label {
-		font-size: 0.8rem;
-		color: var(--text-dim);
-		margin-top: 4px;
+	.artifact-body {
+		margin: 0;
+		padding: 16px;
+		border: 0;
+		border-radius: 0;
+		background: none;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+		font-size: 0.8125rem;
+		line-height: 1.7;
+		color: var(--text-muted);
+	}
+
+	.artifact-body code {
+		padding: 0;
+		border: 0;
+		background: none;
+		font-size: inherit;
+		color: inherit;
+	}
+
+	.tally {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+		gap: 14px 24px;
+		margin-top: 56px;
+		padding-top: 20px;
+		border-top: 1px solid var(--border-subtle);
+		list-style: none;
+	}
+
+	.tally li {
+		display: flex;
+		align-items: baseline;
+		gap: 8px;
+	}
+
+	.tally-num {
+		font-family: var(--mono);
+		font-size: 1.125rem;
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.tally-label {
+		font-size: 0.75rem;
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		color: var(--text-dim);
 	}
 
+	/* Sections */
 	.section {
-		padding: 80px 24px;
+		padding: 72px 0;
 	}
 
 	.section-alt {
@@ -731,534 +915,418 @@ python setup.py --all --platform opencode --local</code></pre>
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.container {
-		max-width: var(--max-w);
-		margin: 0 auto;
+	.section-head {
+		padding-bottom: 18px;
+		margin-bottom: 28px;
+		border-bottom: 1px solid var(--border-subtle);
 	}
 
 	.section h2 {
-		font-size: 2rem;
-		font-weight: 700;
+		font-size: clamp(1.5rem, 2.6vw, 2rem);
+		line-height: 1.15;
 		letter-spacing: -0.02em;
-		margin-bottom: 8px;
 	}
 
 	.section-desc {
+		max-width: 68ch;
+		margin-top: 10px;
 		color: var(--text-muted);
-		font-size: 1rem;
-		margin-bottom: 40px;
-		max-width: 600px;
+		font-size: 0.9375rem;
 	}
 
-	/* Install */
-	.install-steps {
+	/* Catalog: grouped list items. Name and its key attribute share the first
+	   line, the description follows at a readable measure, and the labelled
+	   tail carries the rest. Never a wall of same-size cards. */
+	.catalog {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 44px 56px;
+		align-items: start;
+	}
+
+	.catalog > .group-wide {
+		grid-column: 1 / -1;
+	}
+
+	.group {
+		margin-bottom: 0;
+	}
+
+	.group-head {
 		display: flex;
-		flex-direction: column;
-		gap: 24px;
-		margin-bottom: 32px;
+		align-items: baseline;
+		gap: 9px;
+		margin-bottom: 10px;
+	}
+
+	.dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		flex: none;
+		align-self: center;
+	}
+
+	.group-label {
+		font-size: 0.75rem;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+		color: var(--text-muted);
+	}
+
+	.group-count {
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--text-dim);
+	}
+
+	.items {
+		border-top: 1px solid var(--border-subtle);
+		list-style: none;
+	}
+
+	.item {
+		padding: 16px 0;
+		border-bottom: 1px solid var(--border-subtle);
+		transition: background-color 0.15s ease-out;
+	}
+
+	.item:hover {
+		background: rgba(255, 255, 255, 0.02);
+	}
+
+	.item-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 6px 12px;
+		max-width: 74ch;
+		margin-bottom: 7px;
+	}
+
+	.item-name {
+		padding: 0;
+		border: 0;
+		background: none;
+		font-family: var(--mono);
+		font-size: 0.9375rem;
+		font-weight: 600;
+		color: var(--text);
+		overflow-wrap: anywhere;
+		transition: color 0.15s ease-out;
+	}
+
+	.item:hover .item-name {
+		color: var(--accent-light);
+	}
+
+	.item-desc {
+		max-width: 74ch;
+		color: var(--text-muted);
+		font-size: 0.875rem;
+	}
+
+	.item-tail {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 6px;
+		margin-top: 9px;
+	}
+
+	.tail-label {
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		letter-spacing: 0.03em;
+		color: var(--text-dim);
+	}
+
+	.tail-text {
+		color: var(--text-dim);
+		font-size: 0.8125rem;
+	}
+
+	.tail-link {
+		font-size: 0.8125rem;
+	}
+
+	.chip-accent {
+		padding: 3px 9px;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		background: var(--accent-glow);
+		font-family: var(--mono);
+		font-size: 0.75rem;
+		color: var(--accent-light);
+		white-space: nowrap;
+	}
+
+	.chip-quiet {
+		padding: 2px 8px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--text-dim);
+		white-space: nowrap;
+	}
+
+	.dep {
+		padding: 2px 7px;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-sm);
+		font-family: var(--mono);
+		font-size: 0.6875rem;
+		color: var(--text-muted);
+	}
+
+	/* Commands read as a dense index: one keycap per invocation, descriptions
+	   aligned in their own column. */
+	.item-cmd {
+		display: grid;
+		grid-template-columns: minmax(0, 210px) minmax(0, 1fr);
+		gap: 6px 20px;
+		align-items: baseline;
+	}
+
+	.cmd-name {
+		justify-self: start;
+		color: var(--accent-light);
+	}
+
+	.cmd-desc {
+		color: var(--text-muted);
+		font-size: 0.875rem;
+	}
+
+	/* Install: steps beside the constraints that decide whether they work. */
+	.install-grid {
+		display: grid;
+		grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+		gap: 48px;
+	}
+
+	.install-steps {
+		display: grid;
+		gap: 28px;
 	}
 
 	.install-step {
-		display: flex;
-		gap: 20px;
-		align-items: flex-start;
+		display: grid;
+		grid-template-columns: 32px minmax(0, 1fr);
+		gap: 16px;
 	}
 
 	.step-num {
-		flex-shrink: 0;
 		width: 32px;
 		height: 32px;
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--border);
 		border-radius: 50%;
 		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.3);
+		font-family: var(--mono);
+		font-size: 0.8125rem;
 		color: var(--accent-light);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-weight: 700;
-		font-size: 0.875rem;
 	}
 
 	.step-content h3 {
-		font-size: 1rem;
-		font-weight: 600;
-		margin-bottom: 8px;
+		margin-bottom: 10px;
+		font-size: 0.9375rem;
 	}
 
 	.step-note {
+		margin-top: 10px;
 		color: var(--text-dim);
-		font-size: 0.85rem;
-		margin-top: 8px;
+		font-size: 0.8125rem;
 	}
 
-	.install-note {
-		padding: 16px 20px;
-		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.2);
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
-		color: var(--text-muted);
-	}
-
-	.install-note strong {
-		color: var(--text);
-	}
-
-	/* Skills */
-	.skill-grid {
+	.install-aside {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-		gap: 16px;
+		gap: 24px;
+		align-content: start;
+		padding-left: 32px;
+		border-left: 1px solid var(--border-subtle);
 	}
 
-	.skill-card {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 20px;
-		transition: border-color 0.2s, box-shadow 0.2s;
-	}
-
-	.skill-card:hover {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent-glow);
-	}
-
-	.plugin-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-		gap: 16px;
-	}
-
-	.plugin-card {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 20px;
-		transition: border-color 0.2s, box-shadow 0.2s;
-	}
-
-	.plugin-card:hover {
-		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent-glow);
-	}
-
-	.plugin-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-
-	.plugin-name {
-		font-size: 0.95rem;
-		font-weight: 600;
-		font-family: var(--mono);
-	}
-
-	.plugin-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
-		padding: 3px 8px;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--accent) 12%, transparent);
-		color: var(--accent);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-
-	.plugin-desc {
-		font-size: 0.875rem;
-		color: var(--text-muted);
-		line-height: 1.6;
-		margin-bottom: 12px;
-	}
-
-	.skill-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-
-	.skill-name {
-		font-size: 0.95rem;
-		font-weight: 600;
-		font-family: var(--mono);
-	}
-
-	.skill-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
-		padding: 3px 8px;
-		border-radius: 999px;
-		background: color-mix(in srgb, var(--badge-color) 12%, transparent);
-		color: var(--badge-color);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-
-	.skill-desc {
-		font-size: 0.875rem;
-		color: var(--text-muted);
-		line-height: 1.6;
-		margin-bottom: 12px;
-	}
-
-	.skill-deps {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		flex-wrap: wrap;
-	}
-
-	.deps-label {
+	.aside-title {
+		margin-bottom: 10px;
 		font-size: 0.75rem;
-		color: var(--text-dim);
-	}
-
-	.dep-tag {
-		font-size: 0.7rem;
-		padding: 2px 8px;
-		background: var(--bg-card);
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		color: var(--text-muted);
-	}
-
-	/* Agents */
-	.agent-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-		gap: 16px;
-	}
-
-	.agent-card {
-		background: var(--bg-card);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 20px;
-		transition: border-color 0.2s;
-	}
-
-	.agent-card:hover {
-		border-color: var(--accent);
-	}
-
-	.agent-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-
-	.agent-name {
-		font-size: 0.95rem;
-		font-weight: 600;
-		font-family: var(--mono);
-	}
-
-	.agent-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
-		padding: 3px 8px;
-		border-radius: 999px;
-		background: var(--cyan-dim);
-		color: var(--cyan);
+		letter-spacing: 0.1em;
 		text-transform: uppercase;
-		letter-spacing: 0.04em;
+		color: var(--text-dim);
 	}
 
-	.agent-desc {
-		font-size: 0.875rem;
-		color: var(--text-muted);
-		line-height: 1.6;
-		margin-bottom: 12px;
-	}
-
-	.agent-perms {
+	.chip-row {
 		display: flex;
-		align-items: center;
-		gap: 6px;
 		flex-wrap: wrap;
+		gap: 6px;
 	}
 
-	.perms-label {
-		font-size: 0.75rem;
-		color: var(--text-dim);
-	}
-
-	.perm-tag {
-		font-size: 0.65rem;
-		padding: 2px 6px;
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: 4px;
-		color: var(--text-dim);
-		font-family: var(--mono);
-	}
-
-	/* Third-party */
-	.third-party-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-		gap: 16px;
-		margin-bottom: 32px;
-	}
-
-	.tp-card {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		padding: 24px;
-	}
-
-	.tp-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		margin-bottom: 8px;
-	}
-
-	.tp-name {
-		font-size: 1.1rem;
-		font-weight: 700;
-	}
-
-	.tp-badge {
-		font-size: 0.7rem;
-		font-weight: 600;
+	.chip {
 		padding: 3px 10px;
+		border: 1px solid var(--border);
 		border-radius: 999px;
-		background: var(--amber-dim);
-		color: var(--amber);
-	}
-
-	.tp-desc {
-		font-size: 0.9rem;
+		font-family: var(--mono);
+		font-size: 0.75rem;
 		color: var(--text-muted);
-		line-height: 1.6;
-		margin-bottom: 16px;
 	}
 
-	.tp-meta {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-size: 0.85rem;
-		color: var(--text-dim);
+	.install-aside p {
+		color: var(--text-muted);
+		font-size: 0.875rem;
 	}
 
-	.tp-link {
-		font-weight: 500;
+	/* Let the line break before a token like TELEGRAM_BOT_TOKEN, not inside it. */
+	.install-aside code {
+		white-space: nowrap;
 	}
 
+	/* Callout panel */
 	.tp-rules {
-		background: var(--bg);
+		margin-top: 28px;
+		padding: 20px 24px;
 		border: 1px solid var(--border);
 		border-radius: var(--radius);
-		padding: 20px 24px;
+		background: var(--bg-card);
+	}
+
+	.section-alt .tp-rules {
+		background: var(--bg);
+	}
+
+	.tp-rules.note {
+		margin-top: 0;
 	}
 
 	.tp-rules h3 {
-		font-size: 0.9rem;
-		font-weight: 600;
 		margin-bottom: 12px;
-		color: var(--amber);
+		font-size: 0.9375rem;
 	}
 
 	.tp-rules ul {
-		list-style: none;
-		display: flex;
-		flex-direction: column;
+		display: grid;
 		gap: 8px;
+		list-style: none;
+	}
+
+	.tp-rules li,
+	.tp-rules p {
+		position: relative;
+		color: var(--text-muted);
+		font-size: 0.875rem;
 	}
 
 	.tp-rules li {
-		font-size: 0.85rem;
-		color: var(--text-muted);
-		line-height: 1.6;
+		padding-left: 16px;
 	}
 
 	.tp-rules li::before {
-		content: "—";
-		color: var(--text-dim);
-		margin-right: 8px;
+		content: "";
+		position: absolute;
+		left: 0;
+		top: 0.65em;
+		width: 5px;
+		height: 5px;
+		border-radius: 50%;
+		background: var(--border);
 	}
 
-	/* Commands */
-	.commands-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 24px;
-		margin-bottom: 32px;
-	}
-
-	.command-group {
-		background: var(--bg);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		overflow: hidden;
-	}
-
-	.command-group-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 14px 20px;
-		border-bottom: 1px solid var(--border-subtle);
-		background: var(--bg-card);
-	}
-
-	.command-skill-name {
-		font-size: 0.95rem;
-		font-weight: 600;
-		font-family: var(--mono);
-		color: var(--accent-light);
-	}
-
-	.command-count {
-		font-size: 0.75rem;
-		color: var(--text-dim);
-		padding: 2px 10px;
-		background: var(--accent-glow);
-		border-radius: 999px;
-	}
-
-	.command-list {
-		display: flex;
-		flex-direction: column;
-	}
-
-	.command-item {
-		padding: 14px 20px;
-		border-bottom: 1px solid var(--border-subtle);
-		display: flex;
-		align-items: center;
-		gap: 12px;
-	}
-
-	.command-item:last-child {
-		border-bottom: none;
-	}
-
-	.command-cmd {
-		font-family: var(--mono);
-		font-size: 0.82rem;
-		font-weight: 500;
-		color: var(--accent-light);
-		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.2);
-		border-radius: 4px;
-		padding: 3px 8px;
-		white-space: nowrap;
-		flex-shrink: 0;
-	}
-
-	.command-desc {
-		font-size: 0.85rem;
-		color: var(--text-muted);
-	}
-
-	.commands-note {
-		padding: 16px 20px;
-		background: var(--accent-glow);
-		border: 1px solid rgba(99, 102, 241, 0.2);
-		border-radius: var(--radius-sm);
-		font-size: 0.875rem;
-		color: var(--text-muted);
-	}
-
-	.commands-note strong {
+	.tp-rules strong {
 		color: var(--text);
-	}
-
-	.commands-note code {
-		font-family: var(--mono);
-		font-size: 0.8rem;
-		background: var(--bg-card);
-		padding: 2px 6px;
-		border-radius: 4px;
-		border: 1px solid var(--border);
-	}
-
-	/* Usage in skill cards */
-	.skill-usage {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		margin-top: 12px;
-		padding-top: 12px;
-		border-top: 1px solid var(--border-subtle);
-	}
-
-	.usage-label {
-		font-size: 0.75rem;
-		color: var(--text-dim);
-		flex-shrink: 0;
-	}
-
-	.usage-example {
-		font-family: var(--mono);
-		font-size: 0.78rem;
-		color: var(--accent-light);
-		background: var(--bg-card);
-		border: 1px solid var(--border-subtle);
-		border-radius: 4px;
-		padding: 3px 8px;
 	}
 
 	/* Footer */
 	.footer {
+		padding: 40px 0;
 		border-top: 1px solid var(--border-subtle);
-		padding: 40px 24px;
 	}
 
 	.footer-inner {
-		text-align: center;
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 8px 24px;
 	}
 
 	.footer p {
+		color: var(--text-muted);
 		font-size: 0.875rem;
-		color: var(--text-dim);
 	}
 
 	.footer-sub {
-		font-size: 0.8rem;
-		margin-top: 4px;
+		color: var(--text-dim);
 	}
 
-	/* Responsive */
-	@media (max-width: 768px) {
-		.nav-links {
-			display: none;
-		}
-
+	@media (max-width: 1000px) {
 		.hero {
-			padding: 60px 20px 40px;
+			padding-top: 56px;
 		}
 
-		.hero-stats {
-			gap: 24px;
+		.hero-grid,
+		.install-grid {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 36px;
 		}
 
-		.section {
-			padding: 48px 20px;
+		.install-aside {
+			padding-left: 0;
+			border-left: 0;
 		}
 
-		.skill-grid,
-		.agent-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.command-group-header {
-			flex-direction: column;
-			align-items: flex-start;
+		.item-cmd {
+			grid-template-columns: minmax(0, 1fr);
 			gap: 6px;
 		}
 
-		.third-party-grid {
-			grid-template-columns: 1fr;
+		.catalog {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 40px;
+		}
+
+		/* A one-line chip cannot fit 375px: let it wrap instead of clipping. */
+		.chip-accent,
+		.chip-quiet {
+			white-space: normal;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.nav-inner {
+			height: auto;
+			flex-wrap: wrap;
+			padding: 10px 20px;
+			gap: 10px;
+		}
+
+		.nav-links {
+			order: 3;
+			width: 100%;
+			margin-left: 0;
+			gap: 4px 16px;
+		}
+
+		.container {
+			padding: 0 20px;
+		}
+
+		.hero {
+			padding-top: 40px;
+		}
+
+		.section {
+			padding: 52px 0;
+		}
+
+		.install-step {
+			grid-template-columns: 28px minmax(0, 1fr);
+			gap: 12px;
+		}
+
+		.step-num {
+			width: 28px;
+			height: 28px;
 		}
 	}
 </style>
+

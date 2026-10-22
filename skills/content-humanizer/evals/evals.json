@@ -5,18 +5,33 @@
       "id": 1,
       "prompt": "Humaniza este capitulo de tesis para que pase Turnitin sin perder rigor academico",
       "expected_output": "Texto revisado con las 9 tecnicas y verificacion con detect_ai.py",
+      "expectations": [
+        "Runs as the final pass, after content and citations are final",
+        "Varies sentence structure and burstiness without changing claims or evidence",
+        "Runs detect_ai.py and reports the before/after score"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Este ensayo lo marca GPTZero al 95% IA, reescribelo manteniendo las citas",
       "expected_output": "Ensayo reescrito con burstiness y score de deteccion reducido",
+      "expectations": [
+        "Preserves every citation and reference exactly",
+        "Rewrites for burstiness instead of only swapping synonyms",
+        "Reports a reduced detection score from a local check"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Revision final de mi articulo: citas y referencias ya estan, solo hazlo sonar humano",
       "expected_output": "Pase final sin cambios de contenido, solo estilo y ritmo",
+      "expectations": [
+        "Changes only style and rhythm, not content or structure",
+        "Does not add or remove citations",
+        "Reports the detection check result"
+      ],
       "files": []
     }
   ]

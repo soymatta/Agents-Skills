@@ -91,9 +91,10 @@ and verify in one deterministic pass). Manual only if the driver does not
 cover the case.
 
 - Final post-JS HTML (`page.content()` in Playwright) + linked CSS/JS/
-  images/fonts/media. Images at original resolution (`srcset`: largest by
-  default, all with `--all-srcset`). Lazy-load included: `data-src`/
-  `data-srcset`/`data-poster` treated as `src`/`srcset`.
+  images/fonts/media. Images at original resolution: every `srcset`
+  candidate is collected and downloaded (no size-based pick, no flag).
+  Lazy-load included: `data-src`/`data-srcset`/`data-poster` treated as
+  `src`/`srcset`.
 - Three collection phases (all deterministic and tested): HTML
   (`AssetCollector`), downloaded CSS (`collect_css_urls`: `url()`/`@import`
   relative to the CSS, rewritten with their own prefix) and downloaded JS
@@ -173,10 +174,18 @@ version and report the build error as-is.
    relative refs. Out-of-scope links stay absolutized to the live site by
    design (not pending).
 3. Counts: pages in `map.json` == HTML on disk; listed assets == assets on disk.
-3. Bytes: zero double-encoded sequences (`Ã` in latin1 = mojibake).
-4. Preview SERVED (`python -m http.server` or `npx serve` in `clon/`),
+4. Bytes: zero double-encoded sequences (`Ã` in latin1 = mojibake).
+5. Preview SERVED (`python -m http.server` or `npx serve` in `clon/`),
    never `file://`: client routers and relative fetch require it.
    Click the main navigation and confirm no page 404s.
+
+## Relation to UI/UX skills
+
+This is a replication tool, not a UI/UX skill: it produces a faithful copy and
+ports it, it does not design (`impeccable` / `ui-ux-pro-max`) nor audit
+(`web-esenciales` / `web-design-guidelines`). If the clone is of the user's own
+site and they also want it improved, run the UI work afterwards with
+`ui-ux-orchestrator`, which deliberately excludes cloning from its phases.
 
 ## Scripts
 

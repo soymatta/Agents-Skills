@@ -104,6 +104,14 @@ Every piece of work belongs to one of two spaces:
 - Every bug fix ships with a regression test.
 - "I'll add tests later" is banned. If the tests aren't in the diff, the work isn't done.
 - **Permanent coherence gate (via `qa-tester`):** any skill whose outputs are objectively verifiable ships assertion-driven evals in the same commit. If the outputs are verifiable and the evals aren't in the diff, the work isn't done. Precedent: `osint`, `citation-formatter`, `skill-creator`.
+- **A gate that cannot fail is worse than no gate.** A check must have been observed failing once (drift fixture, mutation, seeded defect) before it ships. An `evals.json` with no `expectations`, or a validator that never returns 1, is decoration. Precedent: `check_evals.py` + the drift tests in `--selftest`.
+
+## Release discipline
+
+- **One new gate per release, at most.** A gate is a CI check, a validator, or a test suite that can fail the build. Add one when it prevents a class of bug that already happened or was one review away; never batch five speculative gates into one release.
+- **Maintenance rounds ship no new gates.** A maintenance round fixes, syncs, and re-verifies. If it needs a new gate to stay fixed, it is not a maintenance round.
+- **One fact, one place.** A value that must stay equal in two files (a version, a threshold, a default) gets a deterministic cross-check or a shared source. Two copies with no gate is a scheduled divergence. Precedent: `tests/test_plugin_version_sync.py`, `plugins/opencode-auto-session/test/twin-constants.mjs`, and the `--selftest` checks that parse their own SKILL.md.
+
 
 ## Safety
 
@@ -161,23 +169,118 @@ Before the final report, rate the work 1-10 from a fresh read of the deliverable
 - If something is broken, say so plainly.
 - End responses with the next action, not a recap.
 
-## Session ledger (2026-09-11) — reviewed from ses_f6d2
+## Session ledger (2026-10-22) — repair plan verified, gates that can fail
+
+### Done
+1. **9 of the 10 plan items were real.** #10 (`roadmap.md` in `.gitignore`) is not a
+   bug: `skills/roadmaps/SKILL.md` treats a finished roadmap as deletable state and
+   `.roadmap-state` as a disposable cache, so ignoring both is the documented flow.
+2. **EOL pass landed alone** in `2b82c77` (251 files). The real changes are this commit.
+3. **Doc-driven selftests.** `evaluate_backtest.py` parses the 19-row "Scoring
+   Dimensions" table it now owns in `SKILL.md`; `score_match.py` parses the weight
+   table (4 weights + 5 fit bands). CI runs both. Each ships a drift test that
+   mutates the doc and expects exit 1, so a passing selftest means something.
+4. **Twin-constants guard** (`test/twin-constants.mjs`, in `npm test`) found a real
+   divergence: the `.ps1` cache-leaf allowlist omitted `opencode`, so Windows never
+   cleaned `~/.cache/opencode` while the `.sh` did. Fixed, then the guard was observed
+   failing on both a cooldown drift and the leaf drift before it passed.
+5. **`check_evals.py`** validates the 24 first-party eval sets (1 third-party skipped).
+   It found 12 files with no `expectations` — 39 KB of tests that could never fail.
+   Expectations were authored for all 49 evals; the schema was not relaxed.
+6. **Coherence gate widened** to Python module docstrings and repo-root `.md` paths.
+   The docstring that cited `skills/backtest-expert/...` would now fail. Green:
+   185 script references + 4 Markdown paths; 6 regression tests.
+7. **`/init_review` deleted.** The repo already had only `init-review.md`; the global
+   install carried stale duplicates in `commands/` and `skills/project-analyzer/commands/`.
+   Both removed, global reinstalled, `--check` reports 38 items in sync.
+8. **`init-review` Phase 3** uses `task(agent="builder", prompt=...)` with a concrete
+   template (no `[PASS ...]` markers), and `agents/builder.md` now permits a sequential
+   handoff when the caller is read-only. A test pins the single hyphenated command name.
+9. **`setup.py`** lost 5 dead functions (`_git`, `cleanup_repo`, `adapt_md_content`,
+   `push_changes`, `pull_changes`) and the now-unused `subprocess` import.
+10. **Two new gates, each closing a real gap.** `tests/test_landing_manifest_sync.py`
+    (the landing was missing `fitness-coach`: 5 of 6 agents) and
+    `tests/test_plugin_version_sync.py` (found `opencode-auto-session` at 1.0.0 in
+    `package.json` and 2.0.0 in its lock).
+11. **Governance codified** in `## Release discipline`: one new gate per release,
+    maintenance rounds ship none, one fact in one place. The anti-slop item about a
+    13-point release script has no equivalent surface here (4 version declarations,
+    now cross-checked), and the upstream contribution item is another repo's work.
+
+### Pending to do
+1. **`/autosession` E2E** against a local OpenAI-compatible stub: still open, and still
+   never against the paid provider.
+2. **Eval runs stay manual** (`claude -p` + key). CI proves the schema; executing the
+   assertions is a human step.
+
+## Session ledger (2026-10-19) — global config sync + two new gates
+
+### Done
+1. **Global OpenCode config = todo este repo menos los plugins.** 6 agentes, 29 skills y
+   24 comandos (`23 impeccable-*` + `init-review`). El plugin
+   `opencode-telegram-answers.ts` se desinstaló por pedido explícito usando la rama OFF
+   de `install_items` (retira también sus assets y comandos). En `plugins/` solo quedan
+   los 4 archivos de Orca, ajenos a este repo (`tui.json` los carga).
+   **Corregido el 2026-10-22:** esa baja no se sostuvo. El destino global tiene hoy los
+   tres plugins del repo (`opencode-auto-session.ts`, `opencode-telegram-answers.ts`,
+   `opencode-tui-queue.ts`) más el comando `autosession.md`. Se dejaron como están: el
+   estado real manda y desinstalarlos es decisión del usuario, no de una sesión de
+   limpieza.
+2. **`setup.py --check` (nuevo).** Compara el destino instalado contra el manifiesto
+   byte a byte (items y comandos generados, incluidos los de `generate_commands`),
+   reporta missing/stale/extra, no escribe nada y sale con 1 si hay drift. Requiere
+   `--platform` y `--global`/`--local`: `python setup.py --check --global --platform
+   opencode`. 4 tests en `tests/test_setup_installer.py`. Encontró un
+   `agent-self-improver/templates/agent-feedback.json` viejo (instalado el 16-10), que
+   se corrigió al reinstalar.
+3. **Gate de prefijo `skills/`** en `.github/scripts/check_doc_code_coherence.py`:
+   detecta paths backticked que se leen desde la raíz del repo pero solo existen bajo
+   `skills/`. Caso real: `academic-source-search` citaba `citation-formatter/scripts/*.py`
+   y `scripts/*.py` como si fueran suyos.
+4. **Gate README↔manifiesto** (`tests/test_readme_manifest_sync.py`): tablas de
+   skills/agents, conteos de `INSTALL.md` y comandos nombrados deben coincidir con
+   `setup.py:ITEMS`. Faltaba la fila del skill `jobfinder`; `git-workflow` anunciaba
+   commits que ahora son del skill `commit`.
+5. Verificación: 39 tests del repo + 426 de skills + coherencia (130 refs) + sintaxis
+   (72 archivos) + plugin telegram (smoke, integration, tsc). Todo verde.
+
+### Pending to do
+1. **`/autosession` E2E** contra un stub local OpenAI-compatible: pendiente a nivel
+   repo. (Corregido el 2026-10-22: los plugins del repo sí están instalados en la
+   config global, así que también aplica ahí; nunca contra el proveedor de pago.)
+2. **`Tab` = `agent.cycle`** en `cli.json` (Shift+Tab reversa) y `agent.cycle` es nombre
+   válido en el schema v2. Si el autocompletado del prompt deja de aceptar con Tab, es
+   el trade-off esperado: Enter sigue aceptando la selección.
+
+## Session ledger (2026-10-18) — reviewed from ses_eb7af32f
 
 State verified against the working tree after the prior session ended.
 
 ### Pending to do
 1. **Commit the pending batch (by design — no commit without an explicit ask).**
-   Unstaged: `skills/web-cloner/` (new skill), `setup.py` (web-cloner ITEMS),
-   `README.md` + `INSTALL.md` (web-cloner rows/counts), `AGENTS.md` (this ledger),
-   `agents/builder.md` (skill model: skill-creator + .opencode/skills),
-   `plugins/opencode-telegram-answers/notification.ts` + `test/smoke.mjs` +
-   `test/integration.mjs` (both 400 entity fixes), `plugins/_harness/mock-telegram.mjs`
-   (`failSendsWhen/clearSendFailures`). Installed copies in `~/.config/opencode`
-   already refreshed (hash match); restart opencode to load.
+   Staged since 2026-10-15: ~23 files of real change plus a repo-wide CR→LF
+   normalization (252 files, from the new `.gitattributes: * text=auto eol=lf`).
+   Land the EOL pass as its own commit first, then the real changes, so ~100k
+   lines of line endings don't bury the diff. Session dumps and exports are now
+   gitignored (`.opencode_session_dump*.md`, `session-*.md`); `session-*.md`
+   files already on disk stay untracked and get deleted once their session closes.
+   **Resuelto el 2026-10-22:** el pase EOL es `2b82c77` y los cambios reales van en
+   el commit de esa sesión.
+2. **Plugin suites green as of 2026-10-18.** auto-session (`OK: smoke auto-session`,
+   `OK: notify-sh`), tui-queue (`OK: smoke`, `OK: integracion`), telegram-answers
+   (`OK: todos los tests`, `OK: integracion`). `tsc` exit 0 for the three via a copy
+   under `/tmp` (the repo cannot typecheck on exFAT: no `tsc` in the plugin
+   `node_modules`). Installed copies in `~/.config/opencode` refreshed (8 files,
+   hash match); restart opencode to load.
+3. **`/autosession` end-to-end check is still open.** The `prt_` id fix is covered
+   by `partId` format assertions in `test/smoke.mjs`, but the HTTP 500 was never
+   re-tested with a real turn: do it against a local OpenAI-compatible stub, never
+   against the paid provider (real turns exhaust the free tier and kill sessions).
+
 2. **Done — prior batch landed in `c6ca01e`.** (`feat: register jobfinder skill,
-   wire plugin harness tests, sync global config docs`). Manifest now reads
-   5 agents / 23 skills / 2 plugins. Skill-creator externalization also landed
-   (SKILL.md 336 lines in HEAD, `references/writing-guide.md` tracked).
+   wire plugin harness tests, sync global config docs`). The manifest has since
+   grown to 6 agents / 29 skills / 3 plugins. Skill-creator externalization also
+   landed (SKILL.md 336 lines in HEAD, `references/writing-guide.md` tracked).
 3. **Verified resolved — evals exist and are green.** `osint` and `citation-formatter`
    ship objection-driven test suites, tracked and passing (osint: 22 assertions via
    `test_gen_commands` + `test_phone_parser`; citation-formatter: 56 assertions via
@@ -197,7 +300,7 @@ State verified against the working tree after the prior session ended.
 - Coherence gate: `.github/scripts/check_doc_code_coherence.py` = 100/100 script refs OK.
 - 2026-09-23 structure fixes: `__pycache__/` trees removed from disk; `plugins/_harness/`,
   plugin `integration.mjs` tests, and the telegram-answers `package-lock.json` fully staged
-  (indexed). `init_review` scan found no blockers (health: verde).
+  (indexed). `init-review` scan found no blockers (health: verde).
 - Shared-rule mirror updated 2026-09-23: decision-first confusion protocol (deterministic →
   empirical → value → safety) in both `AGENTS.md` and `agents/builder.md`; builder gained
   hermes-style "Decide first" + skill-authoring standards. Mirror stays in sync.
@@ -215,3 +318,31 @@ State verified against the working tree after the prior session ended.
   `wrapTag` keeps it out of heading/quote wrappers; link labels unwrap code),
   empty `<b></b>` pairs stripped. Smoke + integration green, `tsc` clean,
   installed copy refreshed (hash match).
+- 2026-10-18: root cause of "the sessions close" found: the free-tier limit is
+  per account (`free_tier_limit` in `limit-notify.log`), not a process kill; the
+  installed notify script never kills anything. `limit-notify.sh` rewritten with
+  the recovery flow behind an opt-in default (`OPENCODE_LIMIT_RECOVER=0`: notice
+  only, never closes the session you are working in), POSIX guards
+  (`${HOME:-}`, pgrep name filter, cache-dir basename allowlist), with the
+  `limit-notify.ps1` mirror and a fake-tool harness plus static invariants in
+  `test/notify-sh.mjs`.
+- 2026-10-18 `/autosession` 500 (`Expected a string starting with "prt"`): part
+  ids now come from `partId()` (`prt_` + 26 base62) in `autosession.ts` and
+  `queue.ts`. Dumps are per session (`.opencode_session_dump-<sesion>.md`, via
+  `dumpFileName`/`listDumps`/`pruneDumps`, `dumpKeep: 20`), so two sessions no
+  longer overwrite each other.
+- 2026-10-18 `init-review` gains F0 (context first): read `AGENTS.md`, flag it as
+  a pending item when missing (never run `/init`), read every session file in the
+  repo plus the current one and carry their pending work into the report; report
+  closes with a session-cleanup suggestion (never the live session). Commands
+  count is 3, and `setup.py` ships `autosession.md` with the plugin.
+- 2026-10-18 python suites green: `python -m pytest .github/scripts/tests tests -q`
+  = 21 passed (the coherence test moved next to its sibling checkers, `parents[3]`),
+  coherence gate 125 refs OK. `INSTALL.md`, `AGENTS.md` counts and the Astro
+  landing inventory (1 agent, 3 skills, 2 plugins added) synced.
+- 2026-10-18 trap that cost real sessions: `limit-notify.sh` re-adds
+  `/usr/bin:/usr/local/bin` to `PATH` (line 51), so a test case with a trimmed
+  `PATH` still finds the real `pgrep`/`ps`; with `OPENCODE_LIMIT_RECOVER=1` that
+  kills the user's OpenCode processes. `test/notify-sh.mjs` now wraps `spawnSync`
+  and refuses any run whose `HOME`/`TMPDIR`/`PATH[0]` is not a sandbox carrying
+  fake `pgrep`+`ps` (case 8 asserts the guard rejects an unsafe env).

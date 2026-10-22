@@ -7,7 +7,8 @@ description: >-
   or adding features. Behavior-preserving except security, which may change behavior to close a
   hole. Use for public websites too: runs the 20-point web launch checklist (SEO, canonical URLs, SSL, backups, conversions).
   Triggers: "refactor", "refactorizar", "optimize", "optimizar", "clean up", "limpiar", "hardening",
-  "limpiar codigo", "remove dead code", "extract helper", "checklist web", "web launch", "lista de lanzamiento".
+  "limpiar codigo", "eliminar codigo muerto", "remove dead code", "extract helper", "checklist web",
+  "web launch", "go live", "pasar a produccion", "lista de lanzamiento".
 compatibility: Language-agnostic. Edits target code. Verifies with tests/type-checks.
 ---
 
@@ -46,49 +47,11 @@ to one axis.
 
 ## Web launch checklist (business websites only)
 
-When the target is a public website, verify these 20 items under the matching
-axis (almost all is `architecture` or `security`; nothing changes visible
-behavior except `security`). Mark each ✔/✘ with `file:line` or command.
-Overlaps `web-esenciales`: if that skill already audited the site, reuse its
-report instead of repeating it.
-
-Indexing and search:
-
-1. No leftover `noindex` in prod (neither meta nor `X-Robots-Tag` nor
-   `Disallow: /` in `robots.txt`).
-2. Search Console signup (verified property) + sitemap submitted.
-3. Bing Webmaster Tools signup (verified property) + sitemap submitted.
-
-URLs and links:
-
-4. Single domain version (with/without `www` + `http`→`https` with 301).
-5. Real 301 redirects for old/changed URLs (no 302, no meta-refresh).
-6. Canonical URLs (absolute `rel="canonical"`, one per page).
-7. Clean URLs (readable, lowercase, no IDs or session params).
-8. Internal link hierarchy (every page ≤3 clicks from home, no orphans,
-   no redirect chains).
-9. One page per search intent (no cannibalization between URLs).
-
-Contact and social:
-
-10. Tappable phone (`tel:`) and email (`mailto:`) on mobile and desktop.
-11. Real social icons (point to the profiles, not to `#`).
-12. Share preview (Open Graph + Twitter Card with absolute image
-    ≥1200×630, title and description per page).
-
-Infra:
-
-13. Cache configured (hashed statics + `Cache-Control`, HTML revalidated).
-14. Valid SSL with auto-renewal (expiry >30 days + cron/timer verified).
-15. Automatic backups (what, how often, where, retention).
-16. Downtime alerts (uptime monitor with alerts to the owner's channel).
-
-Content and validation:
-
-17. Test content removed (lorem, watermarked stock, demo users).
-18. Tested in several browsers (Chromium + Firefox + WebKit, zero console errors).
-19. Thank-you page after every form (conversion confirmed + no resubmit on reload).
-20. Conversions measured (analytics event on each goal: form, call, purchase).
+When the target is a public website, run the 20-item launch checklist (SEO,
+canonical URLs, SSL, backups, conversions) under the matching axis. The full
+list with the per-item rules lives in `references/web-launch-checklist.md`: read
+it for offline or standalone runs. `web-esenciales` owns the checklist when
+installed, so reuse its report instead of repeating the audit.
 
 ## Workflow
 
@@ -105,6 +68,3 @@ Content and validation:
 
 Output is a token-optimized report listing each change with `file:line`, the axis, and the
 verification evidence. Another agent or the user can judge the refactor from the report.
-
-## Keywords
-"refactor", "refactorizar", "optimize", "optimizar", "clean up", "limpiar", "hardening", "eliminar codigo muerto", "remove dead code", "extract helper", "checklist web", "web launch", "lista de lanzamiento", "pasar a produccion", "go live"

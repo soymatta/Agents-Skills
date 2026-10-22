@@ -1,0 +1,25 @@
+{
+  "skill_name": "skill-creator",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Create a new skill from scratch for Docker deployment automation",
+      "expected_output": "Captures user intent, guides through prompt design, scaffolds SKILL.md with progressive disclosure and YAML frontmatter, and creates initial evals.",
+      "files": [],
+      "expectations": [
+        "Keeps SKILL.md body concise and under budget",
+        "Includes When to use and When NOT to use sections",
+        "Scaffolds evals/evals.json alongside the skill draft"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Configure an MCP server in my OpenCode global config",
+      "expected_output": "Declines skill creation and routes to customize-opencode or direct config editing, as MCP server setup is not a new skill.",
+      "files": [],
+      "expectations": [
+        "Identifies tasks that do not require creating a skill"
+      ]
+    }
+  ]
+}

@@ -135,8 +135,9 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 OpenCode autoload los archivos `.ts` **planos** que viven en
 `~/.config/opencode/plugins/` (no lee subcarpetas), así que el script copia
-`notification.ts` como **`telegram-answers.ts`** ahí.
-Si el plugin clásico `notification.ts` sigue instalado, bórralo (ver
+`notification.ts` como **`opencode-telegram-answers.ts`** ahí (el mismo nombre que
+usa `setup.py`, para que ambas vías de instalación converjan en un solo archivo).
+Si el plugin clásico `telegram-notifier.ts` sigue instalado, bórralo (ver
 [Importante](#importante-usa-un-solo-plugin-de-este-grupo)).
 
 ### 3. Credenciales de Telegram

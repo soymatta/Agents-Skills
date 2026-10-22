@@ -1,7 +1,7 @@
 ---
 name: web-esenciales
 description: >-
-  Audits and completes the 20 must-haves of a business website before sign-off (custom 404, above-the-fold CTA, internal links, thank-you page, breadcrumbs, success stories, 5 FAQs, response-time promise, sticky mobile CTA, robots.txt, unique titles, meta descriptions, og:image, map + address, real reviews, image alts, LocalBusiness schema, privacy, Google Analytics, team photo). Use whenever the user talks about a website: create, improve, polish, add details, "revisa mi web", "mejora la landing", "que le falta a mi pagina", "optimiza el sitio", "detalles finales", "esta lista para publicar", "review my site", "improve my landing", "is my site ready". Audit FIRST with scripts/check_web_esenciales.py or manual review; if all 20 are present do nothing else (avoids misfires). If at least one is missing, report gaps and ask the user before implementing each one.
+  Audits and completes the 20 must-haves of a business website before sign-off (custom 404, above-the-fold CTA, internal links, thank-you page, breadcrumbs, success stories, 5 FAQs, response-time promise, sticky mobile CTA, robots.txt, unique titles, meta descriptions, og:image, map + address, real reviews, image alts, LocalBusiness schema, privacy, Google Analytics, team photo). Use at the sign-off moment of a business site, when the question is completeness rather than design: "que le falta a mi pagina", "esta lista para publicar", "detalles finales", "revisa mi web antes de lanzar", "is my site ready", "review my site", "audita los must-haves". Not for design work or creating a site (that is `impeccable` / `ui-ux-pro-max`, or `ui-ux-orchestrator` when several UI skills are involved). Audit FIRST with scripts/check_web_esenciales.py or manual review; if all 20 are present do nothing else (avoids misfires). If at least one is missing, report gaps and ask the user before implementing each one.
 ---
 
 # Web Esenciales — the 20 must-haves
@@ -49,8 +49,9 @@ Structure/legal (3): `enlaces-internos` internal links between pages ·
    No more than 5 lines in the initial report; detail comes later.
 3. **Ask.** For each gap, ask the user whether to implement it (batched in a
    single question, not 20 turns). Only confirmed items get touched.
-4. **Implement.** Confirmed items, with the minimal pattern from
-   `references/patrones.md` if present; otherwise the project stack standard.
+4. **Implement.** Confirmed items, using the project's own stack and existing
+   tokens (its components, its design system). This skill never introduces a new
+   visual language.
 5. **Re-audit.** Re-run the script: zero confirmed gaps = DONE.
 
 ## Rules
@@ -58,6 +59,9 @@ Structure/legal (3): `enlaces-internos` internal links between pages ·
 - A gap the user did not confirm is NOT implemented. Listed as pending, done.
 - If the project already uses `impeccable` or `ui-ux-pro-max`, this skill
   redesigns nothing: it only adds the missing must-haves with existing tokens.
+- Orchestrated by `ui-ux-orchestrator`: when that skill already ran the UI
+  chain, reuse its result instead of re-auditing. This is the business/SEO
+  gate, not the design step.
 - Special characters (accents, `ñ`, emojis) go directly in UTF-8; never
   shell escapes in the HTML.
 

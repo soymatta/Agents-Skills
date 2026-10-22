@@ -1,4 +1,4 @@
-"""Tests for the deterministic init_review scanner (scan_project.py).
+"""Tests for the deterministic init-review scanner (scan_project.py).
 
 Each test builds a throwaway tree, runs the scanner, and asserts the checks
 fire where they should and stay quiet where they must not (false-positive

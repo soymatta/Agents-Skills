@@ -4,8 +4,10 @@ description: >-
   Builds and maintains the project's memory of its architecture, conventions, decisions, and
   codebase map, so every session starts with durable context instead of re-discovering the
   project. Set up, refresh, or rewire. Use when setting up a new project, or when the user
-  wants the agent to remember structure/conventions/decisions. Triggers: "project memory",
-  "memoria del proyecto", "set up memory", "context", "codebase map", "documentar el proyecto".
+  wants the agent to remember structure/conventions/decisions. Do NOT use for active bug fixing
+  (use debug) or live refactoring (use refactor). Triggers: "project memory", "memoria del proyecto",
+  "set up memory", "context", "codebase map", "documentar el proyecto", "arquitectura",
+  "convenciones", "decisiones", "ADRs".
 compatibility: Language-agnostic. Writes memory files under a docs dir (default `aidd_docs/memory/`).
 ---
 
@@ -68,6 +70,3 @@ The exact set adapts to the project; never invent files for content the project 
 - Used by `builder` and any agent that benefits from durable project context.
 - Pair with `agent-self-improver` / `roadmaps` state, but keep memory content distinct from
   task state: memory is durable project truth, not a to-do list.
-
-## Keywords
-"project memory", "memoria del proyecto", "context", "codebase map", "arquitectura", "convenciones", "ADRs", "decisiones", "set up memory", "refresh memory"

@@ -28,6 +28,17 @@ is a thin orchestrator: it does not re-implement profile questions, scoring
 tables, thresholds, or portal lists — those live in the skill (and in
 `ai-job-search` references) and must not be duplicated here to avoid drift.
 
+## When to use
+- Search for active job postings across multiple boards and companies
+- Score candidate resume/CV fit against specific job requirements
+- Generate customized cover letters, CV JSON, or printable CV PDFs
+- Perform career gap analysis and structured interview preparation
+
+## When NOT to use
+- General corporate research not tied to an active search or opening
+- Direct automated job submissions (application execution must remain with the user)
+- Arbitrary code execution or general development tasks (use `builder`)
+
 ## Responsibilities
 
 1. Load and follow the `jobfinder` skill's step-by-step workflow.

@@ -1,0 +1,26 @@
+{
+  "skill_name": "agent-self-improver",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Our agent failed twice while building the parser and had to retry 3 times. Analyze what went wrong and improve the agent.",
+      "expected_output": "Collects structured feedback without auto-applying changes, diagnoses the failure patterns, and proposes specific edits to prompts or instructions requiring human approval.",
+      "files": [],
+      "expectations": [
+        "Does not auto-apply changes to instructions or scripts without user approval",
+        "Categorizes failure type (bug, ambiguity, environment)",
+        "Outputs structured feedback following templates/agent-feedback.json"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Review this successful single-line typo fix session and optimize the agent prompt.",
+      "expected_output": "Recognizes that routine successful tasks do not need proactive review or prompt changes to avoid notification fatigue.",
+      "files": [],
+      "expectations": [
+        "Declines unnecessary prompt edits for trivial successful runs",
+        "Explains that self-improver triggers on flaky, failed, or high-retry sessions"
+      ]
+    }
+  ]
+}

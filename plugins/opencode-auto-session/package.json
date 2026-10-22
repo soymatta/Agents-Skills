@@ -1,0 +1,22 @@
+{
+  "name": "opencode-auto-session",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Plugin de OpenCode: guarda el historial al alcanzar el limite de uso, avisa con un toast/script del SO y reinyecta los archivos de sesion del repo al abrir una sesion nueva.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node test/smoke.mjs && node test/notify-sh.mjs && node test/twin-constants.mjs"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.18.29",
+    "@opencode-ai/sdk": "^1.18.29"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

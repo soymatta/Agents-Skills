@@ -1,0 +1,66 @@
+{
+  "skill_name": "goal",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Improve validation accuracy to 92%. Budget: 20 iterations.",
+      "expected_output": "Creates/updates .opencode/decisions/goal_state.json with mode maximize and target 92, then loops (measure -> diagnose -> plan -> execute) until current >= target or the budget ends; reports SUCCESS with the before -> after delta.",
+      "files": [],
+      "expectations": [
+        "State file .opencode/decisions/goal_state.json is created with mode \"maximize\" and target 92",
+        "A baseline is measured with the recorded measure_cmd before the first change",
+        "best_metric tracks max(best, current) each iteration",
+        "The loop stops once current_metric >= target and sets achieved=true (SUCCESS)",
+        "Progress is reported as current/best/target with a before -> after delta"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Cut the API p95 latency down to 120 ms. Budget: 15 iterations.",
+      "expected_output": "Runs a minimize loop: success when current <= target, best_metric = min(best, current), and SUCCESS reported only at or below the target.",
+      "files": [],
+      "expectations": [
+        "mode is \"minimize\" and target is 120",
+        "Success is evaluated as current_metric <= target (not >=)",
+        "best_metric tracks min(best, current)",
+        "The verdict stays non-success until the metric is at or below the target"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Tune the cache size to exactly 1024 entries. No budget preference.",
+      "expected_output": "Runs an exact-value loop with a default 1% tolerance and best_metric = value closest to target; with no budget given it defaults to max_iterations 20.",
+      "files": [],
+      "expectations": [
+        "mode is \"exact\" and target is 1024",
+        "Success uses a tolerance around the target (default 1% of target), not exact equality",
+        "best_metric is the value closest to target, not the max or the min",
+        "With no budget stated, budget.max_iterations defaults to 20"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "You changed the optimizer and accuracy dropped from the best 0.87 to 0.81. Keep going.",
+      "expected_output": "Recognizes degradation (maximize: current < best_metric), reverts to the last checkpoint, logs the failed iteration, and tries a different approach instead of retrying the same one.",
+      "files": [],
+      "expectations": [
+        "Recognizes degradation (0.81 < best_metric 0.87 in maximize mode)",
+        "Reverts to the last recorded checkpoint before trying again",
+        "Logs the failed iteration in history with its checkpoint reference",
+        "Does not repeat the same failed approach without changing a variable"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Keep tuning, but you have 5 iterations left and the last 3 improved nothing.",
+      "expected_output": "Stops instead of looping past the budget: sets budget.budget_exhausted=true (and switches paradigm after 3 consecutive flat iterations), logs a report, and returns BUDGET EXHAUSTED / CEILING REACHED.",
+      "files": [],
+      "expectations": [
+        "Stops instead of looping past budget.max_iterations",
+        "Sets budget.budget_exhausted=true and returns BUDGET EXHAUSTED / CEILING REACHED",
+        "After 3 consecutive flat-or-failed iterations on the same approach, switches paradigm",
+        "Reports a progress summary instead of spending the remaining budget"
+      ]
+    }
+  ]
+}

@@ -4,7 +4,8 @@ description: >-
   Reproduces and fixes a known bug, or finds an unknown root cause by hypothesis validation,
   with a test-driven fix. Use when the user wants to fix a bug, find why something breaks, or
   reopen a stuck investigation. NOT for building a feature or reviewing a diff. Triggers:
-  "debug", "depurar", "bug", "broken", "no funciona", "da error", "arreglar", "por que falla", "stuck".
+  "debug", "depurar", "bug", "broken", "no funciona", "da error", "arreglar", "reproducir",
+  "por que falla", "stuck", "atascado".
 compatibility: Language-agnostic. Edits target code. Regressions get a test.
 ---
 
@@ -57,6 +58,3 @@ work" to `03`. Ask one question when the intent is ambiguous.
 If the fix failed or the search stalled: instrument logging first, reopen the search space,
 and re-derive hypotheses from the new evidence instead of retrying the same approach a third
 time. Report what changed.
-
-## Keywords
-"debug", "bug", "broken", "no funciona", "da error", "arreglar", "por que falla", "root cause", "fix", "reproducir", "atascado"

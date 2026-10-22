@@ -11,7 +11,9 @@ import { makeFakeClient } from "../../_harness/fake-client.mjs"
 const home = setupTestHome("tui-queue-")
 const fake = makeFakeClient()
 const plugin = (await import("../queue.ts")).default
-const hooks = await plugin({ client: fake })
+assert.equal(plugin.id, "opencode-tui-queue", "el loader exige { id, server }")
+assert.equal(typeof plugin.server, "function")
+const hooks = await plugin.server({ client: fake })
 const stateFile = join(home, ".config", "opencode", ".opencode-queue.json")
 const entries = () => JSON.parse(readFileSync(stateFile, "utf-8")).entries
 const fire = (type, properties) => hooks.event({ event: { type, properties } })

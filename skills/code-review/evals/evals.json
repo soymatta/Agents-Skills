@@ -5,19 +5,39 @@
       "id": 1,
       "prompt": "Review this diff: agrega autenticacion JWT al login, 5 archivos",
       "expected_output": "Veredicto unico en 3 ejes (calidad, comportamiento vs plan, relevancia) con fixes descritos, sin parchear",
-      "files": []
+      "files": [],
+      "expectations": [
+        "A single overall verdict is present (ship | iterate | rework)",
+        "All three axes run by default (code-quality, functional, relevancy) and are named",
+        "Every finding cites file:line and carries a severity (CRITICAL/MAJOR/MINOR/SUGGESTION)",
+        "Each finding describes the fix instead of applying it (read-only)",
+        "No reviewed file is modified"
+      ]
     },
     {
       "id": 2,
       "prompt": "Revisa estos cambios de refactor del modulo de pagos antes del merge",
       "expected_output": "Hallazgos severizados con linea y fix propuesto, read-only",
-      "files": []
+      "files": [],
+      "expectations": [
+        "A single overall verdict is present",
+        "Each finding cites a file:line range on changed lines",
+        "Severities use the shared scale (CRITICAL/MAJOR/MINOR/SUGGESTION)",
+        "The diff is not patched (read-only review)",
+        "No reviewed file is modified"
+      ]
     },
     {
       "id": 3,
       "prompt": "Este PR toca 20 archivos pero el plan solo pedia 3, revisalo",
       "expected_output": "Flag de alcance con recomendacion de recorte",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The relevancy axis flags the scope creep (20 files vs the 3 the plan asked for)",
+        "The finding ties to the plan's Phase",
+        "A single overall verdict is present, with a recommendation to trim the scope",
+        "No reviewed file is modified"
+      ]
     }
   ]
 }

@@ -5,18 +5,33 @@
       "id": 1,
       "prompt": "Mira esta pagina https://example.com/landing la quiero en HTML para estudiarla, es mia",
       "expected_output": "Pregunta alcance (solo pagina / subenlaces / sitio), luego clona a clon/ con index.html + styles/ + scripts/ + assets/ y check_links en verde",
+      "expectations": [
+        "Asks the scope question before cloning",
+        "Produces clon/ with index.html, styles/, scripts/ and assets/",
+        "check_links passes on the cloned output"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Te paso este link https://example.com/app replica este dashboard en Astro, solo la pagina principal",
       "expected_output": "Sin pregunta de alcance (ya dicho: solo principal + framework Astro), port en src/pages/*.astro con astro build en verde",
+      "expectations": [
+        "Does not repeat the scope question because scope and framework were already given",
+        "Ports the page to src/pages/*.astro",
+        "astro build succeeds"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Bajame todo este sitio https://example.com/ completo con imagenes",
       "expected_output": "Mapeo desde raiz con map.json, descarga con todas las imagenes, layout clon/ completo y reporte de pendientes",
+      "expectations": [
+        "Maps the site from the root and writes map.json",
+        "Downloads every image referenced by the pages",
+        "Reports what could not be downloaded"
+      ],
       "files": []
     }
   ]

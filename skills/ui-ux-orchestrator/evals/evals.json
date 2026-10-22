@@ -1,0 +1,94 @@
+{
+  "skill_name": "ui-ux-orchestrator",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Hazme la landing de mi SaaS desde cero, quiero que se vea profesional",
+      "expected_output": "Ruta a ui-ux-pro-max (genera design system) como fase Seed/Design, luego impeccable para el craft del codigo, luego el gate (ui_gate.py + web-esenciales) antes de dar por cerrado. No reimplementa; delega.",
+      "expectations": [
+        "Routes to ui-ux-pro-max to generate the design system first",
+        "Hands the code craft to impeccable",
+        "Runs the gate (ui_gate.py plus web-esenciales) before closing",
+        "Delegates instead of reimplementing the tier skills"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Revisa mi UI y dime si cumple las guias de interfaz de Vercel",
+      "expected_output": "Carga web-design-guidelines (reglas en vivo) Y corre scripts/ui_gate.py sobre el directorio; reporta hallazgos file:line una sola vez, con la severidad mas alta si dos fuentes coinciden.",
+      "expectations": [
+        "Loads web-design-guidelines and runs ui_gate.py",
+        "Reports each finding once with file:line",
+        "Raises severity when two sources agree"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Mejora el diseno de mi dashboard, no quiero cambiar la identidad",
+      "expected_output": "Ruta a impeccable (refinamiento, preserva identidad); NO lanza ui-ux-pro-max (no es greenfield) ni un rediseno. Aplica precedencia: identidad incumbent gana sobre polish estetico.",
+      "expectations": [
+        "Routes to impeccable and does not launch ui-ux-pro-max because the surface is not greenfield",
+        "Preserves the existing identity, copy and behavior",
+        "Does not propose a redesign"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Mi web ya esta casi lista, que le falta para publicar",
+      "expected_output": "Corre web-esenciales (20 must-haves) + ui_gate.py, fusiona en un solo informe priorizado (a11y/blockers > must-haves > polish) y no devuelve dos listas contradictorias.",
+      "expectations": [
+        "Runs web-esenciales and ui_gate.py",
+        "Merges both into one prioritized report",
+        "Does not return two contradictory lists"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Corre la skill ui-ux-orchestrator sobre mi landing",
+      "expected_output": "Sin brief, la fase de diseno ES el trabajo: carga impeccable, ejecuta su playbook sobre la superficie (refinamiento: preserva identidad, copy y comportamiento) y entrega estilos/diseno cambiados, verificados con un render real (build + screenshot leido), no solo un informe. El gate (ui_gate.py + web-esenciales) corre despues, sobre lo cambiado, como prueba. Devuelve un informe de hallazgos es el fallo que este caso detecta.",
+      "expectations": [
+        "Treats the design phase as the work and loads impeccable's playbook",
+        "Delivers changed styles verified by a real render (build plus screenshot read)",
+        "Does not stop at a findings report"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Usa todas las skills de UI/UX que tengas en esta landing",
+      "expected_output": "Pase completo: las 5 tiers se ejecutan (ui-ux-pro-max como referencia de design system, impeccable como dueno del diseno, web-design-guidelines en prosa, web-esenciales en los 20 must-haves, qa-tester en runtime) mas ui_gate.py, y el informe declara cobertura tier por tier. Si una tier no aplica, se nombra con su motivo; no puede desaparecer en silencio.",
+      "expectations": [
+        "Runs all five tiers plus ui_gate.py",
+        "Declares coverage tier by tier, naming any skipped tier with its reason",
+        "No tier disappears silently"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Corre el orquestador en mi landing; qa-tester encontro que el formulario de contacto no envia en mobile",
+      "expected_output": "El fallo de runtime vuelve a impeccable (tier 2) con el comando y el viewport que lo reproducen, el pase se repite desde tier 3 sobre las rutas cambiadas, y maximo dos rondas; una tercera vuelve al usuario con el comando fallido. Cerrar con el fallo reportado y sin intentar arreglarlo es el fallo que este caso detecta.",
+      "expectations": [
+        "Returns the failure to impeccable with the reproducing command and viewport",
+        "Repeats from tier 3 over the changed routes, at most two rounds",
+        "Does not close with the bug merely reported"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Mejora esta landing que ya tiene su sistema de diseno en tokens.css",
+      "expected_output": "ui-ux-pro-max se SALTA por defecto (superficie existente con capa de tokens: impeccable es el dueno) y el salto se declara con su motivo en la tabla de cobertura. Cada hop lleva su artefacto y su brief: impeccable deja las rutas cambiadas, web-design-guidelines recibe solo esas rutas, el informe fusionado usa el esquema unico severidad/file:line/owner/source.",
+      "expectations": [
+        "Skips ui-ux-pro-max and declares the skip with its reason",
+        "impeccable owns the design and leaves the changed routes as the artifact",
+        "The merged report uses one schema: severity, file:line, owner, source"
+      ],
+      "files": []
+    }
+  ]
+}

@@ -54,7 +54,7 @@ scannable by a human and verifiable by a hook.
 Examples:
 
 ```
-Feature: add deterministic init_review scanner
+Feature: add deterministic init-review scanner
 Fix: prevent crash when the config file is missing
 Docs: document the queue subcommands
 Refactor: extract the shared HTML chunk splitter
@@ -130,9 +130,3 @@ fits the project:
 
 Branching, pull requests, and releases/tags are `git-workflow`'s job. This skill is
 only the commit (message convention + the commit act + the hook).
-
-## Keywords
-
-"commit", "comitear", "make a commit", "commit this", "guardar cambios",
-"stage and commit", "save my work", "conventional commit", "commit message",
-"confirmar cambios", "git commit"

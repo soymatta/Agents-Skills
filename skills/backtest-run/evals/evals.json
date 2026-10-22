@@ -5,18 +5,34 @@
       "id": 1,
       "prompt": "Backtestea una estrategia de cruce de medias moviles (50/200) en BTC-USD diario, ultimo año, con slippage y fills realistas",
       "expected_output": "Reporte con Sharpe, drawdown, win rate, expectancy, Monte Carlo y conclusion deploy/refine/abandon",
+      "expectations": [
+        "Defines the strategy spec before running: entry/exit rules, slippage and fill assumption",
+        "Reports Sharpe, max drawdown, win rate and expectancy",
+        "Runs Monte Carlo and parameter sensitivity before the verdict",
+        "Ends with an explicit deploy, refine or abandon conclusion"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Prueba mi estrategia RSI-2 mean reversion en SPY con stops del 3%, quiero saber si es robusta o overfit",
       "expected_output": "Backtest completo con sensibilidad de parametros y veredicto fundado",
+      "expectations": [
+        "Uses a train/validation/test split or walk-forward, not a single in-sample run",
+        "Tests parameter sensitivity around the 3% stop",
+        "States whether the result looks overfit and names the evidence"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Simula una estrategia de breakout con ATR trailing stop en ETH, train/val/test split",
       "expected_output": "Metricas por split, walk-forward y recomendacion de deploy o descarte",
+      "expectations": [
+        "Reports metrics per split (train, validation, test)",
+        "Runs walk-forward analysis",
+        "Ties the deploy or discard recommendation to the out-of-sample result"
+      ],
       "files": []
     }
   ]

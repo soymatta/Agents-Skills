@@ -1,4 +1,4 @@
 [tool.bandit]
 # Bandit config (TOML). Scope: first-party skills only. Vendored third-party
 # skills are excluded so upstream code never gates this repo's build.
-exclude_dirs = ["skills/impeccable", "skills/skill-creator", "skills/ai-job-search", "skills/.pytest_cache", ".git", ".venv"]
+exclude_dirs = ["skills/impeccable", "skills/skill-creator", "skills/ai-job-search", "skills/web-design-guidelines", "skills/.pytest_cache", ".git", ".venv"]

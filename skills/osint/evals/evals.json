@@ -5,18 +5,33 @@
       "id": 1,
       "prompt": "Investiga este email sospechoso de phishing que me llego (tengo el header completo, doy consentimiento)",
       "expected_output": "Plan por fases con comandos aprobados, veredicto y reporte estructurado",
+      "expectations": [
+        "Confirms authorization and scope before running any command",
+        "Produces a phased plan with concrete commands and waits for approval",
+        "Ends with a phishing verdict and a structured report"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Due diligence sobre esta empresa antes de firmar contrato: dominio, registros y presencia",
       "expected_output": "Reporte OSINT con hallazgos verificados y nivel de confianza",
+      "expectations": [
+        "Covers domain, registry and public presence",
+        "Separates verified findings from inferences and states confidence",
+        "Produces a structured report usable for a contract decision"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Verifica si este numero de telefono es legitimo (es del supuesto banco que me llamo)",
       "expected_output": "Parseo con phone parser + veredicto de legitimidad",
+      "expectations": [
+        "Runs the phone parser before interpreting the number",
+        "Reports carrier, line type and region from the parsed data",
+        "Gives a legitimacy verdict with its evidence and stated limits"
+      ],
       "files": []
     }
   ]

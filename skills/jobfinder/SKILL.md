@@ -320,7 +320,7 @@ For Strong/Good fit jobs, prepare interview answers:
 |--------|-------------|
 | `scripts/parse_cv.py` | Parse CV files (PDF, DOCX, TXT) to JSON |
 | `scripts/search_jobs.py` | Search job boards + ATS APIs + web search |
-| `scripts/score_match.py` | Calculate 5D match scores with gates |
+| `scripts/score_match.py` | Calculate 5D match scores with gates (`--selftest` verifies the weight table and fit bands in this file) |
 | `scripts/gap_analysis.py` | Analyze skill gaps across all jobs |
 | `scripts/generate_cover_letter.py` | Generate tailored cover letters |
 | `scripts/suggest_projects.py` | Suggest GitHub projects (deprecated, use gap_analysis) |

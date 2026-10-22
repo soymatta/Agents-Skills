@@ -1,0 +1,152 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Page not found — Agents & Skills" description="This page does not exist. Browse the agents, skills and plugins index instead.">
+	<nav class="nav" aria-label="Primary">
+		<div class="nav-inner">
+			<a href="/" class="nav-logo">
+				<span class="logo-icon" aria-hidden="true">&#9670;</span>
+				Agents-Skills
+			</a>
+			<div class="nav-links">
+				<a href="/#install">Install</a>
+				<a href="/#skills">Skills</a>
+				<a href="/#agents">Agents</a>
+				<a href="https://github.com/soymatta/Agents-Skills" target="_blank" rel="noopener noreferrer">GitHub</a>
+			</div>
+		</div>
+	</nav>
+
+	<main id="main" class="wrap">
+		<p class="code">404</p>
+		<h1>This page does not exist</h1>
+		<p class="lead">
+			The link may be outdated, or the file moved. The index lists every agent,
+			skill, command and plugin in the repository.
+		</p>
+		<div class="actions">
+			<a href="/" class="btn btn-primary">Back to the index</a>
+			<a href="/#skills" class="btn btn-ghost">Browse skills</a>
+		</div>
+	</main>
+</Layout>
+
+<style>
+	.nav {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		background: rgba(10, 10, 11, 0.85);
+		backdrop-filter: blur(12px);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.nav-inner {
+		max-width: var(--max-w);
+		margin: 0 auto;
+		padding: 0 24px;
+		height: var(--nav-h);
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 16px;
+	}
+
+	.nav-logo {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-family: var(--mono);
+		font-weight: 600;
+		color: var(--text);
+	}
+
+	.logo-icon {
+		color: var(--accent);
+	}
+
+	.nav-links {
+		display: flex;
+		gap: 24px;
+		font-size: 0.875rem;
+	}
+
+	.wrap {
+		max-width: 640px;
+		margin: 0 auto;
+		padding: 96px 24px 120px;
+		text-align: center;
+	}
+
+	.code {
+		font-family: var(--mono);
+		font-size: 4rem;
+		font-weight: 700;
+		line-height: 1;
+		color: var(--accent);
+		margin-bottom: 16px;
+	}
+
+	h1 {
+		font-size: clamp(1.5rem, 4vw, 2.25rem);
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+		margin-bottom: 16px;
+	}
+
+	.lead {
+		color: var(--text-muted);
+		margin-bottom: 32px;
+	}
+
+	.actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		justify-content: center;
+	}
+
+	.btn {
+		display: inline-block;
+		padding: 12px 24px;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		font-size: 0.9375rem;
+		border: 1px solid transparent;
+		transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+	}
+
+	.btn-primary {
+		background: var(--accent);
+		color: #fff;
+	}
+
+	.btn-primary:hover {
+		background: var(--accent-light);
+		color: #fff;
+	}
+
+	.btn-ghost {
+		background: var(--bg-card);
+		border-color: var(--border);
+		color: var(--text);
+	}
+
+	.btn-ghost:hover {
+		background: var(--bg-card-hover);
+		color: var(--text);
+	}
+
+	@media (max-width: 560px) {
+		.nav-links a:nth-child(2),
+		.nav-links a:nth-child(3) {
+			display: none;
+		}
+
+		.wrap {
+			padding: 64px 20px 96px;
+		}
+	}
+</style>
+

@@ -5,19 +5,40 @@
       "id": 1,
       "prompt": "El login devuelve 500 tras el deploy de ayer, encuentra la causa y arreglalo",
       "expected_output": "Reproduccion, hipotesis validada, fix con regression test",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The bug is reproduced before any fix (a failing command or test is shown first)",
+        "The root cause is stated in one line",
+        "The fix cites file:line and targets the cause, not the symptom",
+        "A regression test is added and shown to fail before the fix and pass after",
+        "The original repro no longer reproduces"
+      ]
     },
     {
       "id": 2,
       "prompt": "Flaky test en el pipeline: test_checkout pasa 1 de cada 3 veces",
       "expected_output": "Causa raiz del flake con fix determinista y evidencia de 2+ corridas",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The flake is reproduced with 2+ runs shown before the fix",
+        "The root cause of the flake is stated",
+        "The fix is deterministic and cites file:line",
+        "Evidence of 2+ runs after the fix is shown",
+        "A regression test is added"
+      ]
     },
     {
       "id": 3,
       "prompt": "Memory leak en el worker de colas, crece 100MB por hora",
       "expected_output": "Diagnostico con medicion antes/despues y test de regresion",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The leak is measured before the fix (a before number is shown)",
+        "The leak is measured after the fix, with a before/after comparison",
+        "The root cause is stated",
+        "A regression test is added",
+        "No drive-by refactors outside the bug's scope"
+      ]
     }
   ]
 }

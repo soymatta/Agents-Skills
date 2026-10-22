@@ -78,5 +78,11 @@ Job/
 # Session log (transient, regenerated every run)
 LastSession.md
 
+# Session dump written by the opencode-auto-session plugin (transient)
+.opencode_session_dump*.md
+
+# Session exports written by opencode (transient, one file per session)
+session-*.md
+
 # Web-cloner outputs (site clones live here, never committed)
 clones/

@@ -1,0 +1,25 @@
+{
+  "skill_name": "math-notation",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Format the equation for variance where sigma is squared and x has an index i in Markdown for generate_outputs.py",
+      "expected_output": "Uses the custom inline syntax: _sigma_^{2} and _x__{i}, strictly avoiding *italic* Markdown markers.",
+      "files": [],
+      "expectations": [
+        "Uses _text_ for italic variables, never *text*",
+        "Uses ^{...} for superscript and _{...} for subscript",
+        "Preserves plain text formatting outside formulas"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Write a standard README section about mathematical theorems in pure GitHub-flavored Markdown",
+      "expected_output": "Recognizes that math-notation is specifically for generate_outputs.py pipeline, leaving standard web Markdown alone or warning of parser scope.",
+      "files": [],
+      "expectations": [
+        "Identifies when custom math notation parser does not apply to pure web Markdown"
+      ]
+    }
+  ]
+}

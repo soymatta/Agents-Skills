@@ -8,8 +8,9 @@ Dimensions (each 20 points, total 100):
   4. Robustness    — years tested and parameter count
   5. Exec Realism  — slippage/friction tested flag
 
-Based on methodology from skills/backtest-expert/references/methodology.md
-and red-flag checklist from skills/backtest-expert/references/failed_tests.md.
+Thresholds and verdict bands are specified by the "Scoring Dimensions" table in
+skills/backtest-validate/SKILL.md. Run `--selftest` to assert every row of that
+table against the scoring functions below.
 """
 
 from __future__ import annotations
@@ -178,6 +179,82 @@ def get_verdict(total_score: int) -> str:
     if total_score >= 40:
         return "Refine"
     return "Abandon"
+
+
+# ---------------------------------------------------------------------------
+# Self-test: the "Scoring Dimensions" table in SKILL.md is the spec
+# ---------------------------------------------------------------------------
+
+SKILL_MD = Path(__file__).resolve().parents[1] / "SKILL.md"
+_SELFTEST_HEADING = "## Scoring Dimensions"
+
+
+def _parse_threshold_table(text: str) -> list[tuple[str, dict[str, str], str]]:
+    """Return (dimension, inputs, expected) rows from the SKILL.md table."""
+    if _SELFTEST_HEADING not in text:
+        raise SystemExit(f"selftest: {SKILL_MD} has no {_SELFTEST_HEADING!r} section")
+    section = text.split(_SELFTEST_HEADING, 1)[1].split("\n## ", 1)[0]
+    rows: list[tuple[str, dict[str, str], str]] = []
+    for line in section.splitlines():
+        line = line.strip()
+        if not line.startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if len(cells) != 3 or not cells[0] or set(cells[0]) <= {"-", ":"}:
+            continue
+        if cells[0] == "Dimension":
+            continue
+        inputs: dict[str, str] = {}
+        for pair in cells[1].split(","):
+            key, _, value = pair.partition("=")
+            if not key.strip() or not value.strip():
+                raise SystemExit(f"selftest: bad input cell {cells[1]!r}")
+            inputs[key.strip()] = value.strip()
+        rows.append((cells[0], inputs, cells[2]))
+    if not rows:
+        raise SystemExit("selftest: thresholds table is empty")
+    return rows
+
+
+def _selftest_case(dimension: str, params: dict[str, str]) -> int | str:
+    """Evaluate one table row by building inputs that hit it exactly."""
+    if dimension == "Sample Size":
+        return score_sample_size(int(params["total_trades"]))
+    if dimension == "Expectancy":
+        # win_rate 50 and avg_loss 0 make expectancy exactly avg_win / 2.
+        expected_exp = float(params["expectancy"])
+        win, loss = 50.0, 0.0
+        avg_win = expected_exp / 0.5
+        if abs(calc_expectancy(win, avg_win, loss) - expected_exp) > 1e-9:
+            raise SystemExit("selftest: could not construct the expectancy input")
+        return score_expectancy(win, avg_win, loss)
+    if dimension == "Risk Management":
+        # win_rate 50 and avg_loss 1 make profit factor exactly avg_win.
+        pf = float(params.get("profit_factor", "1.0"))
+        return score_risk_management(float(params["drawdown"]), 50.0, pf, 1.0)
+    if dimension == "Robustness":
+        return score_robustness(int(params["years"]), int(params["params"]))
+    if dimension == "Execution Realism":
+        return score_execution_realism(params["slippage"].lower() == "true")
+    if dimension == "Verdict":
+        return get_verdict(int(params["score"]))
+    raise SystemExit(f"selftest: unknown dimension {dimension!r}")
+
+
+def run_selftest() -> int:
+    """Assert every documented threshold against the functions. 0 = in sync."""
+    rows = _parse_threshold_table(SKILL_MD.read_text(encoding="utf-8"))
+    failures = 0
+    for dimension, params, expected in rows:
+        actual = _selftest_case(dimension, params)
+        if str(actual) != expected:
+            failures += 1
+            print(f"FAIL {dimension} {params} -> {actual!r}, doc says {expected!r}")
+    if failures:
+        print(f"selftest: {failures}/{len(rows)} row(s) disagree with {SKILL_MD}")
+        return 1
+    print(f"selftest: {len(rows)} threshold(s) match {SKILL_MD}")
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -502,6 +579,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir", default="reports/", help="Output directory (default: reports/)"
     )
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="Verify the 'Scoring Dimensions' table in SKILL.md against the scoring "
+        "functions, then exit without evaluating anything.",
+    )
     return parser.parse_args()
 
 
@@ -529,6 +612,9 @@ def load_from_input(path: str) -> dict:
 
 def main() -> int:
     args = parse_args()
+
+    if args.selftest:
+        return run_selftest()
 
     if args.input:
         loaded = load_from_input(args.input)

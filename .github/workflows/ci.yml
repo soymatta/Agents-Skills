@@ -58,6 +58,17 @@ jobs:
       - name: Doc-vs-code coherence (scripts cited in docs must exist)
         run: python .github/scripts/check_doc_code_coherence.py
 
+      - name: Eval sets are executable (schema + non-empty assertions)
+        # The LLM run needs `claude -p` and an API key, so it stays manual. CI
+        # proves the shape instead: an evals.json without expectations is a test
+        # that can never fail.
+        run: python .github/scripts/check_evals.py
+
+      - name: Doc-driven selftests (thresholds parsed from SKILL.md)
+        run: |
+          python skills/backtest-validate/scripts/evaluate_backtest.py --selftest
+          python skills/jobfinder/scripts/score_match.py --selftest
+
       - name: Validate agents exist
         run: |
           for agent in agents/*.md; do
@@ -76,6 +87,9 @@ jobs:
 
       - name: Run CI-script tests
         run: python -m pytest .github/scripts/tests -q
+
+      - name: Run installer tests (setup.py)
+        run: python -m pytest tests -q
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Deterministic project scanner for the ``init_review`` command.
+"""Deterministic project scanner for the ``init-review`` command.
 
 Runs a fast, LLM-free pass over a project and emits structured findings
 (JSON + Markdown). It replaces the expensive "read everything, reason about
 it" part of the onboarding scan with cheap, reproducible checks; the model
-only reads the compact findings file (the handoff channel to the build agent).
+only reads the compact findings file (the handoff channel to the builder agent).
 
 Design goals
 ------------
@@ -28,7 +28,7 @@ Finding shape::
      "category": "blocker", "file": "a/b.py", "line": 12,
      "message": "...", "fix": "..."}
 
-Categories map to the init_review report:
+Categories map to the init-review report:
 ``blocker`` -> F2, ``pending`` -> F3, ``structure`` -> F4, ``drift`` -> F5 note.
 """
 
@@ -389,16 +389,30 @@ def check_markers(root: Path, files: list[Path]) -> list[Finding]:
     return out
 
 
-def _script_basenames(root: Path, files: list[Path]) -> set[str]:
+def _script_basenames(root: Path) -> set[str]:
+    """Collect basenames of all script files in the repo (excluding only system dirs).
+    
+    Used for resolving doc references; must include third-party/vendored scripts
+    so references to them don't false-positive as missing.
+    """
     names = set()
-    for p in files:
+    for p in root.rglob("*"):
+        if not p.is_file():
+            continue
+        try:
+            rel = p.relative_to(root).as_posix()
+        except ValueError:
+            continue
+        # Only skip system/excluded dirs, NOT third-party ignore list
+        if any(part in EXCLUDE_DIRS for part in p.relative_to(root).parts[:-1]):
+            continue
         if p.suffix.lower() in {".py", ".mjs", ".sh", ".js"}:
             names.add(p.name.lower())
     return names
 
 
 def check_doc_script_refs(root: Path, files: list[Path]) -> list[Finding]:
-    available = _script_basenames(root, files)
+    available = _script_basenames(root)
     out = []
     for p in files:
         if p.suffix.lower() not in (".md", ".markdown"):
@@ -777,7 +791,7 @@ def main(argv: list[str] | None = None) -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
         except (AttributeError, ValueError):
             pass
-    ap = argparse.ArgumentParser(description="Deterministic init_review scanner.")
+    ap = argparse.ArgumentParser(description="Deterministic init-review scanner.")
     ap.add_argument("root", nargs="?", default=".", help="project root (default: cwd)")
     ap.add_argument("--json", dest="json_path", help="write findings JSON here")
     ap.add_argument("--md", dest="md_path", help="write Markdown here")

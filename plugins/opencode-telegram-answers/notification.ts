@@ -1,4 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin, PluginModule } from "@opencode-ai/plugin"
 import type { Message, Part } from "@opencode-ai/sdk"
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
@@ -107,9 +107,11 @@ const CONFIG = {
   selfTestVersion: 6,
   selfTestSessionTitle: "telegram-answers self-test (auto)",
   selfTestTimeoutMs: 120000,
-  selfTestPrompt:
+  /** El prompt se construye con la ruta real del probe (la calcula el
+   * self-test junto al workspace), no con una ruta fija de una máquina. */
+  selfTestPrompt: (probePath: string): string =>
     "NO ejecutes bash, read, glob ni grep. \u00danicamente crea el archivo " +
-    'C:\\Users\\yasse\\Desktop\\.telegram-selftest\\probe.txt con el contenido "self-test". ' +
+    `${probePath} con el contenido "self-test". ` +
     "Si te piden permiso para escribir fuera del workspace, detente en ese punto y no hagas nada m\u00e1s. " +
     "No modifiques ni borres ning\u00fan otro archivo.",
 }
@@ -1050,8 +1052,8 @@ let activeSelfTest: SelfTestState | null = null
 let selfTestRunning = false
 
 /** Directorio actual del workspace (para que la sesión de prueba pida
- * permiso REAL). Sesiones creadas sin directory nacen en el home: escribir
- * en Desktop queda dentro del árbol y no pide nada. */
+ * permiso REAL). Sesiones creadas sin directory nacen en el home: el probe
+ * debe caer fuera del workspace, si no la escritura no pide nada. */
 async function findWorkspaceDir(client: PluginClient): Promise<string | null> {
   try {
     const sessions = await client.session.list()
@@ -1127,7 +1129,7 @@ async function runSelfTest(
       await markNope("workspace es raíz de unidad: sin ruta exterior")
       return
     }
-    const target = `${targetParent}\\.telegram-selftest\\probe.txt`
+    const target = join(targetParent, ".telegram-selftest", "probe.txt")
 
     const created = await client.session.create({ body: { title: CONFIG.selfTestSessionTitle }, query: { directory: wsDir } })
     const s = created.data as { id?: unknown } | undefined
@@ -1159,7 +1161,7 @@ async function runSelfTest(
         path: { id: sid },
         body: {
           tools: { write: true },
-          parts: [{ type: "text", text: CONFIG.selfTestPrompt }],
+          parts: [{ type: "text", text: CONFIG.selfTestPrompt(target) }],
         },
       })
     } catch {
@@ -1676,7 +1678,7 @@ async function sweepStaleWorking(token: string, chatId: string, exceptSessionID?
 
 // ── Plugin ─────────────────────────────────────────────────────────────
 
-const plugin: Plugin = async ({ client, directory }) => {
+const server: Plugin = async ({ client, directory }) => {
   loadEnvFile(directory)
 
   const token = process.env.TELEGRAM_BOT_TOKEN
@@ -2260,4 +2262,9 @@ export {
   isSelfTestSession,
 }
 export type { PermReply, StoredButton, PendingPrompt, NotificationInfo }
+
+// El loader exige un objeto con `server`: con un default export que sea
+// funcion recorre TODOS los exports del modulo e invoca los helpers
+// exportados como si fuesen plugins ("text.replace is not a function").
+const plugin: PluginModule = { id: "opencode-telegram-answers", server }
 export default plugin

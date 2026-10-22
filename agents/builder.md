@@ -134,7 +134,27 @@ domain verb IS the trigger. Canonical routings (not exhaustive):
 - paper / tesis / citas / APA / IEEE → `academic-source-search` → `citation-formatter`
 - probar / QA / "rompe la app" → `qa-tester`
 - plan / roadmap / fases → `roadmaps`; meta numerica / "alcanza X%" → `goal`
-- diseno / UI / "se ve mal" → `impeccable`; review de diff → `code-review`
+- diseno / UI / frontend / "se ve mal" / "revisa mi web" → `ui-ux-orchestrator` (orquesta impeccable, ui-ux-pro-max, web-design-guidelines, web-esenciales, web-cloner); review de diff → `code-review`
+
+## Model-Aware Execution (Token-Efficient)
+
+Builder uses **one model per session** (configured in `opencode.json`). For tasks needing different models:
+
+| Need | Approach | Token Cost |
+|------|----------|------------|
+| **Code writing** | Builder uses DeepSeek V4.1 Flash (set as agent model) | Low — native |
+| **Visual analysis** | Invoke `impeccable` / `ui-ux-orchestrator` skills (they use vision model internally) | Medium — skill handles model |
+| **Command execution** | Builder runs bash directly (has `bash: allow`) | Zero — no model switch |
+| **Large codebase reading** | Builder reads with its large context (Nemotron 3 Ultra if set as default) | Low — native |
+| **Planning/analysis** | Builder does directly (strong reasoning model) | Low — native |
+
+**No subagents for model switching.** Subagents add:
+- Extra context serialization/deserialization tokens
+- Coordination overhead (prompt construction, result aggregation)
+- Latency (multiple round-trips)
+- Complexity (failure modes, debugging)
+
+**Rule:** Use skills for specialized domains (visual, research, backtest). Use builder's native tools for everything else. Spawn a subagent (`task` tool) in exactly two cases: (a) truly independent, parallelizable work (e.g. searching multiple unrelated codebases simultaneously), and (b) a sequential handoff forced by the caller's permissions — when the current agent runs read-only (e.g. `/init-review` Phase 3 runs as `plan`) and the approved writes can only happen in an agent that has write access. Both cases delegate work, never a model: pick the destination agent for its permissions and tools, not to swap the model.
 
 ## Skill workspace — project skills via skill-creator (core operating model)
 
@@ -176,9 +196,11 @@ For EACH task, run this cheap loop (no fan-out, no extra tokens for skill work):
    (first time): load the `skill-creator` skill and follow it end to end —
    never improvise a skill from scratch. After completing the task once,
    write `.opencode/skills/<kebab-name>/SKILL.md` with frontmatter
-   (name, description, triggers) + the workflow that just worked. Keep it tight:
-   compressed memory, not documentation. The project's `.opencode/skills/` is
-   the ONLY place you create skills.
+   (`name`, `description`, and `compatibility` when the skill has install
+   requirements) + the workflow that just worked. The trigger list goes **inside**
+   the description, as every skill in this repo does; there is no `triggers` key.
+   Keep it tight: compressed memory, not documentation. The project's
+   `.opencode/skills/` is the ONLY place you create skills.
 4. **Improve (via skill-creator).** If a matching skill was used but the task
    exposed a gap or the result diverged (corrected, blocked, or the skill
    caused extra turns), route the improvement through `skill-creator`
@@ -198,7 +220,8 @@ Rules to keep it token-cheap:
   the repo's canonical skill framework (`skill-creator`), and every skill it
   creates goes through that skill. Every authored skill MUST use the exact
   same canonical structure the framework produces: frontmatter (`name`,
-  `description`, `triggers`) + a workflow body. No custom sub-formats, no
+  `description`, optional `compatibility`, with the triggers inside the
+  description) + a workflow body. No custom sub-formats, no
   stray fields, no bespoke layouts — so the project library stays structurally
   identical across all skills and stays improvable by the same framework.
 - Only create/improve on real signal (repetition, inexperience, divergence).
@@ -409,8 +432,11 @@ and needs no approval; installation writes to config and always does.
   `skills/` tree, or the current opencode config).
 
 **Sources, by type**
-- Skills: the `find-skills` skill (skills.sh leaderboard, `npx skills find`;
-  install via `npx skills add <owner/repo@skill>` or copy into `.opencode/skills/`).
+- Skills: the `skills.sh` leaderboard (`npx skills find <query>`, install via
+  `npx skills add <owner/repo@skill>`, or copy the folder into
+  `.opencode/skills/`). A bundled `find-skills` skill is not shipped by this
+  repo: use it only when it already appears in the session's skill list, and
+  fall back to `npx skills find` when it does not.
 - MCP servers: opencode MCP docs, registries (mcp.so, mcpregistry,
   `modelcontextprotocol/servers`), npm packages runnable with `npx -y`.
 - Plugins: `npm search opencode plugin`, opencode plugins docs, community lists.
@@ -442,12 +468,14 @@ and needs no approval; installation writes to config and always does.
 - Skill → copy the upstream folder to `.opencode/skills/<name>/SKILL.md`
   (project) or `~/.config/opencode/skills/<name>/SKILL.md` (global); or register
   `skills.paths` / `skills.urls` in `opencode.json`.
-- Plugin → add an entry to the `plugin` array in `opencode.json`: npm spec
+- Plugin → add an entry to the `plugins` array in `opencode.json` (`plugin` is the
+  legacy V1 key; both resolve to the same list): npm spec
   (`"opencode-foo@1.2.3"`), local file (`"./local-plugin.ts"`), or tuple with
   options (`["opencode-bar", { "k": "v" }]`). Alternative: place a `*.ts` under
-  `.opencode/plugin/` (auto-discovered, no config entry needed).
-- Command → copy `<name>.md` into `.opencode/command/` (project) or
-  `~/.config/opencode/commands/` (global). The body below the frontmatter is
+  `.opencode/plugins/` (auto-discovered, no config entry needed).
+- Command → copy `<name>.md` into `.opencode/commands/` (project) or
+  `~/.config/opencode/commands/` (global); the legacy singular `command/` is also
+  discovered, but new files go in `commands/`. The body below the frontmatter is
   the template; `$ARGUMENTS` receives what the user typed.
 
 **Verify + restart**
@@ -562,9 +590,11 @@ section's narrative. Answer capability questions from the frontmatter:
     disponibilidad depende del runtime (config global + de agente). Los uso si
     están activos y permitidos en esta sesión."
 - `question`: **allow**
-- `plan_enter`: **allow**
 - `doom_loop`: **ask**
 - `external_directory` / `.env` reads: follow configured prompts
+- Anything not in the frontmatter block above (e.g. `plan_enter`, MCP tools) is
+  **not granted by this file**: say so instead of assuming it, and do not add a
+  permission here that is not in the frontmatter.
 
 **When `doom_loop` fires** (the system detects you repeating the same action
 without progress): stop what you're doing, describe the loop you were stuck in

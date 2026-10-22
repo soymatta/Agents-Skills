@@ -1,6 +1,6 @@
 # Instala el plugin opencode-telegram-answers en la config global de OpenCode.
 # OpenCode autoload los archivos .ts planos que viven en ~/.config/opencode/plugins/,
-# así que copiamos notification.ts como telegram-answers.ts ahí (aplica a TODAS
+# así que copiamos notification.ts como opencode-telegram-answers.ts ahí (aplica a TODAS
 # tus sesiones).
 #
 # Uso:  powershell -ExecutionPolicy Bypass -File .\install.ps1
@@ -15,8 +15,8 @@ $ocPlugins = Join-Path $ocConfig "plugins"
 if (-not (Test-Path $ocConfig)) { New-Item -ItemType Directory -Path $ocConfig -Force | Out-Null }
 if (-not (Test-Path $ocPlugins)) { New-Item -ItemType Directory -Path $ocPlugins -Force | Out-Null }
 
-Copy-Item -LiteralPath (Join-Path $workspace "notification.ts") -Destination (Join-Path $ocPlugins "telegram-answers.ts") -Force
-Write-Host "[OK] notification.ts -> $ocPlugins\telegram-answers.ts"
+Copy-Item -LiteralPath (Join-Path $workspace "notification.ts") -Destination (Join-Path $ocPlugins "opencode-telegram-answers.ts") -Force
+Write-Host "[OK] notification.ts -> $ocPlugins\opencode-telegram-answers.ts"
 
 Write-Host ""
 Write-Host "Listo. Cierra y vuelve a abrir OpenCode para cargar el plugin."

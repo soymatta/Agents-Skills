@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 
@@ -437,3 +439,52 @@ class TestGenerateAnalysis5D:
         analysis = score_match_module._generate_analysis_5d(
             70, 80, 80, 70, 80, ["python"], [], "PASS", "", True, "Requires fluent english")
         assert "language" in analysis.lower()
+
+
+# ---------------------------------------------------------------------------
+# --selftest: the SKILL.md weight table and fit bands are the spec
+# ---------------------------------------------------------------------------
+
+class TestSelftest:
+    def test_selftest_matches_doc(self, score_match_module):
+        assert score_match_module.run_selftest() == 0
+
+    def test_selftest_detects_weight_drift(self, score_match_module, tmp_path: Path):
+        doc = (Path(__file__).resolve().parents[1] / "SKILL.md").read_text(encoding="utf-8")
+        drifted = doc.replace(
+            "| Technical Skills Match | 30% |",
+            "| Technical Skills Match | 35% |",
+        )
+        assert drifted != doc, "drift fixture no longer matches SKILL.md"
+        target = tmp_path / "SKILL.md"
+        target.write_text(drifted, encoding="utf-8")
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(score_match_module, "SKILL_MD", target)
+        try:
+            assert score_match_module.run_selftest() == 1
+        finally:
+            monkeypatch.undo()
+
+    def test_selftest_detects_band_drift(self, score_match_module, tmp_path: Path):
+        doc = (Path(__file__).resolve().parents[1] / "SKILL.md").read_text(encoding="utf-8")
+        drifted = doc.replace("**Strong Fit** (75+)", "**Strong Fit** (80+)")
+        assert drifted != doc, "drift fixture no longer matches SKILL.md"
+        target = tmp_path / "SKILL.md"
+        target.write_text(drifted, encoding="utf-8")
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(score_match_module, "SKILL_MD", target)
+        try:
+            assert score_match_module.run_selftest() == 1
+        finally:
+            monkeypatch.undo()
+
+    def test_selftest_requires_tables(self, score_match_module, tmp_path: Path):
+        target = tmp_path / "SKILL.md"
+        target.write_text("## Nothing here\n", encoding="utf-8")
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(score_match_module, "SKILL_MD", target)
+        try:
+            with pytest.raises(SystemExit, match="weight table"):
+                score_match_module.run_selftest()
+        finally:
+            monkeypatch.undo()

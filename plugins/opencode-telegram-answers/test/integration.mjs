@@ -14,7 +14,9 @@ const home = setupTestHome("tg-answers-")
 const tg = installMockTelegram()
 const fake = makeFakeClient()
 const plugin = (await import("../notification.ts")).default
-const hooks = await plugin({ client: fake, directory: home })
+assert.equal(plugin.id, "opencode-telegram-answers", "el loader exige { id, server }")
+assert.equal(typeof plugin.server, "function")
+const hooks = await plugin.server({ client: fake, directory: home })
 const fire = (type, properties) => hooks.event({ event: { type, properties } })
 const workingSends = () => tg.sends().filter((c) => String(c.body.text).startsWith("Trabajando"))
 

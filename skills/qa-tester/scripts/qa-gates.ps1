@@ -1,7 +1,7 @@
 # Gates rápidos + QA smoke para un proyecto Node genérico (Windows / PowerShell 7).
-# Ejecuta los scripts de npm que existan en el orden: typecheck/tsc, lint, build.
-# Con -Full corre también la suite E2E (test:e2e/e2e/test); sin -Full solo smoke/test:smoke.
-# Sale con código de error != 0 si cualquier paso falla.
+# Ejecuta los scripts de npm que existan, en este orden: typecheck, tsc, lint, build.
+# Con -Full corre también la suite E2E (test:e2e/e2e); sin -Full solo smoke (test:smoke/smoke).
+# Los scripts que el proyecto no defina se omiten; sale != 0 en el primer fallo.
 #
 # Uso:
 #   .\scripts\qa-gates.ps1                       # desde <proyecto>/scripts

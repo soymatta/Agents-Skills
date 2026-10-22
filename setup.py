@@ -7,11 +7,13 @@ Usage:
     python scripts/setup.py --all        # install all without menu
     python scripts/setup.py --global     # install to user-level config
     python scripts/setup.py --all --platform claude --local
+    python scripts/setup.py --check --global --platform opencode   # verify, write nothing
 """
 
 from __future__ import annotations
 
-import json, os, shutil, subprocess, sys
+import hashlib
+import json, os, shutil, sys
 from pathlib import Path
 
 # ── ANSI / color support ─────────────────────────────────────────────────────
@@ -78,10 +80,6 @@ def _rel_path(p: Path) -> str:
         return str(p)
 
 
-def _git(args: list[str], check=True, **kw):
-    return subprocess.run(["git", *args], check=check, **kw)
-
-
 # ── platform / agent detection ────────────────────────────────────────────────
 
 PLATFORMS: dict[str, dict] = {
@@ -121,6 +119,24 @@ PLATFORMS: dict[str, dict] = {
         "uses_agents_json": True,
         "detect_files": [".windsurf"],
         "global_dir": Path.home() / ".windsurf",
+    },
+    "agy": {
+        "label": "Agy",
+        "config_dir": ".agy",
+        "skills_subdir": "skills",
+        "agents_subdir": "agents",
+        "uses_agents_json": True,
+        "detect_files": [".agy"],
+        "global_dir": Path.home() / ".agy",
+    },
+    "codex": {
+        "label": "Codex",
+        "config_dir": ".codex",
+        "skills_subdir": "skills",
+        "agents_subdir": "agents",
+        "uses_agents_json": True,
+        "detect_files": [".codex"],
+        "global_dir": Path.home() / ".codex",
     },
 }
 
@@ -254,7 +270,10 @@ ITEMS: list[dict] = [
         "dir": "agents/jobfinder.md",
         "label": "Job Finder",
         "type": "agent",
-        "dependencies": [],
+        # El skill se declara como dependencia para que el menu bloquee apagarlo
+        # con el agente encendido; los bundles siguen ahi porque `--only jobfinder`
+        # no propaga dependencias y necesita los scripts del skill.
+        "dependencies": ["jobfinder-skill"],
         "bundles": [
             "skills/jobfinder/SKILL.md",
             "skills/jobfinder/scripts",
@@ -274,6 +293,15 @@ ITEMS: list[dict] = [
         "label": "Reverse Engineer",
         "type": "agent",
         "dependencies": [],
+    },
+    {
+        "id": "fitness-coach",
+        "dir": "agents/fitness-coach.md",
+        "label": "Fitness Coach (Evidence-Based)",
+        "type": "agent",
+        # Read-only by design (edit/bash deny): it searches and cites, it never touches code.
+        # The two skills are declared so the menu blocks turning them off under the agent.
+        "dependencies": ["academic-source-search", "citation-formatter"],
     },
     # ── skills ────────────────────────────────────────────────────────────────
     {
@@ -360,7 +388,7 @@ ITEMS: list[dict] = [
         "label": "Project Analyzer",
         "type": "skill",
         "dependencies": [],
-        "commands": ["init_review.md"],
+        "commands": ["init-review.md"],
     },
     {
         "id": "agent-self-improver",
@@ -424,6 +452,23 @@ ITEMS: list[dict] = [
         "label": "Impeccable (third-party)",
         "type": "skill",
         "dependencies": [],
+        # The vendored tree is read-only and lists its 23 sub-commands in a JSON
+        # table (no .md file per command), so the installer generates the slash
+        # commands from that table: hand-written copies would drift on every
+        # upstream update. The `impeccable-` prefix keeps `/impeccable-init` and
+        # friends from shadowing opencode's built-in `/init`.
+        "generate_commands": {
+            "metadata": "scripts/command-metadata.json",
+            "prefix": "impeccable-",
+            "template": (
+                "Run the `impeccable` skill's `{command}` workflow.\n\n"
+                "Arguments: $ARGUMENTS\n\n"
+                "Load the `impeccable` skill, follow the playbook its Commands table "
+                "maps to `{command}` for this request, and carry it out end to end on "
+                "the current project. With no arguments, work on what is in front of "
+                "you and ask only if the target is genuinely ambiguous."
+            ),
+        },
     },
     {
         "id": "qa-tester",
@@ -461,6 +506,21 @@ ITEMS: list[dict] = [
         "dependencies": [],
     },
     {
+        "id": "web-design-guidelines",
+        "dir": "skills/web-design-guidelines",
+        "label": "Web Design Guidelines (third-party)",
+        "type": "skill",
+        "dependencies": [],
+    },
+    {
+        "id": "ui-ux-orchestrator",
+        "dir": "skills/ui-ux-orchestrator",
+        "label": "UI UX Orchestrator",
+        "type": "skill",
+        "dependencies": ["ui-ux-pro-max", "impeccable", "web-design-guidelines", "web-esenciales"],
+        "commands": ["init-ui-ux.md"],
+    },
+    {
         "id": "jobfinder-skill",
         "dir": "skills/jobfinder",
         "label": "Job Finder (skill)",
@@ -486,6 +546,17 @@ ITEMS: list[dict] = [
         "dependencies": [],
         "entry": "queue.ts",
         "commands": ["queue.md"],
+    },
+    {
+        "id": "opencode-auto-session",
+        "dir": "plugins/opencode-auto-session",
+        "label": "OpenCode Auto Session (plugin)",
+        "type": "plugin",
+        "platforms": ["opencode"],
+        "dependencies": [],
+        "entry": "autosession.ts",
+        "files": ["limit-notify.ps1", "limit-notify.sh"],
+        "commands": ["autosession.md"],
     },
 ]
 
@@ -789,6 +860,57 @@ def _commands_root(skills_root: Path) -> Path:
     return skills_root.parent / "commands"
 
 
+def _generated_commands(project_root: Path, item: dict) -> list[tuple[str, str]]:
+    """Build ``(filename, content)`` pairs for an item declaring ``generate_commands``.
+
+    Some third-party skills (``impeccable``) ship their sub-commands as a JSON
+    metadata table instead of one markdown file per command. Generating the
+    slash commands from that table keeps the installed set in sync with the
+    vendor's own inventory, and needs no writes inside the vendored tree.
+
+    Diagnostics go to stderr: ``--manifest`` prints JSON on stdout and must stay
+    parseable for the AI agents that consume it.
+    """
+    spec = item.get("generate_commands")
+    if not spec:
+        return []
+    meta_path = project_root / item["dir"] / spec["metadata"]
+    if not meta_path.is_file():
+        print(
+            f"  {YLW}..{RST} {item['label']}  command metadata not found: {_rel_path(meta_path)}",
+            file=sys.stderr,
+        )
+        return []
+    try:
+        table = json.loads(meta_path.read_text("utf-8"))
+    except (OSError, ValueError) as exc:
+        print(
+            f"  {YLW}..{RST} {item['label']}  command metadata unreadable: {exc}",
+            file=sys.stderr,
+        )
+        return []
+    prefix = spec.get("prefix", "")
+    generated: list[tuple[str, str]] = []
+    for name, entry in table.items():
+        description = (entry or {}).get("description") or f"{name} ({item['label']})"
+        body = spec["template"].replace("{command}", name)
+        content = (
+            "---\n"
+            f"description: {json.dumps(description, ensure_ascii=False)}\n"
+            "---\n\n"
+            f"{body}\n"
+        )
+        generated.append((f"{prefix}{name}.md", content))
+    return generated
+
+
+def _item_command_names(project_root: Path, item: dict) -> list[str]:
+    """Every command file name an item installs: declared in-repo plus generated."""
+    names = list(item.get("commands", []))
+    names.extend(name for name, _ in _generated_commands(project_root, item))
+    return names
+
+
 def install_items(
     toggled: dict[str, bool],
     project_root: Path,
@@ -796,6 +918,7 @@ def install_items(
     agents_dir: Path,
     plugins_dir: Path | None = None,
     platform_id: str | None = None,
+    only: set[str] | None = None,
 ) -> None:
     """Copy enabled items into the project (files or directories).
 
@@ -804,6 +927,9 @@ def install_items(
     platform can discover them. ``plugins_dir`` (e.g. ``.opencode/plugins``) is
     only set for platforms that support plugins; plugin items are additionally
     gated by their ``platforms`` list so they never install on other agents.
+
+    ``only`` restricts the run to a set of item ids and skips the removal branch
+    for everything else, so a targeted install never deletes unrelated items.
     """
     skills_root.mkdir(parents=True, exist_ok=True)
     cmds_root = _commands_root(skills_root)
@@ -811,6 +937,8 @@ def install_items(
         plugins_dir.mkdir(parents=True, exist_ok=True)
 
     for it in ITEMS:
+        if only is not None and it["id"] not in only:
+            continue
         src = project_root / it["dir"]
         enabled = toggled.get(it["id"], False)
         applies = it.get("platforms", None) is None or platform_id in it.get("platforms", [])
@@ -837,16 +965,29 @@ def install_items(
                 for cmd_src in it.get("commands", []):
                     cmd_path = src / "commands" / cmd_src
                     cmd_dst = cmds_root / cmd_src
-                    if enabled:
-                        if cmd_path.exists():
-                            cmd_dst.parent.mkdir(parents=True, exist_ok=True)
-                            _copy_one(cmd_path, cmd_dst)
-                            print(f"  {GRN}{TIK}{RST} command/{cmd_src}  {DIM}{ARR}{RST}  {_rel_path(cmd_dst)}")
+                    if cmd_path.exists():
+                        cmd_dst.parent.mkdir(parents=True, exist_ok=True)
+                        _copy_one(cmd_path, cmd_dst)
+                        print(f"  {GRN}{TIK}{RST} command/{cmd_src}  {DIM}{ARR}{RST}  {_rel_path(cmd_dst)}")
+                # archivos auxiliares del plugin (assets en runtime, no .ts):
+                # viven en plugins/<id>/ para que el autoload de OpenCode no los toque
+                files_root = plugins_dir / it["id"]
+                for fname in it.get("files", []):
+                    f_src = src / fname
+                    if f_src.exists():
+                        f_dst = files_root / fname
+                        _copy_one(f_src, f_dst)
+                        print(f"  {GRN}{TIK}{RST} {fname}  {DIM}{ARR}{RST}  {_rel_path(f_dst)}")
                     else:
-                        _remove_one(cmd_dst)
+                        print(f"  {YLW}..{RST} {it['label']}  asset not found: {fname}")
             else:
                 _remove_one(plugins_dir / f"{it['id']}.ts")
+                # carpeta del plugin en la config: el .ts se autoload desde
+                # plugins/ plano, pero los assets de runtime (files) y el modelo
+                # antiguo (carpeta con el nombre del dir) viven dentro, y se
+                # retiran juntos para no dejar restos al desinstalar.
                 _remove_one(plugins_dir / Path(it["dir"]).name)
+                _remove_one(plugins_dir / it["id"])
                 for cmd_src in it.get("commands", []):
                     _remove_one(cmds_root / cmd_src)
             continue
@@ -873,6 +1014,12 @@ def install_items(
                     cmd_dst.parent.mkdir(parents=True, exist_ok=True)
                     _copy_one(cmd_path, cmd_dst)
                     print(f"  {GRN}{TIK}{RST} command/{cmd_src}  {DIM}{ARR}{RST}  {_rel_path(cmd_dst)}")
+            # commands generated from the vendor's metadata table (never vendored)
+            for cmd_name, cmd_content in _generated_commands(project_root, it):
+                cmd_dst = cmds_root / cmd_name
+                cmd_dst.parent.mkdir(parents=True, exist_ok=True)
+                cmd_dst.write_text(cmd_content, "utf-8", newline="\n")
+                print(f"  {GRN}{TIK}{RST} command/{cmd_name}  {DIM}{ARR}{RST}  {_rel_path(cmd_dst)}")
         else:
             _remove_one(dst)
             # also remove bundled files
@@ -883,6 +1030,8 @@ def install_items(
             for cmd_src in it.get("commands", []):
                 cmd_dst = cmds_root / cmd_src
                 _remove_one(cmd_dst)
+            for cmd_name, _ in _generated_commands(project_root, it):
+                _remove_one(cmds_root / cmd_name)
 
 
 def _item_dest(item: dict, skills_root: Path, agents_dir: Path) -> Path:
@@ -892,14 +1041,119 @@ def _item_dest(item: dict, skills_root: Path, agents_dir: Path) -> Path:
     return skills_root / _normalize_dest(item["dir"])
 
 
-def cleanup_repo(skills_dir: Path | None = None) -> None:
-    """Remove skills directory to trigger reinstall on next run."""
-    d = skills_dir or (_repo_root() / ".opencode" / "skills")
-    if d.exists():
-        shutil.rmtree(d)
-        print(f"  {GRN}{TIK}{RST} Cleared {_rel_path(d)}")
-    else:
-        print("  -- Nothing to clean.")
+# ── verify an installed config ────────────────────────────────────────────────
+
+
+def _digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _tree_digests(root: Path) -> dict[str, str]:
+    """relative path -> sha256 for every file under root (skips bytecode caches)."""
+    out: dict[str, str] = {}
+    for f in root.rglob("*"):
+        if f.is_file() and "__pycache__" not in f.parts and f.suffix != ".pyc":
+            out[str(f.relative_to(root)).replace("\\", "/")] = _digest(f)
+    return out
+
+
+def _tree_drift(src: Path, dst: Path) -> list[str]:
+    """Differences between a repo source (file or dir) and its installed copy.
+
+    ``copy2``/``copytree`` are byte-exact, so any hash difference is real drift:
+    either the source moved ahead of the install or the installed file was edited.
+    """
+    if src.is_file():
+        if not dst.is_file():
+            return [f"missing {dst.name}"]
+        return [] if _digest(src) == _digest(dst) else [f"stale {dst.name}"]
+    if not dst.is_dir():
+        return ["not installed"]
+    expected, actual = _tree_digests(src), _tree_digests(dst)
+    problems = [f"missing {k}" for k in sorted(set(expected) - set(actual))]
+    problems += [f"stale {k}" for k in sorted(set(expected) & set(actual)) if expected[k] != actual[k]]
+    problems += [f"extra {k}" for k in sorted(set(actual) - set(expected))]
+    return problems
+
+
+def check_installed(
+    project_root: Path,
+    skills_root: Path,
+    agents_dir: Path,
+    plugins_dir: Path | None,
+    platform_id: str,
+) -> int:
+    """Report drift between the manifest and an installed config.
+
+    Returns the number of problems (missing or stale items/commands). Unrelated
+    entries living in the destination are listed as notes, not problems: another
+    tool can legitimately drop skills or plugins in the same config directory.
+    """
+    cmds_root = _commands_root(skills_root)
+    problems: list[str] = []
+    notes: list[str] = []
+    checked = 0
+
+    for it in ITEMS:
+        applies = it.get("platforms") is None or platform_id in it.get("platforms", [])
+        if not applies:
+            continue
+        src = project_root / it["dir"]
+
+        if it["type"] == "plugin":
+            if not plugins_dir:
+                continue
+            entry = plugins_dir / f"{it['id']}.ts"
+            if not entry.is_file():
+                notes.append(f"{it['id']}: not installed (plugin)")
+                continue
+            checked += 1
+            problems += [
+                f"{it['id']}: {p}"
+                for p in _tree_drift(src / it.get("entry", "notification.ts"), entry)
+            ]
+            for fname in it.get("files", []):
+                problems += [
+                    f"{it['id']}: asset {p}"
+                    for p in _tree_drift(src / fname, plugins_dir / it["id"] / fname)
+                ]
+        else:
+            checked += 1
+            problems += [f"{it['id']}: {p}" for p in _tree_drift(src, _item_dest(it, skills_root, agents_dir))]
+
+        for cmd_name, cmd_content in _generated_commands(project_root, it):
+            cmd_dst = cmds_root / cmd_name
+            if not cmd_dst.is_file():
+                problems.append(f"{it['id']}: command {cmd_name} missing")
+            elif cmd_dst.read_text("utf-8", errors="ignore") != cmd_content:
+                problems.append(f"{it['id']}: command {cmd_name} stale")
+        for cmd_src in it.get("commands", []):
+            src_cmd = project_root / it["dir"] / "commands" / cmd_src
+            if not src_cmd.is_file():
+                continue
+            dst_cmd = cmds_root / cmd_src
+            if not dst_cmd.is_file():
+                problems.append(f"{it['id']}: command {cmd_src} missing")
+            elif _digest(src_cmd) != _digest(dst_cmd):
+                problems.append(f"{it['id']}: command {cmd_src} stale")
+
+    if skills_root.is_dir():
+        known = {_normalize_dest(i["dir"]) for i in ITEMS if i["type"] == "skill"}
+        for entry in sorted(skills_root.iterdir()):
+            if entry.is_dir() and entry.name not in known:
+                notes.append(f"{entry.name}: extra skill in the destination")
+
+    if problems:
+        print(f"  {RED}{BLD}DRIFT:{RST} {len(problems)} problem(s) against the manifest")
+        for p in problems:
+            print(f"  {RED}x{RST} {p}")
+    for n in notes:
+        print(f"  {DIM}- {n}{RST}")
+    if problems:
+        print(f"  {DIM}fix: python setup.py --only <ids> --global --platform {platform_id}{RST}")
+        return len(problems)
+    print(f"  {GRN}{TIK}{RST} In sync: {checked} item(s) verified against the manifest.")
+    return 0
 
 
 def cleanup_orphaned_mds(skills_dir: Path) -> None:
@@ -919,12 +1173,7 @@ def cleanup_orphaned_mds(skills_dir: Path) -> None:
             print(f"  {YLW}{X}{RST} Removed stale nested dir: {_rel_path(nested)}")
 
 
-# ── adapt / push / pull ───────────────────────────────────────────────────────
-
-
-def adapt_md_content(content: str, item_id: str) -> str:
-    """Replace placeholders in skill files."""
-    return content.replace("{{AGENT_ID}}", item_id)
+# ── agent registration ────────────────────────────────────────────────────────
 
 
 def agent_targets(dest: Path | None = None, agents_file: Path | None = None) -> None:
@@ -947,26 +1196,6 @@ def agent_targets(dest: Path | None = None, agents_file: Path | None = None) -> 
         print("  -- All agents already registered.")
 
 
-def push_changes() -> None:
-    """Commit and push local skill changes."""
-    result = _git(["status", "--porcelain"], capture_output=True, text=True)
-    if not result.stdout.strip():
-        print("  -- Nothing to commit.")
-        return
-    print(f"  {BLU}i{RST} Changes detected.  Commit message:")
-    msg = input(f"  {DIM}> {RST}").strip() or "Update skills"
-    _git(["add", "-A"])
-    _git(["commit", "-m", msg])
-    _git(["push"])
-    print(f"  {GRN}{TIK}{RST} Pushed.")
-
-
-def pull_changes() -> None:
-    """Pull latest from remote."""
-    _git(["pull"])
-    print(f"  {GRN}{TIK}{RST} Pulled latest.")
-
-
 # ── main ──────────────────────────────────────────────────────────────────────
 
 
@@ -979,9 +1208,14 @@ def _parse_args() -> dict[str, str | bool | None]:
     parser.add_argument("--local", action="store_true", help="Install locally")
     parser.add_argument("--platform", default=None, help="Target platform")
     parser.add_argument("--manifest", action="store_true", help="Print JSON inventory and exit (for AI agents)")
+    parser.add_argument("--only", nargs="+", default=None, metavar="ID",
+                        help="Install just these item ids (never removes anything else)")
+    parser.add_argument("--check", action="store_true",
+                        help="Verify the installed config against the manifest, write nothing, exit 1 on drift")
     parsed = parser.parse_args()
     return {"all": parsed.all, "global": parsed.global_, "local": parsed.local,
-            "platform": parsed.platform, "manifest": parsed.manifest}
+            "platform": parsed.platform, "manifest": parsed.manifest, "only": parsed.only,
+            "check": parsed.check}
 
 
 def print_manifest() -> None:
@@ -989,10 +1223,11 @@ def print_manifest() -> None:
     from collections import Counter
 
     counts = Counter(it["type"] for it in ITEMS)
+    root = _repo_root()
     sys.stdout.write(
         json.dumps(
             {
-                "repo_root": str(_repo_root()),
+                "repo_root": str(root),
                 "count": {
                     "agents": counts.get("agent", 0),
                     "skills": counts.get("skill", 0),
@@ -1005,7 +1240,7 @@ def print_manifest() -> None:
                         "label": it["label"],
                         "src": it["dir"],
                         "dependencies": it.get("dependencies", []),
-                        "commands": it.get("commands", []),
+                        "commands": _item_command_names(root, it),
                         "platforms": it.get("platforms"),
                     }
                     for it in ITEMS
@@ -1025,6 +1260,30 @@ def main() -> None:
     if cli["manifest"]:
         print_manifest()
         sys.exit(0)
+
+    # ── --check: verify an installed config, write nothing ──
+    if cli["check"]:
+        if not cli["platform"]:
+            print(f"  {RED}--check needs --platform <id>{RST}")
+            sys.exit(2)
+        if not (cli["global"] or cli["local"]):
+            print(f"  {RED}--check needs --global or --local{RST}")
+            sys.exit(2)
+        if cli["platform"] not in PLATFORMS:
+            print(f"  {RED}Unknown platform: {cli['platform']}{RST}")
+            sys.exit(1)
+        check_mode = "global" if cli["global"] else "local"
+        check_paths = _get_install_paths(cli["platform"], check_mode)
+        label = PLATFORMS[cli["platform"]]["label"]
+        print(f"  {GRN}{TIK}{RST} Checking {label} ({check_mode}): {check_paths['skills_dir']}")
+        drift = check_installed(
+            base,
+            check_paths["skills_dir"],
+            check_paths["agents_dir"],
+            check_paths["plugins_dir"],
+            cli["platform"],
+        )
+        sys.exit(1 if drift else 0)
 
     # ── Platform selection ──
     if cli["platform"]:
@@ -1063,14 +1322,21 @@ def main() -> None:
     if uses_agents_json:
         print(f"  {DIM}Agents file: {agents_file}{RST}")
 
-    # ── Toggle menu or --all ──
+    # ── Toggle menu or --all / --only ──
+    only = set(cli["only"]) if cli["only"] else None
     if cli["all"]:
         toggled = {it["id"]: True for it in ITEMS}
+    elif only is not None:
+        unknown = sorted(only - {it["id"] for it in ITEMS})
+        if unknown:
+            print(f"  {RED}Unknown item id(s): {', '.join(unknown)}{RST}")
+            sys.exit(1)
+        toggled = {it["id"]: it["id"] in only for it in ITEMS}
     else:
         toggled = run_toggle_menu()
 
     print(f"\n  {BLD}Installing to {PLATFORMS[platform_id]['label']} ({mode})...{RST}\n")
-    install_items(toggled, base, skills_dir, agents_dir, plugins_dir=plugins_dir, platform_id=platform_id)
+    install_items(toggled, base, skills_dir, agents_dir, plugins_dir=plugins_dir, platform_id=platform_id, only=only)
     if uses_agents_json:
         agent_targets(agents_file=agents_file)
     cleanup_orphaned_mds(skills_dir)

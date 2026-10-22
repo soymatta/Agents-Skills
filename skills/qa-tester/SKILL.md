@@ -1,27 +1,18 @@
 ---
 name: qa-tester
 description: >-
-  Multiplatform QA, testing, and automated test suites: FULL suite over every
-  testable aspect of an app. Covers functional (E2E regression), exhaustive
-  exploration (every product option), break-the-app attempts (document → fix →
-  retry), multi-user/roles, unthought tests (adversarial), UI/UX/accessibility,
-  performance, security, load speed, network speed, PC / mobile / tablet / TV
-  compatibility, and DB integrity and performance. NOT web-only: also works for
-  databases, mobile apps in any framework (React Native, Flutter, native, PWA),
+  Multiplatform QA, testing, and automated test suites: full suite over every
+  testable aspect of an app. Covers functional regression (E2E), exhaustive
+  exploration, break-the-app attempts, multi-user/roles, UI/UX/accessibility,
+  performance, security, load and network speed, PC / mobile / tablet / TV
+  compatibility, and DB integrity. NOT web-only: also works for databases,
+  mobile apps in any framework (React Native, Flutter, native, PWA),
   Linux/Windows/macOS desktop apps, terminal/CLI apps, and Docker containers.
-  Adapts to the detected project type (a DB triggers no UI/UX). Prioritizes
-  AUTOMATION (scripts, E2E suites, console guard, determinism, no manual review)
-  with 100% portable tooling (nothing installed on the PC). ALWAYS use when asked
-  to review, test, QA, run the suite, check regressions, "que no se rompa",
-  "intenta romper la app", "prueba todo", performance, load/network speed,
-  security, accessibility, UX, multi-user, device compatibility, or validate any
-  app before deploy. Triggers: "qa", "tester", "test", "pruebas", "testear",
-  "verificar", "regresión", "regresion", "e2e", "playwright", "chromium", "smoke",
-  "revisa la app", "review this app", "evita errores", "no se rompa",
-  "rompe la app", "break the app", "explora todas las opciones", "fail test",
-  "estrés", "stress", "carga", "load", "performance", "perf", "seguridad",
-  "security", "accessibility", "a11y", "usabilidad", "ux", "mobile", "tv",
-  "docker", "base de datos", "database", "quality".
+  Prioritizes automation and 100% portable tooling (nothing installed on the
+  PC). ALWAYS use when asked to review, test, QA, run the suite, check
+  regressions, "intenta romper la app", "prueba todo", or validate an app
+  before deploy. Triggers: "qa", "tester", "test", "pruebas", "regresión",
+  "performance".
 ---
 
 # QA Tester — full multiplatform suite
@@ -289,6 +280,10 @@ to try (with the command).
 
 - **Automate**: turn every verifiable check into a script/command
   (`<workspace>/scripts/qa-gates.ps1` as base; add routines when repeated).
+  That base runs, in order, the npm scripts `typecheck`, `tsc`, `lint`, `build`,
+  and then `test:e2e` + `e2e` with `-Full` (without `-Full`: `test:smoke` +
+  `smoke`). A script the project does not define is skipped, not failed, and the
+  first failure exits non-zero. The report's `## Gates` block prints what ran.
 - **Do NOT** makeup tests or change code just "to make the test pass".
   The loop fixes the real root cause, with user approval if the fix changes
   behavior or widens scope.
@@ -303,6 +298,8 @@ to try (with the command).
 - Write with cleanup: every test datum uses the `QA_` prefix and the spec
   deletes it on exit; verify with a `QA_`-leftovers count/list = 0 after running.
 - Max 2 fix retries by default; on the third failure STOP and report.
+- Code-level UI rules are owned by `ui-ux-orchestrator` (`web-design-guidelines`,
+  `ui_gate.py`); this skill runs runtime QA only (a11y, perf, devices, E2E).
 
 ## Per-project references
 

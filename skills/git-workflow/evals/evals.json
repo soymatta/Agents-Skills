@@ -1,0 +1,25 @@
+{
+  "skill_name": "git-workflow",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Create a branch for user authentication and push a release tag v1.2.0",
+      "expected_output": "Executes branch creation and semver release tag flow without staging uninspected files or executing force pushes.",
+      "files": [],
+      "expectations": [
+        "Inspects git status before any branch operation",
+        "Never runs destructive ops (force-push, reset --hard)",
+        "Delegates commit message formulation to commit skill"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Commit these files with message 'Fix login bug'",
+      "expected_output": "Routes commit operations to the commit skill rather than formulating independent git commit logic.",
+      "files": [],
+      "expectations": [
+        "Defers commit message creation and validation to the commit skill"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "skill_name": "project-memory",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Set up project memory so the AI remembers conventions and decisions across sessions",
+      "expected_output": "Executes scan -> write -> sync workflow, generating structured files under aidd_docs/memory/ without hallucinating missing docs.",
+      "files": [],
+      "expectations": [
+        "Stops if referenced files cannot be read instead of fabricating content",
+        "Generates modular memory files (architecture, conventions, decisions)",
+        "Reports created memory artifacts"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Debug why our API route returns 500 error",
+      "expected_output": "Routes active bug fixing to the debug skill rather than project-memory.",
+      "files": [],
+      "expectations": [
+        "Recognizes active debugging as separate from project memory maintenance"
+      ]
+    }
+  ]
+}

@@ -5,6 +5,13 @@ interface Props {
 }
 
 const { title, description = "AI agent and skill definitions for OpenCode, Claude Code, Cursor, and Windsurf" } = Astro.props;
+
+// Absolute URLs need `site` in astro.config.mjs. Until it is set these fall back
+// to root-relative paths instead of guessing a domain.
+const absolute = (path: string) => (Astro.site ? new URL(path, Astro.site).href : path);
+const canonical = absolute(Astro.url.pathname);
+const ogImage = absolute('/og-image.png');
+const ogImageAlt = 'Agents & Skills — AI agent, skill and plugin definitions for OpenCode';
 ---
 
 <!doctype html>
@@ -14,13 +21,31 @@ const { title, description = "AI agent and skill definitions for OpenCode, Claud
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<meta name="description" content={description} />
+		<meta name="theme-color" content="#0a0a0b" />
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Agents-Skills" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content={ogImageAlt} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+		<meta name="twitter:image:alt" content={ogImageAlt} />
 		<meta name="generator" content={Astro.generator} />
+		<link rel="canonical" href={canonical} />
 		<title>{title}</title>
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+		<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 	</head>
 	<body>
+		<a class="skip-link" href="#main">Skip to content</a>
 		<slot />
 	</body>
 </html>
@@ -34,7 +59,7 @@ const { title, description = "AI agent and skill definitions for OpenCode, Claud
 		--border-subtle: #1c1c1f;
 		--text: #fafafa;
 		--text-muted: #a1a1aa;
-		--text-dim: #71717a;
+		--text-dim: #82828b; /* bumped from #71717a: small labels now clear WCAG AA 4.5:1 on --bg */
 		--accent: #6366f1;
 		--accent-light: #818cf8;
 		--accent-glow: rgba(99, 102, 241, 0.15);
@@ -50,11 +75,14 @@ const { title, description = "AI agent and skill definitions for OpenCode, Claud
 		--purple-dim: rgba(168, 85, 247, 0.12);
 		--orange: #fb923c;
 		--orange-dim: rgba(251, 146, 60, 0.12);
-		--font: 'Inter', system-ui, -apple-system, sans-serif;
+		--font: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
 		--mono: 'JetBrains Mono', ui-monospace, monospace;
 		--max-w: 1100px;
 		--radius: 12px;
 		--radius-sm: 8px;
+		--nav-h: 56px;
+		/* Anchor offset; the nav grows to two rows on narrow screens. */
+		--nav-offset: calc(var(--nav-h) + 16px);
 	}
 
 	*, *::before, *::after {
@@ -67,6 +95,86 @@ const { title, description = "AI agent and skill definitions for OpenCode, Claud
 		scroll-behavior: smooth;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
+	}
+
+	/* Keep sticky-nav from covering anchored headings. */
+	:where(section, header, main, footer)[id] {
+		scroll-margin-top: var(--nav-offset);
+	}
+
+	/* Browser surfaces carry the palette too. */
+	::selection {
+		background: var(--accent);
+		color: #fff;
+	}
+
+	html {
+		scrollbar-color: var(--border) transparent;
+	}
+
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: var(--bg);
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: var(--border);
+		border-radius: 999px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background: var(--text-dim);
+	}
+
+	:where(a, button, [tabindex]):focus-visible {
+		outline: 2px solid var(--accent-light);
+		outline-offset: 2px;
+		border-radius: 4px;
+	}
+
+	.skip-link {
+		position: absolute;
+		left: 16px;
+		top: -48px;
+		z-index: 200;
+		padding: 10px 16px;
+		background: var(--accent);
+		color: #fff;
+		border-radius: var(--radius-sm);
+		font-weight: 600;
+		font-size: 0.875rem;
+		transition: top 0.15s ease-out;
+	}
+
+	.skip-link:focus {
+		top: 12px;
+		color: #fff;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		html {
+			scroll-behavior: auto;
+		}
+
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
+
+	/* The nav wraps to two rows here, so anchors need the taller offset. */
+	@media (max-width: 560px) {
+		:root {
+			--nav-offset: 120px;
+		}
 	}
 
 	body {

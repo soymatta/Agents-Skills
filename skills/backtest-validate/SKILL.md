@@ -93,10 +93,35 @@ The script writes `reports/backtest_eval_<timestamp>.json` and `.md`
 
 | Script | Args | Description |
 |--------|------|-------------|
-| `scripts/evaluate_backtest.py` | `--input JSON` (preferred), or `--total-trades`, `--win-rate`, `--avg-win-pct`, `--avg-loss-pct`, `--max-drawdown-pct`, `--years-tested`, `--num-parameters`, `--slippage-tested`; `--force-abandon-on-high-redflag`, `--output-dir` | Scores backtest quality across 5 dimensions |
+| `scripts/evaluate_backtest.py` | `--input JSON` (preferred), or `--total-trades`, `--win-rate`, `--avg-win-pct`, `--avg-loss-pct`, `--max-drawdown-pct`, `--years-tested`, `--num-parameters`, `--slippage-tested`; `--force-abandon-on-high-redflag`, `--output-dir`, `--selftest` | Scores backtest quality across 5 dimensions |
 
 ## Scoring Dimensions
-Each 0-20 pts, total 100: Sample Size, Expectancy, Risk Management, Robustness, Execution Realism.
+
+Each dimension scores 0-20, total 100. **This table is the spec:**
+`python scripts/evaluate_backtest.py --selftest` parses it and asserts every row
+against the scoring functions, so the doc and the code cannot drift.
+
+| Dimension | Input | Expected score |
+|-----------|-------|----------------|
+| Sample Size | total_trades=29 | 0 |
+| Sample Size | total_trades=30 | 8 |
+| Sample Size | total_trades=100 | 15 |
+| Sample Size | total_trades=200 | 20 |
+| Expectancy | expectancy=0.0 | 0 |
+| Expectancy | expectancy=0.5 | 10 |
+| Expectancy | expectancy=1.5 | 20 |
+| Risk Management | drawdown=20, profit_factor=3.0 | 19 |
+| Risk Management | drawdown=19, profit_factor=3.0 | 20 |
+| Risk Management | drawdown=50 | 0 |
+| Robustness | years=5, params=4 | 10 |
+| Robustness | years=10, params=4 | 20 |
+| Robustness | years=10, params=7 | 16 |
+| Robustness | years=10, params=8 | 15 |
+| Execution Realism | slippage=true | 20 |
+| Execution Realism | slippage=false | 0 |
+| Verdict | score=39 | Abandon |
+| Verdict | score=40 | Refine |
+| Verdict | score=70 | Deploy |
 
 ## Output format
 - `reports/backtest_eval_<timestamp>.json` — structured scores, red flags, verdict (+ `red_flag_override` when forced)

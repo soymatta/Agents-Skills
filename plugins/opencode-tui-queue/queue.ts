@@ -1,4 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin, PluginModule } from "@opencode-ai/plugin"
 import type { Part } from "@opencode-ai/sdk"
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
@@ -50,6 +50,21 @@ export interface QueueState {
 export function makeId(): string {
   return `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
 }
+const ID_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+/**
+ * Id de PARTE. El runtime lo decodifica al crear el mensaje y exige el prefijo
+ * `prt`; con otro cualquiera aborta con 500
+ * (`Expected a string starting with "prt"`). Mismo formato que sus ids.
+ */
+export function partId(random: () => number = Math.random): string {
+  let out = "prt_"
+  for (let i = 0; i < 26; i++) {
+    out += ID_ALPHABET[Math.floor(random() * ID_ALPHABET.length) % ID_ALPHABET.length]
+  }
+  return out
+}
+
 
 export function defaultState(): QueueState {
   return { alwaysOn: true, stopped: false, entries: [] }
@@ -163,7 +178,7 @@ type PluginClient = Parameters<Plugin>[0]["client"]
 
 // ── Plugin ─────────────────────────────────────────────────────────────
 
-const plugin: Plugin = async ({ client }) => {
+const server: Plugin = async ({ client }) => {
   const log = async (message: string): Promise<void> => {
     try {
       await client.app.log({ body: { service: CONFIG.logTag, level: "info", message } })
@@ -321,7 +336,7 @@ const plugin: Plugin = async ({ client }) => {
   }
 
   const hiddenPart = (sessionID: string, messageID: string | undefined): Part => ({
-    id: makeId(),
+    id: partId(),
     sessionID,
     messageID: messageID ?? "",
     type: "text",
@@ -385,7 +400,10 @@ const plugin: Plugin = async ({ client }) => {
     "command.execute.before": async ({ command, sessionID, arguments: args }, output) => {
       try {
         if (command !== "queue") return
-        output.parts = [hiddenPart(sessionID, undefined)]
+        // EN SU SITIO: el runtime conserva su referencia al array y es esa la que
+        // pasa al modelo; `output.parts = [hiddenPart(...)]` no cambia nada y el
+        // prompt del comando acaba llegando al modelo.
+        output.parts.splice(0, output.parts.length, hiddenPart(sessionID, undefined))
         await handleQueueCommand(sessionID, args ?? "")
       } catch (err) {
         console.warn(`[${CONFIG.logTag}] command.execute.before error:`, err)
@@ -424,4 +442,9 @@ const plugin: Plugin = async ({ client }) => {
 }
 
 export { CONFIG }
+
+// El loader exige un objeto con `server`: con un default export que sea
+// funcion recorre TODOS los exports del modulo y falla con
+// "Plugin export is not a function" en cuanto hay una constante exportada.
+const plugin: PluginModule = { id: "opencode-tui-queue", server }
 export default plugin

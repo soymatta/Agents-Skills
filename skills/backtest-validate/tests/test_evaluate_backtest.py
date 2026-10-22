@@ -591,3 +591,43 @@ class TestFileOutput:
         md_text = md_path.read_text(encoding="utf-8")
         assert "# Backtest Evaluation Report" in md_text
         assert result["verdict"] in md_text
+
+
+# ---------------------------------------------------------------------------
+# 12. --selftest: the SKILL.md thresholds table is the spec
+# ---------------------------------------------------------------------------
+
+
+class TestSelftest:
+    def test_selftest_matches_doc(self, evaluator_module):
+        """The shipped SKILL.md table agrees with the scoring functions."""
+        assert evaluator_module.run_selftest() == 0
+
+    def test_selftest_detects_drift(self, evaluator_module, tmp_path: Path):
+        """A doc threshold that disagrees with the code fails loudly."""
+        doc = (Path(__file__).resolve().parents[1] / "SKILL.md").read_text(encoding="utf-8")
+        drifted = doc.replace(
+            "| Sample Size | total_trades=30 | 8 |",
+            "| Sample Size | total_trades=30 | 9 |",
+        )
+        assert drifted != doc, "drift fixture no longer matches SKILL.md"
+        target = tmp_path / "SKILL.md"
+        target.write_text(drifted, encoding="utf-8")
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(evaluator_module, "SKILL_MD", target)
+        try:
+            assert evaluator_module.run_selftest() == 1
+        finally:
+            monkeypatch.undo()
+
+    def test_selftest_requires_table(self, evaluator_module, tmp_path: Path):
+        """Removing the table is an error, never a silent pass."""
+        target = tmp_path / "SKILL.md"
+        target.write_text("## Nothing here\n", encoding="utf-8")
+        monkeypatch = pytest.MonkeyPatch()
+        monkeypatch.setattr(evaluator_module, "SKILL_MD", target)
+        try:
+            with pytest.raises(SystemExit, match="Scoring Dimensions"):
+                evaluator_module.run_selftest()
+        finally:
+            monkeypatch.undo()

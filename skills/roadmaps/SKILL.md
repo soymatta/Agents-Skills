@@ -58,9 +58,14 @@ updated: <ISO date>
 - `.roadmap-state` is cache only — always trust roadmap.md as source of truth
 
 > Staleness reference: this "cache is stale if out-of-date vs the source of truth"
-> rule is the shared convention to reuse for any `state` file in this repo
-> (e.g. `.opencode/state/<skill>.json`), so all persistent state ages out
-> consistently instead of lingering forever.
+> rule is the shared convention to reuse for any `state` file in this repo, so all
+> persistent state ages out consistently instead of lingering forever.
+>
+> State layout (the two homes, one rule): skill-scoped state in
+> `.opencode/state/<skill>/` (e.g. `agent-self-improver/sessions.jsonl`), and
+> goal/decision state in `.opencode/decisions/` (e.g. `goal_state.json` and its
+> `checkpoints/`). Both are disposable and gitignored; a skill must not scatter
+> state anywhere else.
 
 ## Roadmap format (`roadmap.md`)
 
@@ -186,5 +191,5 @@ roadmaps/
 │   ├── api-service.md       # API service template
 │   └── migration.md         # Migration template
 └── tests/
-    └── test_roadmaps.py     # Tests
+    └── test_validate_roadmap.py  # Tests
 ```

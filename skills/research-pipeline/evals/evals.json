@@ -1,0 +1,25 @@
+{
+  "skill_name": "research-pipeline",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Run a quantitative research pipeline to test if moving-average crossover beats buy-and-hold on BTC data",
+      "expected_output": "Executes 6-stage structured pipeline (SCOPE -> LITERATURE -> HYPOTHESIS -> PROTOTYPE -> MEASURE -> DECIDE), clarifying metric/budget first, then runs autonomously.",
+      "files": [],
+      "expectations": [
+        "Asks 1-2 scoping questions regarding metric and budget before starting",
+        "Formulates testable hypothesis with quantitative expectation",
+        "Delegates literature search to academic-source-search"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Find academic papers on transformers in natural language processing",
+      "expected_output": "Routes purely academic paper searching to academic-source-search without spinning up full experimental prototype pipeline.",
+      "files": [],
+      "expectations": [
+        "Delegates purely bibliographic search queries to academic-source-search"
+      ]
+    }
+  ]
+}

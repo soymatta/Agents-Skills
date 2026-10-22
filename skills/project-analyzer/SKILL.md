@@ -7,8 +7,10 @@ description: >-
   effort, with baseline/delta on re-runs. Language-agnostic; works with any project. Asks one optional scoping
   question then runs non-stop. Use when the user wants to analyze/audit/review a project, find bugs, or get
   improvement suggestions. Whole-codebase scope (for a single diff use code-review).
-  Triggers: "analyze", "audit", "review project", "security audit", "analizar",
-  "revisar", "auditar", "que se puede mejorar", "repo audit".
+  Triggers: "analyze", "audit", "review project", "security audit", "security review",
+  "codebase analysis", "project health", "project overview", "technical debt",
+  "architecture review", "find bugs", "analizar", "revisar", "auditar",
+  "que se puede mejorar", "encontrar bugs", "repo audit", "代码审查".
 compatibility: Language-agnostic, works with any project type. No external dependencies. May write its own reports/audit JSON for baseline/delta.
 ---
 
@@ -53,6 +55,11 @@ first; flag high-severity-but-unlikely items for verification rather than ignori
 
 ## Workflow
 
+**0. Deterministic scanner first** — `python scripts/scan_project.py <root> --format both --orphans`
+(stdout only; it writes nothing unless you pass `--json`/`--md`). It emits the structure, key
+files, TODO markers, blockers and hygiene/structure candidates with `file:line`. Steps 1-7
+verify and interpret that output instead of re-deriving it by hand.
+
 **1. Understand project** — Read identity files: `README.md`, `package.json`/`pyproject.toml`, `Dockerfile`, `.gitignore`, `AGENTS.md`. Establish purpose, stack, architecture.
 
 **2. Map structure** — Use glob + directory listing (excluding the scope-control list above). Assess logical organization, naming conventions, separation of concerns.
@@ -84,30 +91,26 @@ first; flag high-severity-but-unlikely items for verification rather than ignori
 
 Skip empty sections with "No significant issues found." Don't force every section if nothing notable.
 
-## Apply fixes mode
+## Fixes are not this skill's job
 
-When the caller asks to fix the findings (e.g. `init_review` hands off a scope), the skill
-moves from read-only diagnosis to guided repair. It receives the findings list from the
-scan and applies the chosen scope. The caller (command) decides which scope, but this
-mode defines how fixes are executed:
+This skill diagnoses; it never edits the target code. Applying a findings list belongs to the
+caller, and one owner per step:
 
-- **Scope mapping** — the fix scope selects findings by severity/area:
-  - `Aplicar todo`: all findings (CRITICAL + MAJOR + MINOR + SUGGESTION).
-  - `Solo lo crítico`: only CRITICAL findings.
-  - `Solo estructura`: only F4 / structure / file-hygiene findings.
-  - `Solo código`: only F2 (blockers) + F3 (pending work) findings.
-  - `No hacer nada`: no changes.
-- **Surgical, one finding at a time** — apply each selected finding with its `file:line`,
-  severity, issue, and suggested fix. Never fix silently; each fix maps to a finding.
-- **Skip with reason** — a finding that proves to be a false positive, or whose fix would
-  introduce risk, is skipped and reported with the reason. Do not force a fix that would
-  harm the project.
-- **Confirm destructive behaviors** — a fix that deletes files, moves structure, changes
-  behavior, or touches production asks for confirmation first.
-- **Verify** — after applying the scope, run the project's tests/lint/build to confirm the
-  fixes don't break anything. Report fixed vs. skipped vs. blocked.
-- **Read-only concern** — this is the ONLY mode that edits target code, and only for the
-  findings explicitly in scope. Everything else in this skill stays read-only.
+- `refactor` applies an audit report across its four axes (cleanup, performance, security,
+  architecture). That is the documented path when the user asks to fix what was found.
+- `init-review` (the command) applies its chosen scope itself by delegating to the `builder` agent.
+
+What this skill owes the caller: the findings list (each with `file:line`, severity, issue and
+a suggested fix) plus the scope mapping the caller will select on:
+
+- `Aplicar todo`: all findings (CRITICAL + MAJOR + MINOR + SUGGESTION).
+- `Solo lo crítico`: only CRITICAL findings.
+- `Solo estructura`: only structure / file-hygiene findings.
+- `Solo código`: only the blocker + pending-work findings.
+- `No hacer nada`: no changes.
+
+If a caller asks this skill to apply the fixes, point at `refactor` or the caller's own apply
+phase instead of editing here.
 
 ## Baseline / delta (re-runs)
 - Write a structured copy of the findings to `reports/audit-<iso>.json` (finding id, severity, file, status) alongside the human report.
@@ -123,6 +126,3 @@ mode defines how fixes are executed:
 - **Read broadly, cite precisely**
 - **Say when unsure**: "tests may not exist yet"
 - **Estimate effort in minutes** per recommendation (~5 min, ~1 h) so the fix scope can be sized at a glance
-
-## Keywords
-"analyze", "audit", "code review", "code quality", "security review", "security audit", "project health", "analizar", "revisar", "auditar", "que se puede mejorar", "encontrar bugs", "problemas de seguridad", "codebase analysis", "project report", "technical debt", "code smells", "architecture review", "repo audit", "代码审查", "project overview"

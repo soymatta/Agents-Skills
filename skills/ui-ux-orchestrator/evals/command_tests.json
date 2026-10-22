@@ -1,0 +1,4 @@
+[
+  {"id": "cmd-seed", "prompt": "/init-ui-ux --seed", "expected": "Routes to ui-ux-pro-max to generate design tokens from scratch"},
+  {"id": "cmd-craft", "prompt": "/init-ui-ux src/components/Navbar.tsx", "expected": "Executes impeccable craft workflow, runs ui_gate.py on file, outputs changes"}
+]

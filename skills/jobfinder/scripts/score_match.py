@@ -11,6 +11,9 @@ Dimensions:
 Pre-scoring gates:
   - Eligibility Gate (citizenship/visa)
   - Language Gate (required vs declared languages)
+
+The weights and the verdict bands are specified by the tables in
+skills/jobfinder/SKILL.md. Run `--selftest` to assert both against this script.
 """
 
 from __future__ import annotations
@@ -19,6 +22,17 @@ import json
 import re
 import sys
 from pathlib import Path
+
+# Weights documented in SKILL.md "5-Dimension Scoring Framework"; --selftest
+# compares them against that table. Location is a pass/fail gate, not a weight.
+WEIGHTS = {
+    "technical": 0.30,
+    "experience": 0.25,
+    "behavioral": 0.15,
+    "career": 0.30,
+}
+
+SKILL_MD = Path(__file__).resolve().parents[1] / "SKILL.md"
 
 
 def normalize_skill(skill: str) -> str:
@@ -240,10 +254,10 @@ def score_job_match(profile: dict, job: dict) -> dict:
         analysis = f"Location gate failed: {location_note}"
     else:
         total = (
-            tech_score * 0.30 +
-            exp_score * 0.25 +
-            behav_score * 0.15 +
-            career_score * 0.30
+            tech_score * WEIGHTS["technical"] +
+            exp_score * WEIGHTS["experience"] +
+            behav_score * WEIGHTS["behavioral"] +
+            career_score * WEIGHTS["career"]
         )
         analysis = _generate_analysis_5d(
             total, tech_score, exp_score, behav_score, career_score,
@@ -284,18 +298,22 @@ def _gate_fail(gate: str, reason: str, job: dict) -> dict:
     }
 
 
+def fit_verdict(total: float) -> str:
+    """Map a 0-100 total to the documented fit band."""
+    if total >= 75:
+        return "Strong Fit"
+    if total >= 60:
+        return "Good Fit"
+    if total >= 45:
+        return "Moderate Fit"
+    if total >= 30:
+        return "Weak Fit"
+    return "Poor Fit"
+
+
 def _generate_analysis_5d(total, tech, exp, behav, career, matched, missing,
                           loc_result, loc_note, lang_flag, lang_note):
-    if total >= 75:
-        verdict = "Strong Fit"
-    elif total >= 60:
-        verdict = "Good Fit"
-    elif total >= 45:
-        verdict = "Moderate Fit"
-    elif total >= 30:
-        verdict = "Weak Fit"
-    else:
-        verdict = "Poor Fit"
+    verdict = fit_verdict(total)
 
     parts = [f"{verdict} ({total:.0f}/100)."]
 
@@ -315,13 +333,131 @@ def _generate_analysis_5d(total, tech, exp, behav, career, matched, missing,
     return " ".join(parts)
 
 
+# ---------------------------------------------------------------------------
+# Self-test: the SKILL.md weight table and fit bands are the spec
+# ---------------------------------------------------------------------------
+
+_LABEL_TO_KEY = {
+    "Technical Skills Match": "technical",
+    "Experience Match": "experience",
+    "Behavioral/Culture Fit": "behavioral",
+    "Career Alignment": "career",
+}
+_BAND_RE = re.compile(r"^-\s+\*\*(?P<label>[^*]+)\*\*\s+\((?P<range>[^)]+)\)")
+
+
+def _parse_weight_rows(text: str) -> list[tuple[str, str, str]]:
+    rows: list[tuple[str, str, str]] = []
+    in_table = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("| Dimension | Weight"):
+            in_table = True
+            continue
+        if not in_table:
+            continue
+        if not stripped.startswith("|"):
+            if rows:
+                break
+            continue
+        cells = [c.strip() for c in stripped.strip("|").split("|")]
+        if len(cells) < 2 or not cells[0] or set(cells[0]) <= {"-", ":"}:
+            continue
+        rows.append((cells[0], cells[1], cells[2] if len(cells) > 2 else ""))
+    return rows
+
+
+def _parse_fit_bands(text: str) -> list[tuple[int, str]]:
+    bands: list[tuple[int, str]] = []
+    for line in text.splitlines():
+        match = _BAND_RE.match(line.strip())
+        if not match:
+            continue
+        rng = match.group("range").strip()
+        if rng.startswith("<"):
+            bands.append((0, match.group("label").strip()))
+            continue
+        digits = re.match(r"\d+", rng)
+        if digits:
+            bands.append((int(digits.group(0)), match.group("label").strip()))
+    return bands
+
+
+def run_selftest() -> int:
+    """Assert the documented weights and fit bands against the code."""
+    text = SKILL_MD.read_text(encoding="utf-8")
+    failures: list[str] = []
+
+    rows = _parse_weight_rows(text)
+    if not rows:
+        raise SystemExit(f"selftest: no weight table found in {SKILL_MD}")
+    documented: dict[str, float] = {}
+    for label, weight, _range in rows:
+        if label in _LABEL_TO_KEY:
+            match = re.search(r"(\d+(?:\.\d+)?)\s*%", weight)
+            if not match:
+                raise SystemExit(f"selftest: unparseable weight {weight!r} for {label}")
+            documented[_LABEL_TO_KEY[label]] = float(match.group(1)) / 100.0
+        elif label == "Location & Logistics":
+            if "Pass/Fail" not in weight:
+                failures.append(f"{label}: doc says {weight!r}, expected Pass/Fail")
+        else:
+            raise SystemExit(f"selftest: unknown dimension {label!r} in {SKILL_MD}")
+
+    missing = set(_LABEL_TO_KEY.values()) - set(documented)
+    if missing:
+        raise SystemExit(f"selftest: weight table missing {sorted(missing)}")
+    for key, expected in documented.items():
+        if abs(WEIGHTS[key] - expected) > 1e-9:
+            failures.append(f"{key}: code {WEIGHTS[key]:.2f}, doc {expected:.2f}")
+    if abs(sum(documented.values()) - 1.0) > 1e-9:
+        failures.append(f"documented weights sum to {sum(documented.values()):.3f}, not 1.0")
+
+    bands = _parse_fit_bands(text)
+    if len(bands) < 2:
+        raise SystemExit(f"selftest: fewer than 2 fit bands found in {SKILL_MD}")
+    bands.sort(key=lambda band: band[0])
+    for index, (lower, label) in enumerate(bands):
+        actual = fit_verdict(lower)
+        if actual != label:
+            failures.append(f"fit_verdict({lower}) -> {actual!r}, doc says {label!r}")
+        if index:
+            below = fit_verdict(lower - 1)
+            if below != bands[index - 1][1]:
+                failures.append(
+                    f"fit_verdict({lower - 1}) -> {below!r}, doc says {bands[index - 1][1]!r}"
+                )
+
+    if failures:
+        for failure in failures:
+            print(f"FAIL {failure}")
+        print(f"selftest: {len(failures)} mismatch(es) with {SKILL_MD}")
+        return 1
+    print(
+        f"selftest: {len(documented)} weight(s) and {len(bands)} fit band(s) "
+        f"match {SKILL_MD}"
+    )
+    return 0
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Score job matches (5D framework)")
-    parser.add_argument("--profile", "-p", required=True, help="Path to profile.json")
-    parser.add_argument("--jobs", "-j", required=True, help="Path to results.json")
+    parser.add_argument("--profile", "-p", help="Path to profile.json")
+    parser.add_argument("--jobs", "-j", help="Path to results.json")
     parser.add_argument("--output", "-o", default="scored.json", help="Output path")
+    parser.add_argument(
+        "--selftest",
+        action="store_true",
+        help="Verify the SKILL.md weight table and fit bands against this script, "
+        "then exit.",
+    )
     args = parser.parse_args()
+
+    if args.selftest:
+        raise SystemExit(run_selftest())
+    if not args.profile or not args.jobs:
+        parser.error("--profile and --jobs are required (or use --selftest)")
 
     profile = json.loads(Path(args.profile).read_text(encoding="utf-8"))
     jobs = json.loads(Path(args.jobs).read_text(encoding="utf-8"))
@@ -344,4 +480,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

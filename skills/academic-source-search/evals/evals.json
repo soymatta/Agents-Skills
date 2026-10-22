@@ -5,18 +5,34 @@
       "id": 1,
       "prompt": "Busco marco teorico para mi tesis sobre desercion escolar en secundaria en Latinoamerica, necesito 10 fuentes peer-reviewed con DOI",
       "expected_output": "10+ fuentes verificadas con DOI, autores, abstract y citas, filtradas por tier de calidad, con citas preliminares",
+      "expectations": [
+        "Returns at least 10 sources and each one carries a DOI",
+        "Every source includes authors, year, title, venue and abstract",
+        "Each source is labeled with a quality tier; non-peer-reviewed and predatory venues are excluded",
+        "Preliminary citations are generated from retrieved metadata, not invented"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Find peer-reviewed papers on transformer quantization for edge devices, last 3 years, with citation counts",
       "expected_output": "Ranked paper list with DOI, venue tier, abstract, citation count and a state-of-the-art summary",
+      "expectations": [
+        "Restricts results to the last 3 years and keeps only peer-reviewed or arXiv sources",
+        "Ranks the papers and reports a citation count for each",
+        "Includes a state-of-the-art summary that cites the retrieved papers"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Verifica si estas 3 referencias existen o son alucinadas: autores, año y DOI de cada una",
       "expected_output": "Existence verdict per reference with corrected metadata or not-found report",
+      "expectations": [
+        "Checks each reference against a database (DOI/CrossRef) instead of answering from memory",
+        "Returns one verdict per reference: verified, corrected metadata, or not found",
+        "Never presents an unverified DOI as verified"
+      ],
       "files": []
     }
   ]

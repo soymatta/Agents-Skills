@@ -48,9 +48,10 @@ the wrong framing and keeps the quota (below) focused on real claims.
 | 5 | Popular media, blogs, Wikipedia (references only) | Do not use directly |
 
 **Integration:** Once metadata is extracted, persist it to `sources.yaml` (see
-[Output format](#output-format)) and run `citation-formatter` — either its
-`scripts/references.py` (renders the references list and in-text pairs) or the
-document generator in `scripts/generate_outputs.py`.
+[Output format](#output-format)) and run the `citation-formatter` skill:
+`skills/citation-formatter/scripts/references.py` renders the references list and
+in-text pairs, and `skills/citation-formatter/scripts/generate_outputs.py` builds
+the final document.
 
 ---
 
@@ -131,7 +132,7 @@ citations_count: 150
 tier: 1
 ```
 
-> **Schema contract:** `citation-formatter/scripts/references.py` validates this
+> **Schema contract:** `skills/citation-formatter/scripts/references.py` validates this
 > schema (required: `title`; rejects any entry that cannot be rendered). Keep
 > the field names and formats exactly as shown above.
 

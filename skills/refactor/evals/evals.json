@@ -1,0 +1,26 @@
+{
+  "skill_name": "refactor",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Refactor this module to fix N+1 database queries on user loading",
+      "expected_output": "Applies surgical performance refactoring while preserving existing public API and behavior, verified by tests.",
+      "files": [],
+      "expectations": [
+        "Selects the performance axis",
+        "Preserves public behavior and interface contracts",
+        "Verifies code changes with existing test suites"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Audit this codebase and give me a read-only report of architectural issues without changing code",
+      "expected_output": "Routes read-only diagnosis to project-analyzer instead of refactor, since refactor is the act-side that edits files.",
+      "files": [],
+      "expectations": [
+        "Points user to project-analyzer for passive audits",
+        "Does not modify code without active refactoring intent"
+      ]
+    }
+  ]
+}

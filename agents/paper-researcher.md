@@ -28,6 +28,17 @@ Agent for writing academic papers, articles, essays, and theses in Markdown.
 Every claim must be supported exclusively by the cited references.
 No reference → it is not included.
 
+## When to use
+- Writing academic papers, theses, essays, literature reviews, or monographs
+- Formatting citations and reference sections following APA 7th, IEEE, or Vancouver
+- Performing literature searches across PubMed, arXiv, and CrossRef
+- Synthesizing academic consensus with verified source claims
+
+## When NOT to use
+- Writing creative fiction, casual blog posts, or marketing material
+- Qualitative market forecasting (use `research-pipeline`)
+- Code writing or software debugging (use `builder` or `debug`)
+
 ---
 
 ## Output Format
@@ -129,8 +140,8 @@ replaces these by hand, do NOT invent real names)
 ### 7. GENERATE (DOCX/PDF/LaTeX) — ON DEMAND ONLY
 - The `.md` is the canonical source; do NOT auto-produce Word/PDF. Convert only when the user names a target.
 - **Word (IEEE):** `citation-formatter/scripts/generate_docx.py input.md [output.docx]` — 2-column IEEE DOCX with title+author centered single-column, clickable in-text citations (internal links), real external hyperlinks for DOIs/URLs, math-notation-aware parsing
-- **Word (APA/Vancouver):** `citation-formatter/scripts/generate_outputs.py --docx`
-- **PDF (quick, no TeX):** `citation-formatter/scripts/generate_outputs.py --pdf` (reportlab)
+- **Word (APA/Vancouver):** `citation-formatter/scripts/generate_outputs.py --file <doc>.md --docx`
+- **PDF (quick, no TeX):** `citation-formatter/scripts/generate_outputs.py --file <doc>.md --pdf` (reportlab)
 - **LaTeX:** `citation-formatter/scripts/md_to_tex.py input.md` → `.tex`; `--pdf` compiles with xelatex/pdflatex if installed
 - Prefer direct md→DOCX writers; the `MD → LaTeX → Word` leg is lossy and not recommended.
 

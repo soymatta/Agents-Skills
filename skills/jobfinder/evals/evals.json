@@ -5,18 +5,33 @@
       "id": 1,
       "prompt": "Busca empleos Python remoto para mi perfil (5 años backend, Django, AWS) y puntua fit 5D",
       "expected_output": "Shortlist con 5D scores, carta y CV adaptado para el mejor match",
+      "expectations": [
+        "Searches at least one real job source and returns listings with links",
+        "Scores each listing with the 5-dimension framework",
+        "Produces a tailored CV and cover letter for the top match"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Evalua este posting de data analyst vs mi CV y genera cover letter",
       "expected_output": "Score de fit con gaps + cover letter forward-looking + CV tailoreado",
+      "expectations": [
+        "Scores the posting across the five dimensions and assigns a verdict band",
+        "Lists matched and missing skills explicitly",
+        "The cover letter is forward-looking and references the actual posting"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Hazme skill-gap analysis para pasar de QA manual a SDET con plan de aprendizaje",
       "expected_output": "Gaps priorizados con plan y prep de entrevista STAR",
+      "expectations": [
+        "Produces a prioritized gap list with a learning plan per gap",
+        "Prepares STAR interview answers for the target role",
+        "Does not invent experience the profile does not have"
+      ],
       "files": []
     }
   ]

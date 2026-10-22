@@ -5,18 +5,33 @@
       "id": 1,
       "prompt": "Formatea estas 8 referencias en APA 7ma edicion con lista de referencias y pagina de titulo",
       "expected_output": "Documento con citas en texto, lista de referencias APA y portada, generado via generate_outputs.py",
+      "expectations": [
+        "Uses generate_outputs.py instead of hand-formatting the document",
+        "Produces in-text citations plus an alphabetized APA 7th reference list",
+        "Includes an APA 7th student title page and a table of contents"
+      ],
       "files": []
     },
     {
       "id": 2,
       "prompt": "Necesito mis citas en formato IEEE con DOCX y hipervinculos clicables",
       "expected_output": "DOCX IEEE con citas numericas e hipervinculos via generate_docx.py",
+      "expectations": [
+        "Uses generate_docx.py for the IEEE DOCX output",
+        "Numbers citations in order of appearance and makes them clickable",
+        "The reference list matches IEEE style"
+      ],
       "files": []
     },
     {
       "id": 3,
       "prompt": "Convierte esta bibliografia Vancouver desordenada a formato correcto con citas en texto",
       "expected_output": "Referencias Vancouver numeradas en orden de aparicion y citas corregidas",
+      "expectations": [
+        "Numbers Vancouver references in order of first appearance",
+        "Rewrites in-text citations to match the new numbering",
+        "Leaves no duplicate or orphan references"
+      ],
       "files": []
     }
   ]

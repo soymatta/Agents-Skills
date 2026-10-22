@@ -341,5 +341,5 @@ content-humanizer/
 │   └── verify_ai.py       # Unified free pipeline (L1 lingüística + L2 local
 │                          #   + L3 HF Inference + L4 GPTZero), gate exit code
 └── tests/
-    └── test_detect.py     # Tests for detection script
+    └── test_detect_ai.py     # Tests for detection script
 ```
